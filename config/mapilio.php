@@ -1,0 +1,30 @@
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Mapilio Platform Identity
+    |--------------------------------------------------------------------------
+    |
+    | The modern backend preserves external API behavior where needed, but the
+    | internal architecture is organized around Mapilio domains instead of
+    | PyroCMS modules or Streams add-ons.
+    |
+    */
+
+    'service_name' => env('MAPILIO_SERVICE_NAME', 'mapilio-modern-backend'),
+
+    'legacy_api_contract' => env('MAPILIO_LEGACY_API_CONTRACT', 'legacy-v1-behavior'),
+
+    'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
+
+    'domains' => [
+        'identity_access',
+        'imagery_sequences',
+        'ai_jobs_predictions',
+        'inventory_features',
+        'geo_publishing',
+        'operations_dashboard',
+        'community_integrations',
+    ],
+];
