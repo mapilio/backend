@@ -15,6 +15,33 @@ class UnsupportedLegacySurfaceGuardrailTest extends TestCase
             ]);
     }
 
+    public function test_dynamic_auth_login_is_not_exposed_without_compatibility_design(): void
+    {
+        $this->postJson('/api/auth/login', [])
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+    }
+
+    public function test_dynamic_auth_register_is_not_exposed_without_registration_design(): void
+    {
+        $this->postJson('/api/auth/register', [])
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+    }
+
+    public function test_token_protected_dynamic_endpoint_is_not_exposed_without_allowlist(): void
+    {
+        $this->getJson('/api/Imagery/getPointByUser?token=invalid-token')
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+    }
+
     public function test_generic_entry_read_is_not_exposed_without_explicit_allowlist(): void
     {
         $this->getJson('/api/entries/mapilio/imagery/1')

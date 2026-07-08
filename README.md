@@ -66,7 +66,7 @@ Legacy routes remain available when current web, mobile, AI, or community integr
 
 ## Unsupported Legacy Surfaces
 
-The modern backend does not expose the old dynamic dispatcher, generic entry reads, public write routes, or AI callback route until each surface has an explicit compatibility and security design.
+The modern backend does not expose the old dynamic dispatcher, generic entry reads, dynamic auth login/register, body-token dynamic APIs, public write routes, or AI callback route until each surface has an explicit compatibility and security design.
 
 Unsupported API and webhook paths return a stable JSON 404 response without debug stack traces.
 
