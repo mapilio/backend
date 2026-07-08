@@ -14,6 +14,8 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Versioned alias for the first preserved endpoint: `/api/v1/imagery/country-image-count`.
 - Preserved leaderboard endpoints: `/api/leaderboard` and `/api/get-point-by-user`.
 - Versioned aliases for leaderboard reads: `/api/v1/imagery/leaderboard` and `/api/v1/imagery/user-points`.
+- Preserved sequence metadata endpoint: `/api/sequence-detail`.
+- Versioned alias for sequence metadata: `/api/v1/imagery/sequence-detail`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`

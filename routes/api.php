@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
+use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('country-image-count', CountryImageCountController::class)
@@ -12,6 +13,8 @@ Route::get('leaderboard', LeaderboardController::class)
     ->name('api.legacy.leaderboard');
 Route::get('get-point-by-user', GetPointByUserController::class)
     ->name('api.legacy.get-point-by-user');
+Route::get('sequence-detail', SequenceDetailController::class)
+    ->name('api.legacy.sequence-detail');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -21,4 +24,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.leaderboard');
     Route::get('imagery/user-points', GetPointByUserController::class)
         ->name('imagery.user-points');
+    Route::get('imagery/sequence-detail', SequenceDetailController::class)
+        ->name('imagery.sequence-detail');
 });
