@@ -12,10 +12,13 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - First health endpoint: `/api/v1/system/health`.
 - First preserved legacy endpoint: `/api/country-image-count`.
 - Versioned alias for the first preserved endpoint: `/api/v1/imagery/country-image-count`.
+- Preserved leaderboard endpoints: `/api/leaderboard` and `/api/get-point-by-user`.
+- Versioned aliases for leaderboard reads: `/api/v1/imagery/leaderboard` and `/api/v1/imagery/user-points`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
   - `docs/architecture/0002-database-modernization-strategy.md`
+  - `docs/architecture/0003-legacy-compatibility-endpoints.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
@@ -41,6 +44,16 @@ Old PyroCMS modules can be:
 - retired when unused
 
 The old backend remains the source of truth for current behavior until contract tests and owner-reviewed decisions replace assumptions.
+
+## Legacy Compatibility Endpoints
+
+Legacy routes remain available when current web, mobile, AI, or community integrations depend on them. Each preserved route should have:
+
+- an explicit compatibility controller under `app/Http/Controllers/Legacy`
+- domain/query code outside the controller
+- a versioned `/api/v1` alias for future documentation
+- feature tests that verify response shape, field types, and key error envelopes
+- live smoke verification against a safe read-only legacy database or staging copy before release
 
 ## Database Modernization Rule
 

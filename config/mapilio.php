@@ -18,6 +18,14 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'leaderboard' => [
+        'limit' => (int) env('MAPILIO_LEADERBOARD_LIMIT', 30),
+        'excluded_role_slugs' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('MAPILIO_LEADERBOARD_EXCLUDED_ROLE_SLUGS', '')),
+        ))),
+    ],
+
     'domains' => [
         'identity_access',
         'imagery_sequences',
