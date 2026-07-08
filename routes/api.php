@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\System\HealthController;
+use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
@@ -18,6 +19,8 @@ Route::get('sequence-detail', SequenceDetailController::class)
     ->name('api.legacy.sequence-detail');
 Route::get('embed/{sequenceUuid}', EmbedImageController::class)
     ->name('api.legacy.embed-image');
+Route::get('get-uploaded-roads-group', UploadedRoadsByGroupController::class)
+    ->name('api.legacy.uploaded-roads-group');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -31,4 +34,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.sequence-detail');
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
         ->name('imagery.embed-image');
+    Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
+        ->name('geo.uploaded-roads-group');
 });
