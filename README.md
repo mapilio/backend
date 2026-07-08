@@ -18,6 +18,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0002-database-modernization-strategy.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
+- Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
 
 ## Local Commands
 
