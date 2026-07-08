@@ -13,7 +13,9 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - First preserved legacy endpoint: `/api/country-image-count`.
 - Versioned alias for the first preserved endpoint: `/api/v1/imagery/country-image-count`.
 - Domain notes: `app/Domain/README.md`.
-- Architecture decision record: `docs/architecture/0001-modern-backend-foundation.md`.
+- Architecture decision records:
+  - `docs/architecture/0001-modern-backend-foundation.md`
+  - `docs/architecture/0002-database-modernization-strategy.md`
 
 ## Local Commands
 
@@ -36,3 +38,9 @@ Old PyroCMS modules can be:
 - retired when unused
 
 The old backend remains the source of truth for current behavior until contract tests and owner-reviewed decisions replace assumptions.
+
+## Database Modernization Rule
+
+The new backend may use a redesigned PostgreSQL/PostGIS schema. The legacy database is the source of truth during migration, but old table shapes are not automatically preserved.
+
+Any schema rewrite must be protected by repeatable import commands, source-to-target ID mapping, staging backfills, aggregate checks, geospatial checks, API contract tests, and a route-by-route cutover plan.
