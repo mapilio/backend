@@ -37,6 +37,10 @@ class LeaderboardCompatibilityTest extends TestCase
             $table->id();
             $table->integer('created_by_id');
             $table->string('sequence_uuid');
+            $table->decimal('ukm_score', 12, 2)->nullable();
+            $table->decimal('gps_score', 12, 2)->nullable();
+            $table->decimal('time_score', 12, 2)->nullable();
+            $table->decimal('distance_score', 12, 2)->nullable();
             $table->boolean('anomaly')->default(false);
             $table->timestamp('created_at')->nullable();
             $table->timestamp('deleted_at')->nullable();
@@ -116,11 +120,11 @@ class LeaderboardCompatibilityTest extends TestCase
         ]);
 
         Schema::getConnection()->table('default_mapilio_imagery')->insert([
-            ['created_by_id' => 10, 'sequence_uuid' => 'seq-a', 'anomaly' => false, 'created_at' => '2026-01-01 12:00:00', 'deleted_at' => null],
-            ['created_by_id' => 10, 'sequence_uuid' => 'seq-a', 'anomaly' => false, 'created_at' => '2026-01-01 12:01:00', 'deleted_at' => null],
-            ['created_by_id' => 10, 'sequence_uuid' => 'seq-b', 'anomaly' => false, 'created_at' => '2026-01-02 12:00:00', 'deleted_at' => null],
-            ['created_by_id' => 20, 'sequence_uuid' => 'seq-c', 'anomaly' => false, 'created_at' => '2026-01-03 12:00:00', 'deleted_at' => null],
-            ['created_by_id' => 30, 'sequence_uuid' => 'seq-d', 'anomaly' => false, 'created_at' => '2026-01-04 12:00:00', 'deleted_at' => null],
+            ['created_by_id' => 10, 'sequence_uuid' => 'seq-a', 'ukm_score' => 40, 'gps_score' => 5, 'time_score' => 3, 'distance_score' => 2, 'anomaly' => false, 'created_at' => '2026-01-01 12:00:00', 'deleted_at' => null],
+            ['created_by_id' => 10, 'sequence_uuid' => 'seq-a', 'ukm_score' => 50, 'gps_score' => 5, 'time_score' => 3, 'distance_score' => 2, 'anomaly' => false, 'created_at' => '2026-01-01 12:01:00', 'deleted_at' => null],
+            ['created_by_id' => 10, 'sequence_uuid' => 'seq-b', 'ukm_score' => 20, 'gps_score' => 2, 'time_score' => 2, 'distance_score' => 1, 'anomaly' => false, 'created_at' => '2026-01-02 12:00:00', 'deleted_at' => null],
+            ['created_by_id' => 20, 'sequence_uuid' => 'seq-c', 'ukm_score' => 400, 'gps_score' => 50, 'time_score' => 30, 'distance_score' => 20, 'anomaly' => false, 'created_at' => '2026-01-03 12:00:00', 'deleted_at' => null],
+            ['created_by_id' => 30, 'sequence_uuid' => 'seq-d', 'ukm_score' => 900, 'gps_score' => 50, 'time_score' => 30, 'distance_score' => 19, 'anomaly' => false, 'created_at' => '2026-01-04 12:00:00', 'deleted_at' => null],
         ]);
 
         Schema::getConnection()->table('default_users_roles')->insert([
@@ -177,6 +181,60 @@ class LeaderboardCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_legacy_v2_leaderboard_path_uses_image_score_contract(): void
+    {
+        $this->getJson('/api/v2/leaderboard')
+            ->assertOk()
+            ->assertExactJson([
+                'data' => [
+                    'leaderboard' => [
+                        [
+                            'id' => 20,
+                            'username' => 'bob',
+                            'display_name' => 'Bob',
+                            'user_profile_photo' => null,
+                            'point' => '500',
+                            'total_length' => '2.00',
+                            'total_images' => 1,
+                            'roles' => null,
+                        ],
+                        [
+                            'id' => 10,
+                            'username' => 'alice',
+                            'display_name' => 'Alice',
+                            'user_profile_photo' => 'https://images.example/alice.jpg',
+                            'point' => '135',
+                            'total_length' => '9.67',
+                            'total_images' => 3,
+                            'roles' => '{user}',
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_legacy_v2_leaderboard_respects_user_filter(): void
+    {
+        $this->getJson('/api/v2/leaderboard?user_id=10')
+            ->assertOk()
+            ->assertExactJson([
+                'data' => [
+                    'leaderboard' => [
+                        [
+                            'id' => 10,
+                            'username' => 'alice',
+                            'display_name' => 'Alice',
+                            'user_profile_photo' => 'https://images.example/alice.jpg',
+                            'point' => '135',
+                            'total_length' => '9.67',
+                            'total_images' => 3,
+                            'roles' => '{user}',
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_get_point_by_user_preserves_legacy_wrapper_and_pagination(): void

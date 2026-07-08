@@ -20,6 +20,10 @@ return [
 
     'leaderboard' => [
         'limit' => (int) env('MAPILIO_LEADERBOARD_LIMIT', 30),
+        'public_role_slugs' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('MAPILIO_LEADERBOARD_PUBLIC_ROLE_SLUGS', 'admin,blog_editor,contributor,member,org_admin,user')),
+        ))),
         'excluded_role_slugs' => array_values(array_filter(array_map(
             'trim',
             explode(',', env('MAPILIO_LEADERBOARD_EXCLUDED_ROLE_SLUGS', '')),

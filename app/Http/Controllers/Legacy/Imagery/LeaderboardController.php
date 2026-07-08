@@ -13,7 +13,11 @@ class LeaderboardController extends Controller
     public function __invoke(Request $request, LeaderboardQuery $query): JsonResponse
     {
         try {
-            $leaderboard = $query->get($request->query());
+            $leaderboard = $query->get(
+                $request->query(),
+                null,
+                (int) $request->route('score_version', LeaderboardQuery::SCORE_VERSION_SEQUENCE),
+            );
         } catch (InvalidArgumentException $exception) {
             return $this->legacyValidationError($exception->getMessage());
         }

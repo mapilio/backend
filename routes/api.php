@@ -14,6 +14,9 @@ Route::get('country-image-count', CountryImageCountController::class)
     ->name('api.legacy.country-image-count');
 Route::get('leaderboard', LeaderboardController::class)
     ->name('api.legacy.leaderboard');
+Route::get('v2/leaderboard', LeaderboardController::class)
+    ->defaults('score_version', 2)
+    ->name('api.legacy.v2.leaderboard');
 Route::get('leaderboard-winner', LeaderboardWinnerController::class)
     ->name('api.legacy.leaderboard-winner');
 Route::get('v2/leaderboard-winner', LeaderboardWinnerController::class)
