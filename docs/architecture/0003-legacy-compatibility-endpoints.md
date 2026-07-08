@@ -16,6 +16,8 @@ The modern backend now preserves:
 
 - `/api/country-image-count`
 - `/api/leaderboard`
+- `/api/leaderboard-winner`
+- `/api/v2/leaderboard-winner`
 - `/api/get-point-by-user`
 - `/api/sequence-detail`
 - `/api/embed/{sequenceUuid}`
@@ -25,6 +27,7 @@ It also exposes v1 aliases:
 
 - `/api/v1/imagery/country-image-count`
 - `/api/v1/imagery/leaderboard`
+- `/api/v1/imagery/leaderboard-winner`
 - `/api/v1/imagery/user-points`
 - `/api/v1/imagery/sequence-detail`
 - `/api/v1/imagery/embed/{sequenceUuid}`
@@ -43,6 +46,7 @@ It also exposes v1 aliases:
 The leaderboard compatibility pass added feature coverage for:
 
 - legacy leaderboard response shape
+- leaderboard winner default, v2 default, and date-window status metadata
 - versioned leaderboard alias equivalence
 - point-by-user wrapper and pagination envelope
 - versioned point-by-user alias data equivalence

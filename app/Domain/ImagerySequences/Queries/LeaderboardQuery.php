@@ -14,14 +14,14 @@ class LeaderboardQuery
     /**
      * @throws ValidationException
      */
-    public function get(array $filters = []): array
+    public function get(array $filters = [], ?int $limit = null): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
         $userId = $this->optionalUserId($filters['user_id'] ?? null);
         $dateWindow = $this->dateWindow($filters);
 
         $rows = $connection->select(
-            $this->sql($connection, $userId, $dateWindow),
+            $this->sql($connection, $userId, $dateWindow, $limit),
             $this->bindings($userId, $dateWindow),
         );
 
@@ -81,7 +81,7 @@ class LeaderboardQuery
     /**
      * @param  array{0: string, 1: string}|null  $dateWindow
      */
-    private function sql(ConnectionInterface $connection, ?int $userId, ?array $dateWindow): string
+    private function sql(ConnectionInterface $connection, ?int $userId, ?array $dateWindow, ?int $limit): string
     {
         $sequenceWhere = [
             'entries.deleted_at IS NULL',
@@ -130,7 +130,7 @@ class LeaderboardQuery
         $rolesExpression = $connection->getDriverName() === 'pgsql'
             ? 'ARRAY_AGG(roles.slug) AS roles'
             : 'GROUP_CONCAT(roles.slug) AS roles';
-        $limit = max(1, min((int) config('mapilio.leaderboard.limit', 30), 100));
+        $limit = max(1, min($limit ?? (int) config('mapilio.leaderboard.limit', 30), 100));
 
         return sprintf(
             <<<'SQL'
