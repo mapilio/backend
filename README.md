@@ -27,6 +27,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0001-modern-backend-foundation.md`
   - `docs/architecture/0002-database-modernization-strategy.md`
   - `docs/architecture/0003-legacy-compatibility-endpoints.md`
+  - `docs/architecture/0004-unsupported-legacy-surface-guardrails.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
@@ -62,6 +63,12 @@ Legacy routes remain available when current web, mobile, AI, or community integr
 - a versioned `/api/v1` alias for future documentation
 - feature tests that verify response shape, field types, and key error envelopes
 - live smoke verification against a safe read-only legacy database or staging copy before release
+
+## Unsupported Legacy Surfaces
+
+The modern backend does not expose the old dynamic dispatcher, generic entry reads, public write routes, or AI callback route until each surface has an explicit compatibility and security design.
+
+Unsupported API and webhook paths return a stable JSON 404 response without debug stack traces.
 
 ## Database Modernization Rule
 
