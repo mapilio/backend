@@ -27,9 +27,12 @@ The legacy backend contains PostGIS-heavy code paths around imagery, features, l
 
 The scanned backend code did not show direct GeoServer layer-management logic. That means GeoServer may be managed externally, through database publication, manual configuration, server-side scripts, or another service.
 
+Public WMS/WFS capabilities were checked without credentials for the root endpoint and known workspaces. The endpoints responded, but did not advertise named WMS layers or WFS feature types. WFS Transaction was advertised at the service level, so access control must be verified before any writable feature type is exposed.
+
 ## Migration Guardrails
 
 - Do not retire derived geospatial relations until live GeoServer layers are inspected.
+- Inspect authenticated GeoServer stores, layers, SQL views, and data security before retiring no-reference geospatial relations.
 - Do not keep every legacy scheduled command by default.
 - Every retained job needs an owner, schedule, input source, output target, retry policy, idempotency rule, and test plan.
 - Replace raw spatial filters with validated requests and parameterized PostGIS queries.
