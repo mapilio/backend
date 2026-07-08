@@ -18,6 +18,7 @@ The modern backend now preserves:
 - `/api/leaderboard`
 - `/api/get-point-by-user`
 - `/api/sequence-detail`
+- `/api/embed/{sequenceUuid}`
 
 It also exposes v1 aliases:
 
@@ -25,6 +26,7 @@ It also exposes v1 aliases:
 - `/api/v1/imagery/leaderboard`
 - `/api/v1/imagery/user-points`
 - `/api/v1/imagery/sequence-detail`
+- `/api/v1/imagery/embed/{sequenceUuid}`
 
 ## Consequences
 
@@ -44,5 +46,6 @@ The leaderboard compatibility pass added feature coverage for:
 - versioned point-by-user alias data equivalence
 - missing `user_id` error shape
 - sequence detail response ordering, empty-result shape, and missing `sequence_uuid` error shape
+- embed image metadata wrapper, entry ordering, and unknown sequence 404 shape
 
 Live read-only smoke checks compared the old and new JSON for sampled leaderboard and point-by-user requests with exact diffs.

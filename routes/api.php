@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
+use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
 use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
@@ -15,6 +16,8 @@ Route::get('get-point-by-user', GetPointByUserController::class)
     ->name('api.legacy.get-point-by-user');
 Route::get('sequence-detail', SequenceDetailController::class)
     ->name('api.legacy.sequence-detail');
+Route::get('embed/{sequenceUuid}', EmbedImageController::class)
+    ->name('api.legacy.embed-image');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -26,4 +29,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.user-points');
     Route::get('imagery/sequence-detail', SequenceDetailController::class)
         ->name('imagery.sequence-detail');
+    Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
+        ->name('imagery.embed-image');
 });
