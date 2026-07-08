@@ -40,6 +40,8 @@ This shape is useful history, but it is not automatically the target model for t
 6. Use incremental sync, watermarks, or logical replication for domains still changing before production cutover.
 7. Move traffic route-by-route with rollback and keep the legacy database read-only during the rollback window.
 
+The first public-safe target schema draft is in `docs/database/target-schema-draft.md`.
+
 ## Guardrails
 
 - Do not directly rewrite the production schema as the first migration step.

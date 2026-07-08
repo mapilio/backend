@@ -16,6 +16,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
   - `docs/architecture/0002-database-modernization-strategy.md`
+- Database design draft: `docs/database/target-schema-draft.md`.
 
 ## Local Commands
 
