@@ -8,6 +8,7 @@ use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardWinnerController;
 use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
+use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('country-image-count', CountryImageCountController::class)
@@ -17,6 +18,11 @@ Route::get('leaderboard', LeaderboardController::class)
 Route::get('v2/leaderboard', LeaderboardController::class)
     ->defaults('score_version', 2)
     ->name('api.legacy.v2.leaderboard');
+Route::get('leaderboard-organization', OrganizationLeaderboardController::class)
+    ->name('api.legacy.organization-leaderboard');
+Route::get('leaderboard-organization-v2', OrganizationLeaderboardController::class)
+    ->defaults('score_version', 2)
+    ->name('api.legacy.organization-leaderboard-v2');
 Route::get('leaderboard-winner', LeaderboardWinnerController::class)
     ->name('api.legacy.leaderboard-winner');
 Route::get('v2/leaderboard-winner', LeaderboardWinnerController::class)
@@ -38,6 +44,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.leaderboard');
     Route::get('imagery/leaderboard-winner', LeaderboardWinnerController::class)
         ->name('imagery.leaderboard-winner');
+    Route::get('organizations/leaderboard', OrganizationLeaderboardController::class)
+        ->name('organizations.leaderboard');
     Route::get('imagery/user-points', GetPointByUserController::class)
         ->name('imagery.user-points');
     Route::get('imagery/sequence-detail', SequenceDetailController::class)
