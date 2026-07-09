@@ -100,6 +100,34 @@ class PublicContentCompatibilityTest extends TestCase
             $table->timestamp('updated_at')->nullable();
         });
 
+        Schema::create('default_catalog_catalog', function ($table): void {
+            $table->id();
+            $table->integer('sort_order')->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->integer('created_by_id')->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->integer('updated_by_id')->nullable();
+            $table->string('catalog_year')->nullable();
+        });
+
+        Schema::create('default_catalog_catalog_translations', function ($table): void {
+            $table->id();
+            $table->integer('entry_id');
+            $table->timestamp('created_at')->nullable();
+            $table->integer('created_by_id')->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->integer('updated_by_id')->nullable();
+            $table->string('locale');
+            $table->string('catalog_name')->nullable();
+        });
+
+        Schema::create('default_catalog_catalog_catalog_images', function ($table): void {
+            $table->id();
+            $table->integer('entry_id');
+            $table->integer('file_id');
+            $table->integer('sort_order')->nullable();
+        });
+
         Schema::getConnection()->table('default_posts_categories')->insert([
             [
                 'id' => 10,
@@ -286,6 +314,31 @@ class PublicContentCompatibilityTest extends TestCase
                 'related_id' => 502,
                 'sort_order' => 1,
             ],
+        ]);
+
+        Schema::getConnection()->table('default_catalog_catalog')->insert([
+            [
+                'id' => 201,
+                'sort_order' => 1,
+                'created_at' => '2026-05-01 00:00:00',
+                'created_by_id' => null,
+                'updated_at' => '2026-05-02 00:00:00',
+                'updated_by_id' => null,
+                'catalog_year' => '2026',
+            ],
+        ]);
+
+        Schema::getConnection()->table('default_catalog_catalog_translations')->insert([
+            [
+                'entry_id' => 201,
+                'locale' => 'en',
+                'catalog_name' => 'Mapilio Catalog',
+            ],
+        ]);
+
+        Schema::getConnection()->table('default_catalog_catalog_catalog_images')->insert([
+            ['entry_id' => 201, 'file_id' => 9001, 'sort_order' => 0],
+            ['entry_id' => 201, 'file_id' => 9002, 'sort_order' => 1],
         ]);
     }
 
@@ -543,6 +596,60 @@ class PublicContentCompatibilityTest extends TestCase
             ->json();
 
         $versioned = $this->getJson('/api/v1/content/blogs/modern-blog-101-en')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_legacy_catalog_preserves_entry_id_keys_and_root_image_urls(): void
+    {
+        $assetRoot = config('app.url');
+
+        $this->withServerVariables([
+            'HTTP_HOST' => 'catalog.example.test',
+            'SERVER_NAME' => 'catalog.example.test',
+        ])
+            ->getJson('/api/catalog')
+            ->assertOk()
+            ->assertExactJson([
+                'status' => true,
+                'data' => [
+                    '201' => [
+                        'properties' => [
+                            'name' => 'Mapilio Catalog',
+                            'year' => '2026',
+                        ],
+                        'thumbnails' => [
+                            null,
+                            $assetRoot,
+                            $assetRoot,
+                        ],
+                        'images' => [
+                            null,
+                            $assetRoot,
+                            $assetRoot,
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_versioned_catalog_alias_returns_same_contract(): void
+    {
+        $legacy = $this->withServerVariables([
+            'HTTP_HOST' => 'catalog.example.test',
+            'SERVER_NAME' => 'catalog.example.test',
+        ])
+            ->getJson('/api/catalog')
+            ->assertOk()
+            ->json();
+
+        $versioned = $this->withServerVariables([
+            'HTTP_HOST' => 'catalog.example.test',
+            'SERVER_NAME' => 'catalog.example.test',
+        ])
+            ->getJson('/api/v1/content/catalog')
             ->assertOk()
             ->json();
 

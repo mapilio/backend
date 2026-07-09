@@ -12,6 +12,7 @@ use App\Http\Controllers\Legacy\Inventory\SpriteController;
 use App\Http\Controllers\Legacy\Inventory\TypeMetadataController;
 use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
 use App\Http\Controllers\Legacy\PublicContent\BlogContentController;
+use App\Http\Controllers\Legacy\PublicContent\CatalogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('country-image-count', CountryImageCountController::class)
@@ -52,6 +53,8 @@ Route::get('get-blogs', [BlogContentController::class, 'blogs'])
     ->name('api.legacy.blogs');
 Route::get('get-blog-detail/{slug}', [BlogContentController::class, 'detail'])
     ->name('api.legacy.blog-detail');
+Route::get('catalog', CatalogController::class)
+    ->name('api.legacy.catalog');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -85,4 +88,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('content.blogs');
     Route::get('content/blogs/{slug}', [BlogContentController::class, 'detail'])
         ->name('content.blogs.detail');
+    Route::get('content/catalog', CatalogController::class)
+        ->name('content.catalog');
 });
