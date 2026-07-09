@@ -35,6 +35,7 @@ return [
         'imagery_sequences',
         'ai_jobs_predictions',
         'inventory_features',
+        'public_content',
         'geo_publishing',
         'operations_dashboard',
         'community_integrations',
