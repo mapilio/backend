@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\System\HealthController;
+use App\Http\Controllers\Legacy\Billing\BillingPlanController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
@@ -55,6 +56,10 @@ Route::get('get-blog-detail/{slug}', [BlogContentController::class, 'detail'])
     ->name('api.legacy.blog-detail');
 Route::get('catalog', CatalogController::class)
     ->name('api.legacy.catalog');
+Route::get('package-list', [BillingPlanController::class, 'packages'])
+    ->name('api.legacy.billing.packages');
+Route::get('hosting-list', [BillingPlanController::class, 'hosting'])
+    ->name('api.legacy.billing.hosting');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -90,4 +95,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('content.blogs.detail');
     Route::get('content/catalog', CatalogController::class)
         ->name('content.catalog');
+    Route::get('billing/packages', [BillingPlanController::class, 'packages'])
+        ->name('billing.packages');
+    Route::get('billing/hosting', [BillingPlanController::class, 'hosting'])
+        ->name('billing.hosting');
 });

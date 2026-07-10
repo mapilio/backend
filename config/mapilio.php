@@ -34,6 +34,7 @@ return [
         'identity_access',
         'imagery_sequences',
         'ai_jobs_predictions',
+        'billing_catalog',
         'inventory_features',
         'public_content',
         'geo_publishing',
