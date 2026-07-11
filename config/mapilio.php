@@ -38,6 +38,7 @@ return [
         'inventory_features',
         'public_content',
         'projects',
+        'gamification',
         'geo_publishing',
         'operations_dashboard',
         'community_integrations',

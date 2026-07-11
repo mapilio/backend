@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
+use App\Http\Controllers\Legacy\Gamification\GamificationBadgesController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
@@ -63,6 +64,9 @@ Route::get('hosting-list', [BillingPlanController::class, 'hosting'])
     ->name('api.legacy.billing.hosting');
 Route::get('get-marketplaces', MarketplaceController::class)
     ->name('api.legacy.projects.marketplaces');
+Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
+    ->whereNumber('userId')
+    ->name('api.legacy.gamification.badges');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -104,4 +108,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('billing.hosting');
     Route::get('projects/marketplaces', MarketplaceController::class)
         ->name('projects.marketplaces');
+    Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
+        ->whereNumber('userId')
+        ->name('gamification.badges');
 });
