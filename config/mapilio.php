@@ -37,6 +37,7 @@ return [
         'billing_catalog',
         'inventory_features',
         'public_content',
+        'projects',
         'geo_publishing',
         'operations_dashboard',
         'community_integrations',

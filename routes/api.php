@@ -12,6 +12,7 @@ use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
 use App\Http\Controllers\Legacy\Inventory\SpriteController;
 use App\Http\Controllers\Legacy\Inventory\TypeMetadataController;
 use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
+use App\Http\Controllers\Legacy\Projects\MarketplaceController;
 use App\Http\Controllers\Legacy\PublicContent\BlogContentController;
 use App\Http\Controllers\Legacy\PublicContent\CatalogController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +61,8 @@ Route::get('package-list', [BillingPlanController::class, 'packages'])
     ->name('api.legacy.billing.packages');
 Route::get('hosting-list', [BillingPlanController::class, 'hosting'])
     ->name('api.legacy.billing.hosting');
+Route::get('get-marketplaces', MarketplaceController::class)
+    ->name('api.legacy.projects.marketplaces');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -99,4 +102,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('billing.packages');
     Route::get('billing/hosting', [BillingPlanController::class, 'hosting'])
         ->name('billing.hosting');
+    Route::get('projects/marketplaces', MarketplaceController::class)
+        ->name('projects.marketplaces');
 });
