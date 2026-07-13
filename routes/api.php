@@ -16,6 +16,7 @@ use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
 use App\Http\Controllers\Legacy\Projects\MarketplaceController;
 use App\Http\Controllers\Legacy\PublicContent\BlogContentController;
 use App\Http\Controllers\Legacy\PublicContent\CatalogController;
+use App\Http\Controllers\Legacy\System\LegacyErrorController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('country-image-count', CountryImageCountController::class)
@@ -67,9 +68,13 @@ Route::get('get-marketplaces', MarketplaceController::class)
 Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
     ->whereNumber('userId')
     ->name('api.legacy.gamification.badges');
+Route::get('error/{code}', LegacyErrorController::class)
+    ->name('api.legacy.error');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
+    Route::get('system/errors/{code}', LegacyErrorController::class)
+        ->name('system.errors');
     Route::get('imagery/country-image-count', CountryImageCountController::class)
         ->name('imagery.country-image-count');
     Route::get('imagery/leaderboard', LeaderboardController::class)
