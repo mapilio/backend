@@ -23,17 +23,17 @@ class GamificationBadgesQuery
         $levels = $this->levels($connection);
         $point = $this->point($leaderboardQuery, $userId);
         $badges = $this->badges($connection, $locale);
+        $disabledImages = $this->disabledImagePayloads($connection, $badges, $locale);
         $currentLevelId = $this->currentLevelId($connection, $userId);
 
         return [
             'badges' => $badges
                 ->map(fn (object $badge): array => $this->badgePayload(
-                    $connection,
                     $badge,
                     $ownedBadgeIds,
                     $levels,
                     $assetRoot,
-                    $locale,
+                    $disabledImages,
                 ))
                 ->all(),
             'point' => $point,
@@ -131,12 +131,11 @@ class GamificationBadgesQuery
      * @param  array<int, int>  $levels
      */
     private function badgePayload(
-        ConnectionInterface $connection,
         object $badge,
         array $ownedBadgeIds,
         array $levels,
         string $assetRoot,
-        string $locale,
+        array $disabledImages,
     ): array {
         $enabled = isset($ownedBadgeIds[(int) $badge->id]);
 
@@ -148,7 +147,8 @@ class GamificationBadgesQuery
         $payload['info'] = $badge->info;
 
         if (! $enabled) {
-            $payload['disabled_image'] = $this->filePayload($connection, $badge->disabled_image_id, $locale);
+            $disabledImageId = $this->nullableInt($badge->disabled_image_id);
+            $payload['disabled_image'] = $disabledImageId === null ? null : ($disabledImages[$disabledImageId] ?? null);
         }
 
         return $payload;
@@ -205,23 +205,57 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function filePayload(ConnectionInterface $connection, mixed $fileId, string $locale): ?array
+    private function disabledImagePayloads(ConnectionInterface $connection, $badges, string $locale): array
     {
-        if ($fileId === null) {
-            return null;
+        $fileIds = $badges
+            ->pluck('disabled_image_id')
+            ->filter(fn (mixed $fileId): bool => $fileId !== null)
+            ->map(fn (mixed $fileId): int => (int) $fileId)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($fileIds === []) {
+            return [];
         }
 
-        $file = $connection
+        $files = $connection
             ->table('default_files_files')
-            ->where('id', $fileId)
-            ->first();
+            ->whereIn('id', $fileIds)
+            ->get()
+            ->keyBy(fn (object $file): int => (int) $file->id);
 
-        if ($file === null) {
-            return null;
-        }
+        $folderIds = $files
+            ->pluck('folder_id')
+            ->filter(fn (mixed $folderId): bool => $folderId !== null)
+            ->map(fn (mixed $folderId): int => (int) $folderId)
+            ->unique()
+            ->values()
+            ->all();
+        $diskIds = $files
+            ->pluck('disk_id')
+            ->filter(fn (mixed $diskId): bool => $diskId !== null)
+            ->map(fn (mixed $diskId): int => (int) $diskId)
+            ->unique()
+            ->values()
+            ->all();
 
-        $folder = $this->folderPayload($connection, $file->folder_id, $locale);
-        $disk = $this->diskPayload($connection, $file->disk_id, $locale);
+        $folders = $this->folderPayloads($connection, $folderIds, $locale);
+        $disks = $this->diskPayloads($connection, $diskIds, $locale);
+
+        return $files
+            ->mapWithKeys(fn (object $file): array => [
+                (int) $file->id => $this->filePayload($file, $folders, $disks),
+            ])
+            ->all();
+    }
+
+    private function filePayload(object $file, array $folders, array $disks): array
+    {
+        $folderId = $this->nullableInt($file->folder_id);
+        $diskId = $this->nullableInt($file->disk_id);
+        $folder = $folderId === null ? null : ($folders[$folderId] ?? null);
+        $disk = $diskId === null ? null : ($disks[$diskId] ?? null);
         $path = $folder === null ? (string) $file->name : $folder['slug'].'/'.$file->name;
 
         return [
@@ -256,19 +290,19 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function diskPayload(ConnectionInterface $connection, mixed $diskId, string $locale): ?array
+    private function diskPayloads(ConnectionInterface $connection, array $diskIds, string $locale): array
     {
-        if ($diskId === null) {
-            return null;
+        if ($diskIds === []) {
+            return [];
         }
 
-        $disk = $connection
+        return $connection
             ->table('default_files_disks as disk')
             ->leftJoin('default_files_disks_translations as translations', function ($join) use ($locale): void {
                 $join->on('translations.entry_id', '=', 'disk.id')
                     ->where('translations.locale', '=', $locale);
             })
-            ->where('disk.id', $diskId)
+            ->whereIn('disk.id', $diskIds)
             ->select([
                 'disk.id',
                 'disk.sort_order',
@@ -282,40 +316,38 @@ class GamificationBadgesQuery
                 'translations.name',
                 'translations.description',
             ])
-            ->first();
-
-        if ($disk === null) {
-            return null;
-        }
-
-        return [
-            'id' => (int) $disk->id,
-            'sort_order' => $this->nullableInt($disk->sort_order),
-            'created_at' => $this->timestamp($disk->created_at),
-            'created_by_id' => $this->nullableInt($disk->created_by_id),
-            'updated_at' => $this->timestamp($disk->updated_at),
-            'updated_by_id' => $this->nullableInt($disk->updated_by_id),
-            'deleted_at' => $this->timestamp($disk->deleted_at),
-            'slug' => $disk->slug,
-            'adapter' => $disk->adapter,
-            'name' => $disk->name,
-            'description' => $disk->description,
-        ];
+            ->get()
+            ->mapWithKeys(fn (object $disk): array => [
+                (int) $disk->id => [
+                    'id' => (int) $disk->id,
+                    'sort_order' => $this->nullableInt($disk->sort_order),
+                    'created_at' => $this->timestamp($disk->created_at),
+                    'created_by_id' => $this->nullableInt($disk->created_by_id),
+                    'updated_at' => $this->timestamp($disk->updated_at),
+                    'updated_by_id' => $this->nullableInt($disk->updated_by_id),
+                    'deleted_at' => $this->timestamp($disk->deleted_at),
+                    'slug' => $disk->slug,
+                    'adapter' => $disk->adapter,
+                    'name' => $disk->name,
+                    'description' => $disk->description,
+                ],
+            ])
+            ->all();
     }
 
-    private function folderPayload(ConnectionInterface $connection, mixed $folderId, string $locale): ?array
+    private function folderPayloads(ConnectionInterface $connection, array $folderIds, string $locale): array
     {
-        if ($folderId === null) {
-            return null;
+        if ($folderIds === []) {
+            return [];
         }
 
-        $folder = $connection
+        return $connection
             ->table('default_files_folders as folder')
             ->leftJoin('default_files_folders_translations as translations', function ($join) use ($locale): void {
                 $join->on('translations.entry_id', '=', 'folder.id')
                     ->where('translations.locale', '=', $locale);
             })
-            ->where('folder.id', $folderId)
+            ->whereIn('folder.id', $folderIds)
             ->select([
                 'folder.id',
                 'folder.sort_order',
@@ -331,27 +363,25 @@ class GamificationBadgesQuery
                 'translations.name',
                 'translations.description',
             ])
-            ->first();
-
-        if ($folder === null) {
-            return null;
-        }
-
-        return [
-            'id' => (int) $folder->id,
-            'sort_order' => $this->nullableInt($folder->sort_order),
-            'created_at' => $this->timestamp($folder->created_at),
-            'created_by_id' => $this->nullableInt($folder->created_by_id),
-            'updated_at' => $this->timestamp($folder->updated_at),
-            'updated_by_id' => $this->nullableInt($folder->updated_by_id),
-            'deleted_at' => $this->timestamp($folder->deleted_at),
-            'disk_id' => $this->nullableInt($folder->disk_id),
-            'slug' => $folder->slug,
-            'allowed_types' => $folder->allowed_types,
-            'str_id' => $folder->str_id,
-            'name' => $folder->name,
-            'description' => $folder->description,
-        ];
+            ->get()
+            ->mapWithKeys(fn (object $folder): array => [
+                (int) $folder->id => [
+                    'id' => (int) $folder->id,
+                    'sort_order' => $this->nullableInt($folder->sort_order),
+                    'created_at' => $this->timestamp($folder->created_at),
+                    'created_by_id' => $this->nullableInt($folder->created_by_id),
+                    'updated_at' => $this->timestamp($folder->updated_at),
+                    'updated_by_id' => $this->nullableInt($folder->updated_by_id),
+                    'deleted_at' => $this->timestamp($folder->deleted_at),
+                    'disk_id' => $this->nullableInt($folder->disk_id),
+                    'slug' => $folder->slug,
+                    'allowed_types' => $folder->allowed_types,
+                    'str_id' => $folder->str_id,
+                    'name' => $folder->name,
+                    'description' => $folder->description,
+                ],
+            ])
+            ->all();
     }
 
     private function nullableInt(mixed $value): ?int
