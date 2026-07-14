@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\System\HealthController;
+use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
 use App\Http\Controllers\Legacy\Config\GeneralConfigController;
 use App\Http\Controllers\Legacy\Gamification\GamificationBadgesController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
+use App\Http\Controllers\Legacy\Identity\MobileProfileController;
+use App\Http\Controllers\Legacy\Identity\OneSignalIdentityVerificationController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
@@ -71,11 +74,23 @@ Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
     ->name('api.legacy.gamification.badges');
 Route::get('error/{code}', LegacyErrorController::class)
     ->name('api.legacy.error');
+Route::post('v2/login', MobileLoginController::class)
+    ->name('api.legacy.v2.mobile-login');
+Route::get('function/user_profile/profile/getProfile', MobileProfileController::class)
+    ->name('api.legacy.mobile-profile');
+Route::post('onesignal/identity-verification', OneSignalIdentityVerificationController::class)
+    ->name('api.legacy.onesignal.identity-verification');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
     Route::get('mobile/config/general', GeneralConfigController::class)
         ->name('mobile.config.general');
+    Route::post('mobile/auth/token', MobileLoginController::class)
+        ->name('mobile.auth.token');
+    Route::get('mobile/profile', MobileProfileController::class)
+        ->name('mobile.profile');
+    Route::post('mobile/onesignal/identity-verification', OneSignalIdentityVerificationController::class)
+        ->name('mobile.onesignal.identity-verification');
     Route::get('system/errors/{code}', LegacyErrorController::class)
         ->name('system.errors');
     Route::get('imagery/country-image-count', CountryImageCountController::class)

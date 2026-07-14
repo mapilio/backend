@@ -67,6 +67,16 @@ return [
         ],
     ],
 
+    'mobile_auth' => [
+        'client_id' => env('MAPILIO_MOBILE_AUTH_CLIENT_ID'),
+        'client_secret' => env('MAPILIO_MOBILE_AUTH_CLIENT_SECRET'),
+        'signing_key' => env('MAPILIO_MOBILE_AUTH_SIGNING_KEY', env('APP_KEY')),
+        'access_token_ttl' => (int) env('MAPILIO_MOBILE_ACCESS_TOKEN_TTL', 3600),
+        'refresh_token_ttl' => (int) env('MAPILIO_MOBILE_REFRESH_TOKEN_TTL', 36000),
+        'default_profile_photo_url' => env('MAPILIO_DEFAULT_PROFILE_PHOTO_URL', 'https://mapilio.com/app/default_avatar.png'),
+        'onesignal_rest_api_key' => env('MAPILIO_ONESIGNAL_REST_API_KEY'),
+    ],
+
     'leaderboard' => [
         'limit' => (int) env('MAPILIO_LEADERBOARD_LIMIT', 30),
         'public_role_slugs' => array_values(array_filter(array_map(
