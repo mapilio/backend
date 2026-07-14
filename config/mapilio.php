@@ -18,6 +18,55 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'mobile_config' => [
+        'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
+        'general' => [
+            'isMarketOpen' => env('MAPILIO_MOBILE_MARKET_OPEN', false),
+            'isChallengeOpen' => env('MAPILIO_MOBILE_CHALLENGE_OPEN', false),
+            'leaderboard' => [
+                'challengeDescEN' => env('MAPILIO_MOBILE_CHALLENGE_DESC_EN', 'Challenge has begun! Collect and win the most points between <0>01.03.2023 - 31.05.2023</0>'),
+                'challengeDescTR' => env('MAPILIO_MOBILE_CHALLENGE_DESC_TR', 'Mucadele basladi! <0>01.03.2023 - 31.05.2023</0> arasinda en cok puani toplayin ve kazanin'),
+                'challengeDates' => env('MAPILIO_MOBILE_CHALLENGE_DATES', '2023-03-01,2023-05-31'),
+                'challengeURL' => env('MAPILIO_MOBILE_CHALLENGE_URL', 'https://mapilio.com'),
+                'isChallengeOpen' => env('MAPILIO_MOBILE_CHALLENGE_OPEN', false),
+                'infoBoxDescTR' => env('MAPILIO_MOBILE_INFOBOX_DESC_TR', 'Yarisma <0>31.05.2023</0> tarihinde sona erdi. Bu tarihten sonra yapilan cekimlerin puanlari tum zamanlar bolumune yansitilacaktir.'),
+                'infoBoxDescEN' => env('MAPILIO_MOBILE_INFOBOX_DESC_EN', 'The challenge has ended as of <0>31.05.2023</0>. Scores of the captures after this date will be reflected in the all time section.'),
+                'isInfoBoxOpen' => env('MAPILIO_MOBILE_INFOBOX_OPEN', false),
+                'showWeek' => env('MAPILIO_MOBILE_SHOW_WEEK', true),
+            ],
+            'socialLogin' => [
+                'isFacebookEnabled' => env('MAPILIO_MOBILE_FACEBOOK_LOGIN_ENABLED', true),
+                'isGoogleEnabled' => env('MAPILIO_MOBILE_GOOGLE_LOGIN_ENABLED', true),
+                'isAppleEnabled' => env('MAPILIO_MOBILE_APPLE_LOGIN_ENABLED', true),
+                'isOSMEnabled' => env('MAPILIO_MOBILE_OSM_LOGIN_ENABLED', true),
+            ],
+            'versions' => [
+                'android' => [
+                    'version' => env('MAPILIO_MOBILE_ANDROID_VERSION', '1.0.56'),
+                    'minVersion' => env('MAPILIO_MOBILE_ANDROID_MIN_VERSION', '0'),
+                ],
+                'ios' => [
+                    'version' => env('MAPILIO_MOBILE_IOS_VERSION', '1.2.0'),
+                    'minVersion' => env('MAPILIO_MOBILE_IOS_MIN_VERSION', '0'),
+                ],
+            ],
+            'map' => [
+                'iosToken' => env('MAPILIO_MOBILE_IOS_MAP_TOKEN', ''),
+                'androidToken' => env('MAPILIO_MOBILE_ANDROID_MAP_TOKEN', ''),
+            ],
+            'mapTokens' => [
+                'iosToken' => env('MAPILIO_MOBILE_IOS_MAP_TOKEN', ''),
+                'androidToken' => env('MAPILIO_MOBILE_ANDROID_MAP_TOKEN', ''),
+            ],
+            'osmModal' => [
+                'titleEN' => env('MAPILIO_MOBILE_OSM_MODAL_TITLE_EN', 'Your email safe with us!'),
+                'descriptionEN' => env('MAPILIO_MOBILE_OSM_MODAL_DESC_EN', "We'll never share it with any third-party providers."),
+                'titleTR' => env('MAPILIO_MOBILE_OSM_MODAL_TITLE_TR', 'E-postaniz bizimle guvende!'),
+                'descriptionTR' => env('MAPILIO_MOBILE_OSM_MODAL_DESC_TR', 'Ucuncu taraf saglayicilarla asla paylasmayacagiz.'),
+            ],
+        ],
+    ],
+
     'leaderboard' => [
         'limit' => (int) env('MAPILIO_LEADERBOARD_LIMIT', 30),
         'public_role_slugs' => array_values(array_filter(array_map(

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
+use App\Http\Controllers\Legacy\Config\GeneralConfigController;
 use App\Http\Controllers\Legacy\Gamification\GamificationBadgesController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
@@ -73,6 +74,8 @@ Route::get('error/{code}', LegacyErrorController::class)
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
+    Route::get('mobile/config/general', GeneralConfigController::class)
+        ->name('mobile.config.general');
     Route::get('system/errors/{code}', LegacyErrorController::class)
         ->name('system.errors');
     Route::get('imagery/country-image-count', CountryImageCountController::class)
