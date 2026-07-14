@@ -25,6 +25,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Preserved upload metadata endpoint: `/api/function/mapilio/imagery/upload`.
 - Versioned alias for upload metadata: `/api/v1/imagery/uploads`.
 - Image server contract is documented in `docs/architecture/0005-image-upload-and-serving-contract.md`.
+- Post-upload GPS, capture-time, and sequence-distance scoring is documented in `docs/architecture/0006-post-upload-quality-scoring.md`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
@@ -32,6 +33,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0003-legacy-compatibility-endpoints.md`
   - `docs/architecture/0004-unsupported-legacy-surface-guardrails.md`
   - `docs/architecture/0005-image-upload-and-serving-contract.md`
+  - `docs/architecture/0006-post-upload-quality-scoring.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.

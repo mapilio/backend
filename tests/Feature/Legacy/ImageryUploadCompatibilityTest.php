@@ -55,6 +55,17 @@ class ImageryUploadCompatibilityTest extends TestCase
             'project_key' => 'project-main',
         ]);
 
+        $scores = Schema::getConnection()->table('default_mapilio_imagery')
+            ->where('sequence_uuid', 'mobile-sequence-1')
+            ->orderBy('id')
+            ->get(['id', 'gps_score', 'time_score', 'distance_score', 'nearest_point_id']);
+
+        $this->assertSame(3.0, (float) $scores[0]->gps_score);
+        $this->assertSame(1.0, (float) $scores[0]->time_score);
+        $this->assertSame(0.2, (float) $scores[0]->distance_score);
+        $this->assertSame((int) $scores[1]->id, (int) $scores[0]->nearest_point_id);
+        $this->assertNull($scores[1]->distance_score);
+
         $this->assertSame(0, Schema::getConnection()->table('default_mapilio_road')->count());
         $this->assertDatabaseHas('default_mapilio_sequence_detail', [
             'sequence_uuid' => 'mobile-sequence-1',
@@ -81,6 +92,13 @@ class ImageryUploadCompatibilityTest extends TestCase
             'sourceUser' => 'alice@example.test',
         ]);
 
+        $this->assertDatabaseHas('default_mapilio_imagery', [
+            'sequence_uuid' => 'kit-sequence-1',
+            'gps_score' => 3,
+            'time_score' => 1,
+            'distance_score' => null,
+        ]);
+
         $this->assertDatabaseHas('default_mapilio_sequence_detail', [
             'sequence_uuid' => 'kit-sequence-1',
             'group_key' => 'kit-sequence-1',
@@ -98,6 +116,10 @@ class ImageryUploadCompatibilityTest extends TestCase
             ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
             ->assertOk();
 
+        Schema::getConnection()->table('default_mapilio_imagery')
+            ->where('filename', 'IMG_0001.jpg')
+            ->update(['gps_score' => 99]);
+
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
             ->assertOk();
@@ -105,6 +127,10 @@ class ImageryUploadCompatibilityTest extends TestCase
         $this->assertSame(2, Schema::getConnection()->table('default_mapilio_imagery')->count());
         $this->assertSame(1, Schema::getConnection()->table('default_mapilio_sequence_detail')->count());
         $this->assertSame(0, Schema::getConnection()->table('default_mapilio_road')->count());
+        $this->assertDatabaseHas('default_mapilio_imagery', [
+            'filename' => 'IMG_0001.jpg',
+            'gps_score' => 99,
+        ]);
     }
 
     public function test_upload_metadata_generates_road_line_for_three_or_more_nearby_points(): void
@@ -141,6 +167,15 @@ class ImageryUploadCompatibilityTest extends TestCase
             'LINESTRING(29.025 40.991, 29.02509 40.99109, 29.02518 40.99118)',
             Schema::getConnection()->table('default_mapilio_road')->value('geom'),
         );
+
+        $scores = Schema::getConnection()->table('default_mapilio_imagery')
+            ->orderBy('id')
+            ->pluck('distance_score')
+            ->all();
+
+        $this->assertSame(0.8, (float) $scores[0]);
+        $this->assertSame(0.8, (float) $scores[1]);
+        $this->assertNull($scores[2]);
 
         $this->assertDatabaseHas('default_mapilio_sequence_detail', [
             'sequence_uuid' => 'mobile-sequence-1',
@@ -374,6 +409,11 @@ class ImageryUploadCompatibilityTest extends TestCase
             $table->text('velocity')->nullable();
             $table->double('car_speed')->nullable();
             $table->double('accuracy_level')->nullable();
+            $table->double('gps_score')->nullable();
+            $table->double('time_score')->nullable();
+            $table->double('distance_score')->nullable();
+            $table->unsignedBigInteger('nearest_point_id')->nullable();
+            $table->double('nearest_distance_on_sequence')->nullable();
             $table->text('capture_address')->nullable();
             $table->double('vfov')->nullable();
             $table->double('focalLength')->nullable();

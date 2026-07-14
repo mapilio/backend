@@ -10,7 +10,10 @@ use Illuminate\Support\Str;
 
 class CreateImageryUpload
 {
-    public function __construct(private readonly CreateRoadLineForSequence $roadLines) {}
+    public function __construct(
+        private readonly CreateRoadLineForSequence $roadLines,
+        private readonly CalculateSequenceQualityScores $qualityScores,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $parameters
@@ -102,6 +105,7 @@ class CreateImageryUpload
             }
 
             $this->generateImageryGeometry($sequenceUuid);
+            $this->qualityScores->calculate($sequenceUuid);
             $this->roadLines->create($sequenceUuid);
         });
 
