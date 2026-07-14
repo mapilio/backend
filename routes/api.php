@@ -8,12 +8,14 @@ use App\Http\Controllers\Legacy\Gamification\GamificationBadgesController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Identity\MobileProfileController;
 use App\Http\Controllers\Legacy\Identity\OneSignalIdentityVerificationController;
+use App\Http\Controllers\Legacy\Identity\PublicUserProfileController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardWinnerController;
 use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
+use App\Http\Controllers\Legacy\Imagery\UserUploadsController;
 use App\Http\Controllers\Legacy\Inventory\SpriteController;
 use App\Http\Controllers\Legacy\Inventory\TypeMetadataController;
 use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
@@ -47,6 +49,8 @@ Route::get('embed/{sequenceUuid}', EmbedImageController::class)
     ->name('api.legacy.embed-image');
 Route::get('get-uploaded-roads-group', UploadedRoadsByGroupController::class)
     ->name('api.legacy.uploaded-roads-group');
+Route::get('user-uploads-v2', UserUploadsController::class)
+    ->name('api.legacy.user-uploads-v2');
 Route::get('get-types', [TypeMetadataController::class, 'types'])
     ->name('api.legacy.types');
 Route::get('get-groups', [TypeMetadataController::class, 'groups'])
@@ -80,6 +84,8 @@ Route::get('function/user_profile/profile/getProfile', MobileProfileController::
     ->name('api.legacy.mobile-profile');
 Route::post('onesignal/identity-verification', OneSignalIdentityVerificationController::class)
     ->name('api.legacy.onesignal.identity-verification');
+Route::match(['GET', 'POST'], 'search-user', PublicUserProfileController::class)
+    ->name('api.legacy.search-user');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -91,6 +97,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('mobile.profile');
     Route::post('mobile/onesignal/identity-verification', OneSignalIdentityVerificationController::class)
         ->name('mobile.onesignal.identity-verification');
+    Route::get('users/profile', PublicUserProfileController::class)
+        ->name('users.profile');
     Route::get('system/errors/{code}', LegacyErrorController::class)
         ->name('system.errors');
     Route::get('imagery/country-image-count', CountryImageCountController::class)
@@ -105,6 +113,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.user-points');
     Route::get('imagery/sequence-detail', SequenceDetailController::class)
         ->name('imagery.sequence-detail');
+    Route::get('imagery/user-uploads', UserUploadsController::class)
+        ->name('imagery.user-uploads');
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
         ->name('imagery.embed-image');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
