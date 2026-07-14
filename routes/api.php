@@ -21,6 +21,7 @@ use App\Http\Controllers\Legacy\Inventory\SpriteController;
 use App\Http\Controllers\Legacy\Inventory\TypeMetadataController;
 use App\Http\Controllers\Legacy\Organizations\OrganizationLeaderboardController;
 use App\Http\Controllers\Legacy\Projects\MarketplaceController;
+use App\Http\Controllers\Legacy\Projects\MobileUserJobsController;
 use App\Http\Controllers\Legacy\PublicContent\BlogContentController;
 use App\Http\Controllers\Legacy\PublicContent\CatalogController;
 use App\Http\Controllers\Legacy\System\LegacyErrorController;
@@ -76,6 +77,8 @@ Route::get('hosting-list', [BillingPlanController::class, 'hosting'])
     ->name('api.legacy.billing.hosting');
 Route::get('get-marketplaces', MarketplaceController::class)
     ->name('api.legacy.projects.marketplaces');
+Route::get('function/projects/job/getMyJobs', MobileUserJobsController::class)
+    ->name('api.legacy.projects.jobs.mine');
 Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
     ->whereNumber('userId')
     ->name('api.legacy.gamification.badges');
@@ -146,6 +149,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('billing.hosting');
     Route::get('projects/marketplaces', MarketplaceController::class)
         ->name('projects.marketplaces');
+    Route::get('projects/jobs/mine', MobileUserJobsController::class)
+        ->name('projects.jobs.mine');
     Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
         ->whereNumber('userId')
         ->name('gamification.badges');
