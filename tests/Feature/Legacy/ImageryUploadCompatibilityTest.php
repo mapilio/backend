@@ -54,6 +54,12 @@ class ImageryUploadCompatibilityTest extends TestCase
             'organization_key' => 'org-main',
             'project_key' => 'project-main',
         ]);
+
+        $this->assertSame(0, Schema::getConnection()->table('default_mapilio_road')->count());
+        $this->assertDatabaseHas('default_mapilio_sequence_detail', [
+            'sequence_uuid' => 'mobile-sequence-1',
+            'road_line_status' => 3,
+        ]);
     }
 
     public function test_mapilio_kit_upload_metadata_contract_records_zip_hash_payload(): void
@@ -80,6 +86,7 @@ class ImageryUploadCompatibilityTest extends TestCase
             'group_key' => 'kit-sequence-1',
             'count' => 1,
             'size' => 12.35,
+            'road_line_status' => 3,
         ]);
     }
 
@@ -97,6 +104,49 @@ class ImageryUploadCompatibilityTest extends TestCase
 
         $this->assertSame(2, Schema::getConnection()->table('default_mapilio_imagery')->count());
         $this->assertSame(1, Schema::getConnection()->table('default_mapilio_sequence_detail')->count());
+        $this->assertSame(0, Schema::getConnection()->table('default_mapilio_road')->count());
+    }
+
+    public function test_upload_metadata_generates_road_line_for_three_or_more_nearby_points(): void
+    {
+        $login = $this->login();
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.json_data.1.latitude', 40.99109);
+        data_set($payload, 'options.parameters.json_data.1.longitude', 29.02509);
+        data_set($payload, 'options.parameters.json_data.2', $this->point([
+            'filename' => 'IMG_0003.jpg',
+            'latitude' => 40.99118,
+            'longitude' => 29.02518,
+            'captureTime' => '2026-07-01 12:00:04',
+            'capture_address' => 'Kadikoy',
+        ]));
+        data_set($payload, 'options.parameters.summary.Information.total_images', 3);
+        data_set($payload, 'options.parameters.summary.Information.count', 3);
+        data_set($payload, 'options.parameters.summary.Information.processed_images', 3);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $payload)
+            ->assertOk()
+            ->assertJsonPath('count', 3);
+
+        $this->assertSame(3, Schema::getConnection()->table('default_mapilio_imagery')->count());
+        $this->assertSame(1, Schema::getConnection()->table('default_mapilio_road')->count());
+        $this->assertDatabaseHas('default_mapilio_road', [
+            'sequence_uuid' => 'mobile-sequence-1',
+            'created_by_id' => 10,
+            'organization_key' => 'org-main',
+            'project_key' => 'project-main',
+        ]);
+        $this->assertSame(
+            'LINESTRING(29.025 40.991, 29.02509 40.99109, 29.02518 40.99118)',
+            Schema::getConnection()->table('default_mapilio_road')->value('geom'),
+        );
+
+        $this->assertDatabaseHas('default_mapilio_sequence_detail', [
+            'sequence_uuid' => 'mobile-sequence-1',
+            'road_line_status' => 3,
+            'road_line_status_message' => null,
+        ]);
     }
 
     public function test_upload_metadata_requires_valid_bearer_token(): void
@@ -312,6 +362,7 @@ class ImageryUploadCompatibilityTest extends TestCase
             $table->string('photo_uuid')->nullable();
             $table->string('organization_key')->nullable();
             $table->string('project_key')->nullable();
+            $table->text('geom')->nullable();
             $table->string('resolution')->nullable();
             $table->double('fov')->nullable();
             $table->boolean('anomaly')->nullable();
@@ -353,6 +404,24 @@ class ImageryUploadCompatibilityTest extends TestCase
             $table->string('start_address')->nullable();
             $table->string('group_key')->nullable();
             $table->string('device_type')->nullable();
+            $table->integer('road_line_status')->nullable();
+            $table->text('road_line_status_message')->nullable();
+        });
+
+        Schema::create('default_mapilio_road', function ($table): void {
+            $table->id();
+            $table->integer('sort_order')->nullable();
+            $table->timestamp('created_at');
+            $table->integer('created_by_id')->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->integer('updated_by_id')->nullable();
+            $table->timestamp('deleted_at')->nullable();
+            $table->text('geom');
+            $table->string('sequence_uuid');
+            $table->boolean('anomaly')->nullable();
+            $table->string('organization_key')->nullable();
+            $table->string('project_key')->nullable();
+            $table->string('capture_time')->nullable();
         });
     }
 

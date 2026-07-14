@@ -2,12 +2,16 @@
 
 namespace App\Domain\ImageryUploads\Actions;
 
+use App\Domain\GeoPublishing\Actions\CreateRoadLineForSequence;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CreateImageryUpload
 {
+    public function __construct(private readonly CreateRoadLineForSequence $roadLines) {}
+
     /**
      * @param  array<string, mixed>  $parameters
      * @return array<string, mixed>
@@ -96,6 +100,9 @@ class CreateImageryUpload
                         now: $now,
                     ));
             }
+
+            $this->generateImageryGeometry($sequenceUuid);
+            $this->roadLines->create($sequenceUuid);
         });
 
         return [
@@ -271,5 +278,38 @@ class CreateImageryUpload
         [$width, $height] = array_map('intval', explode('x', $imageSize, 2));
 
         return [$width > 0 ? $width : null, $height > 0 ? $height : null];
+    }
+
+    private function generateImageryGeometry(string $sequenceUuid): void
+    {
+        $connectionName = config('mapilio.legacy_database_connection');
+        $connection = DB::connection($connectionName);
+
+        if (! Schema::connection($connectionName)->hasColumn('default_mapilio_imagery', 'geom')) {
+            return;
+        }
+
+        if ($connection->getDriverName() === 'pgsql') {
+            $connection->statement(
+                'update default_mapilio_imagery set geom = ST_MakePoint(longitude, latitude) where sequence_uuid = ?',
+                [$sequenceUuid],
+            );
+
+            return;
+        }
+
+        $rows = $connection->table('default_mapilio_imagery')
+            ->where('sequence_uuid', $sequenceUuid)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get(['id', 'latitude', 'longitude']);
+
+        foreach ($rows as $row) {
+            $connection->table('default_mapilio_imagery')
+                ->where('id', $row->id)
+                ->update([
+                    'geom' => 'POINT('.(float) $row->longitude.' '.(float) $row->latitude.')',
+                ]);
+        }
     }
 }
