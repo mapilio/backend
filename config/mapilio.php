@@ -95,6 +95,7 @@ return [
         'ai_jobs_predictions',
         'billing_catalog',
         'inventory_features',
+        'imagery_reports',
         'public_content',
         'projects',
         'gamification',

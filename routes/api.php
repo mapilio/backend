@@ -12,6 +12,7 @@ use App\Http\Controllers\Legacy\Identity\PublicUserProfileController;
 use App\Http\Controllers\Legacy\Imagery\CountryImageCountController;
 use App\Http\Controllers\Legacy\Imagery\EmbedImageController;
 use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
+use App\Http\Controllers\Legacy\Imagery\ImageReportController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardWinnerController;
 use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
@@ -92,6 +93,8 @@ Route::post('onesignal/identity-verification', OneSignalIdentityVerificationCont
     ->name('api.legacy.onesignal.identity-verification');
 Route::match(['GET', 'POST'], 'search-user', PublicUserProfileController::class)
     ->name('api.legacy.search-user');
+Route::post('image-report', ImageReportController::class)
+    ->name('api.legacy.imagery.reports');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
@@ -125,6 +128,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.user-upload-details');
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
         ->name('imagery.embed-image');
+    Route::post('imagery/reports', ImageReportController::class)
+        ->name('imagery.reports');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
         ->name('geo.uploaded-roads-group');
     Route::get('inventory/types', [TypeMetadataController::class, 'types'])
