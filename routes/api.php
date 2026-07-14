@@ -15,6 +15,7 @@ use App\Http\Controllers\Legacy\Imagery\GetPointByUserController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardController;
 use App\Http\Controllers\Legacy\Imagery\LeaderboardWinnerController;
 use App\Http\Controllers\Legacy\Imagery\SequenceDetailController;
+use App\Http\Controllers\Legacy\Imagery\UserUploadDetailsController;
 use App\Http\Controllers\Legacy\Imagery\UserUploadsController;
 use App\Http\Controllers\Legacy\Inventory\SpriteController;
 use App\Http\Controllers\Legacy\Inventory\TypeMetadataController;
@@ -51,6 +52,8 @@ Route::get('get-uploaded-roads-group', UploadedRoadsByGroupController::class)
     ->name('api.legacy.uploaded-roads-group');
 Route::get('user-uploads-v2', UserUploadsController::class)
     ->name('api.legacy.user-uploads-v2');
+Route::get('user-uploads-detail-v2', UserUploadDetailsController::class)
+    ->name('api.legacy.user-uploads-detail-v2');
 Route::get('get-types', [TypeMetadataController::class, 'types'])
     ->name('api.legacy.types');
 Route::get('get-groups', [TypeMetadataController::class, 'groups'])
@@ -115,6 +118,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.sequence-detail');
     Route::get('imagery/user-uploads', UserUploadsController::class)
         ->name('imagery.user-uploads');
+    Route::get('imagery/user-upload-details', UserUploadDetailsController::class)
+        ->name('imagery.user-upload-details');
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
         ->name('imagery.embed-image');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
