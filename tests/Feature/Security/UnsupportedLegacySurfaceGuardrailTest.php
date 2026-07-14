@@ -68,4 +68,31 @@ class UnsupportedLegacySurfaceGuardrailTest extends TestCase
                 'message' => 'Not Found',
             ]);
     }
+
+    public function test_reference_routes_are_not_exposed_without_privacy_and_auth_design(): void
+    {
+        $referenceReadPaths = [
+            '/api/get-references?user_id=1',
+            '/api/v2/references',
+            '/api/v2/references/1',
+            '/api/v2/references/codes',
+            '/api/v2/references/codes/1',
+            '/api/v2/references/get-references-by-user/1',
+            '/api/v2/references/codes/get-reference-code-by-user/1',
+        ];
+
+        foreach ($referenceReadPaths as $path) {
+            $this->getJson($path)
+                ->assertNotFound()
+                ->assertExactJson([
+                    'message' => 'Not Found',
+                ]);
+        }
+
+        $this->postJson('/api/register-reference', [])
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+    }
 }
