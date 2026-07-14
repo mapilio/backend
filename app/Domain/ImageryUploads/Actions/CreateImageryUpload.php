@@ -3,6 +3,7 @@
 namespace App\Domain\ImageryUploads\Actions;
 
 use App\Domain\GeoPublishing\Actions\CreateRoadLineForSequence;
+use App\Jobs\DispatchSequencePrediction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -108,6 +109,14 @@ class CreateImageryUpload
             $this->qualityScores->calculate($sequenceUuid);
             $this->roadLines->create($sequenceUuid);
         });
+
+        if (
+            config('mapilio.ai_prediction.enabled')
+            && config('mapilio.ai_prediction.dispatch_after_upload')
+        ) {
+            DispatchSequencePrediction::dispatch($sequenceUuid)
+                ->onQueue((string) config('mapilio.ai_prediction.queue', 'prediction'));
+        }
 
         return [
             'status' => true,

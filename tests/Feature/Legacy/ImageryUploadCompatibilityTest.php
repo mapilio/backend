@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Jobs\DispatchSequencePrediction;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -232,6 +234,24 @@ class ImageryUploadCompatibilityTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', true)
             ->assertJsonPath('sequence_uuid', 'kit-sequence-1');
+    }
+
+    public function test_upload_queues_prediction_only_when_both_ai_flags_are_enabled(): void
+    {
+        Queue::fake();
+        Config::set('mapilio.ai_prediction.enabled', true);
+        Config::set('mapilio.ai_prediction.dispatch_after_upload', true);
+        Config::set('mapilio.ai_prediction.queue', 'prediction-test');
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertOk();
+
+        Queue::assertPushedOn('prediction-test', DispatchSequencePrediction::class);
+        Queue::assertPushed(DispatchSequencePrediction::class, function (DispatchSequencePrediction $job): bool {
+            return $job->sequenceUuid === 'mobile-sequence-1';
+        });
     }
 
     private function login()

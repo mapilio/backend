@@ -26,6 +26,18 @@ return [
         'hash_contract' => env('MAPILIO_CDN_HASH_CONTRACT', 'encrypted-directory-path'),
     ],
 
+    'ai_prediction' => [
+        'enabled' => env('MAPILIO_AI_PREDICTION_ENABLED', false),
+        'dispatch_after_upload' => env('MAPILIO_AI_DISPATCH_AFTER_UPLOAD', false),
+        'endpoint' => env('MAPILIO_AI_PREDICTION_ENDPOINT'),
+        'config_url' => env('MAPILIO_AI_PREDICTION_CONFIG_URL'),
+        'token' => env('MAPILIO_AI_PREDICTION_TOKEN'),
+        'queue' => env('MAPILIO_AI_PREDICTION_QUEUE', 'prediction'),
+        'connect_timeout' => (int) env('MAPILIO_AI_CONNECT_TIMEOUT', 5),
+        'timeout' => (int) env('MAPILIO_AI_REQUEST_TIMEOUT', 30),
+        'reservation_ttl' => (int) env('MAPILIO_AI_RESERVATION_TTL', 900),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [
