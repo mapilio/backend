@@ -77,6 +77,135 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             ->assertExactJson($legacy);
     }
 
+    public function test_mobile_create_job_accepts_marketplace_project_for_authenticated_user(): void
+    {
+        $login = $this->login('empty@example.test');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'data' => true,
+            ]);
+
+        $this->assertDatabaseHas('default_projects_job', [
+            'project_id' => 100,
+            'project_key' => 'project-istanbul',
+            'assign_id' => 20,
+            'created_by_id' => 20,
+            'updated_by_id' => 20,
+        ]);
+    }
+
+    public function test_mobile_create_job_requires_valid_bearer_token(): void
+    {
+        $this->postJson('/api/function/projects/job/createJob', [
+            'options' => [
+                'parameters' => [
+                    'id' => 100,
+                ],
+            ],
+        ])
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+    }
+
+    public function test_mobile_create_job_preserves_validation_and_domain_errors(): void
+    {
+        $login = $this->login('empty@example.test');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob')
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ["'id' is required!"],
+                'error_code' => 400,
+            ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 999,
+                    ],
+                ],
+            ])
+            ->assertStatus(403)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Project not found!'],
+                'error_code' => 403,
+            ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 103,
+                    ],
+                ],
+            ])
+            ->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['This project is not eligible.'],
+                'error_code' => 500,
+            ]);
+    }
+
+    public function test_mobile_create_job_rejects_existing_membership(): void
+    {
+        $login = $this->login('alice@example.test');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['You are a member of this project'],
+                'error_code' => 500,
+            ]);
+    }
+
+    public function test_versioned_mobile_create_job_alias_matches_legacy_write_contract(): void
+    {
+        $login = $this->login('empty@example.test');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 101,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'data' => true,
+            ]);
+
+        $this->assertDatabaseHas('default_projects_job', [
+            'project_id' => 101,
+            'project_key' => 'project-ankara',
+            'assign_id' => 20,
+        ]);
+    }
+
     private function login(string $email)
     {
         return $this->postJson('/api/v2/login', [
@@ -105,6 +234,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             $table->id();
             $table->string('marketplace_name')->nullable();
             $table->text('marketplace_description')->nullable();
+            $table->boolean('is_marketplace')->default(false);
             $table->string('project_organization_key')->nullable();
             $table->string('project_key')->nullable();
             $table->timestamp('deleted_at')->nullable();
@@ -164,6 +294,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
                 'id' => 100,
                 'marketplace_name' => 'Istanbul Capture',
                 'marketplace_description' => 'Collect street-level imagery in Istanbul.',
+                'is_marketplace' => true,
                 'project_organization_key' => 'org-main',
                 'project_key' => 'project-istanbul',
                 'deleted_at' => null,
@@ -172,6 +303,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
                 'id' => 101,
                 'marketplace_name' => 'Ankara Capture',
                 'marketplace_description' => 'Collect imagery in Ankara.',
+                'is_marketplace' => true,
                 'project_organization_key' => 'org-main',
                 'project_key' => 'project-ankara',
                 'deleted_at' => null,
@@ -180,9 +312,19 @@ class MobileProjectJobsCompatibilityTest extends TestCase
                 'id' => 102,
                 'marketplace_name' => 'Deleted Capture',
                 'marketplace_description' => 'Deleted project.',
+                'is_marketplace' => true,
                 'project_organization_key' => 'org-main',
                 'project_key' => 'project-deleted',
                 'deleted_at' => '2026-01-03 00:00:00',
+            ],
+            [
+                'id' => 103,
+                'marketplace_name' => 'Private Capture',
+                'marketplace_description' => 'Private project.',
+                'is_marketplace' => false,
+                'project_organization_key' => 'org-main',
+                'project_key' => 'project-private',
+                'deleted_at' => null,
             ],
         ]);
 
