@@ -95,4 +95,21 @@ class UnsupportedLegacySurfaceGuardrailTest extends TestCase
                 'message' => 'Not Found',
             ]);
     }
+
+    public function test_public_user_search_is_not_exposed_without_account_discovery_design(): void
+    {
+        $this->getJson('/api/search-user?id=1')
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+
+        $this->postJson('/api/search-user', [
+            'keywords' => 'mapper',
+        ])
+            ->assertNotFound()
+            ->assertExactJson([
+                'message' => 'Not Found',
+            ]);
+    }
 }
