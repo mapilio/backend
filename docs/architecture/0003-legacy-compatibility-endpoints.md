@@ -22,6 +22,15 @@ The modern backend now preserves:
 - `/api/sequence-detail`
 - `/api/embed/{sequenceUuid}`
 - `/api/get-uploaded-roads-group`
+- `/api/user-uploads-v2`
+- `/api/user-uploads-detail-v2`
+- `/api/image-report`
+- `/api/function/mapilio/imagery/upload`
+- `/api/function/projects/job/getMyJobs`
+- `/api/function/projects/job/createJob`
+- `/api/function/user_profile/profile/getProfile`
+- `/api/function/user_profile/profile/checkIsModalShown`
+- `/api/v2/login`
 
 It also exposes v1 aliases:
 
@@ -32,6 +41,15 @@ It also exposes v1 aliases:
 - `/api/v1/imagery/sequence-detail`
 - `/api/v1/imagery/embed/{sequenceUuid}`
 - `/api/v1/geo/uploaded-roads-group`
+- `/api/v1/imagery/user-uploads`
+- `/api/v1/imagery/user-upload-details`
+- `/api/v1/imagery/reports`
+- `/api/v1/imagery/uploads`
+- `/api/v1/projects/jobs/mine`
+- `/api/v1/projects/jobs`
+- `/api/v1/mobile/profile`
+- `/api/v1/mobile/profile/email-modal`
+- `/api/v1/mobile/auth/token`
 
 ## Consequences
 

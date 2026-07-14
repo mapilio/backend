@@ -22,12 +22,16 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Versioned alias for embed image metadata: `/api/v1/imagery/embed/{sequenceUuid}`.
 - Preserved uploaded road geometry endpoint: `/api/get-uploaded-roads-group`.
 - Versioned alias for uploaded road geometry: `/api/v1/geo/uploaded-roads-group`.
+- Preserved upload metadata endpoint: `/api/function/mapilio/imagery/upload`.
+- Versioned alias for upload metadata: `/api/v1/imagery/uploads`.
+- Image server contract is documented in `docs/architecture/0005-image-upload-and-serving-contract.md`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
   - `docs/architecture/0002-database-modernization-strategy.md`
   - `docs/architecture/0003-legacy-compatibility-endpoints.md`
   - `docs/architecture/0004-unsupported-legacy-surface-guardrails.md`
+  - `docs/architecture/0005-image-upload-and-serving-contract.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.

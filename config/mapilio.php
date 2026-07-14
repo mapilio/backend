@@ -18,6 +18,14 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'image_server' => [
+        'cdn_base_url' => rtrim((string) env('MAPILIO_CDN_BASE_URL', 'https://cdn.mapilio.com'), '/'),
+        'image_path_prefix' => trim((string) env('MAPILIO_CDN_IMAGE_PATH_PREFIX', 'im'), '/'),
+        'mobile_upload_path' => env('MAPILIO_CDN_MOBILE_UPLOAD_PATH', '/api/upload/mobile'),
+        'chunk_upload_path' => env('MAPILIO_CDN_CHUNK_UPLOAD_PATH', '/upload/'),
+        'hash_contract' => env('MAPILIO_CDN_HASH_CONTRACT', 'encrypted-directory-path'),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [
