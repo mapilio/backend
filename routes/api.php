@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Ai\PredictionCallbackController;
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Legacy\Projects\MobileUserJobsController;
 use App\Http\Controllers\Legacy\PublicContent\BlogContentController;
 use App\Http\Controllers\Legacy\PublicContent\CatalogController;
 use App\Http\Controllers\Legacy\System\LegacyErrorController;
+use App\Http\Middleware\VerifyAiPredictionCallback;
 use Illuminate\Support\Facades\Route;
 
 Route::get('country-image-count', CountryImageCountController::class)
@@ -107,6 +109,9 @@ Route::post('function/mapilio/imagery/upload', ImageryUploadController::class)
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
+    Route::post('ai/predictions/callback', PredictionCallbackController::class)
+        ->middleware(VerifyAiPredictionCallback::class)
+        ->name('ai.predictions.callback');
     Route::get('mobile/config/general', GeneralConfigController::class)
         ->name('mobile.config.general');
     Route::post('mobile/auth/token', MobileLoginController::class)

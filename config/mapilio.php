@@ -38,6 +38,17 @@ return [
         'reservation_ttl' => (int) env('MAPILIO_AI_RESERVATION_TTL', 900),
     ],
 
+    'ai_callback' => [
+        'enabled' => env('MAPILIO_AI_CALLBACK_ENABLED', false),
+        'signing_secret' => env('MAPILIO_AI_CALLBACK_SIGNING_SECRET'),
+        'timestamp_tolerance' => (int) env('MAPILIO_AI_CALLBACK_TIMESTAMP_TOLERANCE', 300),
+        'nonce_retention' => (int) env('MAPILIO_AI_CALLBACK_NONCE_RETENTION', 86400),
+        'max_payload_bytes' => (int) env('MAPILIO_AI_CALLBACK_MAX_PAYLOAD_BYTES', 5_242_880),
+        'max_features' => (int) env('MAPILIO_AI_CALLBACK_MAX_FEATURES', 100_000),
+        'accepted_statuses' => ['SUCCESS', 'ERROR'],
+        'queue' => env('MAPILIO_AI_CALLBACK_QUEUE', 'ai-callbacks'),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [
