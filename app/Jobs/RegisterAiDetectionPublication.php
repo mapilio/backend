@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class RegisterAiDetectionPublication implements ShouldBeUnique, ShouldQueue
 {
@@ -25,6 +26,19 @@ class RegisterAiDetectionPublication implements ShouldBeUnique, ShouldQueue
     public function handle(RegisterAiDetectionPublicationAction $publications): void
     {
         $publications->register($this->receiptId);
+
+        if (! config('mapilio.geo_publication.preparation_enabled')) {
+            return;
+        }
+
+        $publicationId = DB::table('geospatial_publications')
+            ->where('callback_receipt_id', $this->receiptId)
+            ->value('id');
+
+        if ($publicationId !== null) {
+            PrepareAiDetectionPublication::dispatch((int) $publicationId)
+                ->onQueue((string) config('mapilio.geo_publication.preparation_queue', 'geo-publication-preparation'));
+        }
     }
 
     public function backoff(): array

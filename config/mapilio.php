@@ -64,10 +64,13 @@ return [
 
     'geo_publication' => [
         'registration_enabled' => env('MAPILIO_GEO_PUBLICATION_REGISTRATION_ENABLED', false),
+        'preparation_enabled' => env('MAPILIO_GEO_PUBLICATION_PREPARATION_ENABLED', false),
         'delivery_enabled' => env('MAPILIO_GEO_PUBLICATION_DELIVERY_ENABLED', false),
         'queue' => env('MAPILIO_GEO_PUBLICATION_QUEUE', 'geo-publications'),
+        'preparation_queue' => env('MAPILIO_GEO_PUBLICATION_PREPARATION_QUEUE', 'geo-publication-preparation'),
         'target' => env('MAPILIO_GEO_PUBLICATION_TARGET', 'canonical_ai_detections'),
-        'layer' => env('MAPILIO_GEO_PUBLICATION_LAYER'),
+        'view' => env('MAPILIO_GEO_PUBLICATION_VIEW', 'mapilio_ai_features_v1'),
+        'layer' => env('MAPILIO_GEO_PUBLICATION_LAYER', 'mapilio:ai_features_v1'),
     ],
 
     'address_enrichment' => [

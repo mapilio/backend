@@ -27,6 +27,14 @@ The legacy backend contains PostGIS-heavy code paths around imagery, features, l
 
 The scanned backend code did not show direct GeoServer layer-management logic. That means GeoServer may be managed externally, through database publication, manual configuration, server-side scripts, or another service.
 
+## Live public layer check: 2026-07-15
+
+Read-only public WFS/WMTS inspection confirmed that current clients depend on `mapilio:features`, `mapilio:map_points`, `mapilio:map_roads_line`, and `mapilio:captured_roads_point`. Approximate WFS totals were 1.66 million features, 18.64 million imagery points, and 24.95 million road features.
+
+The `captured_roads_point` WFS query currently reports that database schema `captured_roads_point_v2` does not exist. A sample `map_points` WMTS request timed out while a sample road request returned. GeoServer REST catalog reads require authentication. No catalog or database write was attempted.
+
+ADR 0013 therefore introduces a separate versioned `mapilio_ai_features_v1` PostGIS view and reconciliation job. The legacy layers remain unchanged until authenticated catalog inspection and coordinated client testing are complete.
+
 Public WMS/WFS capabilities were checked without credentials for the root endpoint and known workspaces. The endpoints responded, but did not advertise named WMS layers or WFS feature types. WFS Transaction was advertised at the service level, so access control must be verified before any writable feature type is exposed.
 
 ## Migration Guardrails

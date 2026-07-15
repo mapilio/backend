@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for local and staging integration. Both flows are disabled by default. GeoServer delivery is not implemented or enabled.
+Accepted for local and staging integration. Both flows are disabled by default. ADR 0013 adds database preparation and reconciliation; GeoServer delivery is not implemented or enabled.
 
 ## Context
 
@@ -34,7 +34,7 @@ This flow is controlled by `MAPILIO_AI_STATUS_PROJECTION_ENABLED=false` and has 
 
 New entries are intentionally stored as `blocked`, with no external call and no legacy detection-table projection. The record is a durable publication request and reconciliation boundary, not evidence that GeoServer serves the data.
 
-Registration is controlled by `MAPILIO_GEO_PUBLICATION_REGISTRATION_ENABLED=false`. `MAPILIO_GEO_PUBLICATION_DELIVERY_ENABLED=false` is reserved as a separate production gate and is not consumed by a delivery worker yet.
+Registration is controlled by `MAPILIO_GEO_PUBLICATION_REGISTRATION_ENABLED=false`. ADR 0013 defines a separate `MAPILIO_GEO_PUBLICATION_PREPARATION_ENABLED=false` gate for PostGIS-view reconciliation. `MAPILIO_GEO_PUBLICATION_DELIVERY_ENABLED=false` remains reserved as a production gate and is not consumed by a delivery worker yet.
 
 ## Activation gates
 

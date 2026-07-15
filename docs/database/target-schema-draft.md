@@ -74,7 +74,9 @@ During migration, keep a mapping table:
 | `roads` | Canonical road or captured path geometries where Mapilio owns the derived data. |
 | `coverage_cells` | Grid/coverage rollups for fast map rendering and statistics. |
 | `geo_layers` | Published layer definitions and visibility policy. |
-| `geoserver_publications` | GeoServer workspace/layer publication state, errors, and timestamps. |
+| `geospatial_publications` | Source receipt, target layer, feature count, preparation/publication state, errors, and timestamps. |
+| `geospatial_publication_checks` | Append-only expected/actual count, missing-view geometry, and reconciliation outcomes per attempt. |
+| `mapilio_ai_features_v1` | Versioned GeoServer-facing view over canonical AI features and generated SRID 4326 geometry. |
 | `country_image_counts` | Precomputed country-level image counts for compatibility and fast public reads. |
 
 ### Operations

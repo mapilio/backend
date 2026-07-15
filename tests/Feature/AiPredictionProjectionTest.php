@@ -121,7 +121,7 @@ class AiPredictionProjectionTest extends TestCase
             'target_layer' => null,
             'feature_count' => 2,
             'publication_status' => 'blocked',
-            'status_reason' => 'GeoServer catalog and canonical PostGIS projection are not configured.',
+            'status_reason' => 'Database projection has not been reconciled.',
         ]);
     }
 

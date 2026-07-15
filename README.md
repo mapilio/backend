@@ -32,6 +32,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Disabled-by-default sequence address enrichment is documented in `docs/architecture/0010-sequence-address-enrichment.md`.
 - Disabled-by-default UKM scoring and its PostGIS index gate are documented in `docs/architecture/0011-ukm-scoring-boundary.md`.
 - Disabled-by-default AI completion projection and blocked Geo publication outbox are documented in `docs/architecture/0012-ai-completion-and-geo-publication-outbox.md`.
+- Versioned PostGIS AI feature projection and publication reconciliation are documented in `docs/architecture/0013-versioned-ai-geospatial-projection.md`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
@@ -46,6 +47,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0010-sequence-address-enrichment.md`
   - `docs/architecture/0011-ukm-scoring-boundary.md`
   - `docs/architecture/0012-ai-completion-and-geo-publication-outbox.md`
+  - `docs/architecture/0013-versioned-ai-geospatial-projection.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.

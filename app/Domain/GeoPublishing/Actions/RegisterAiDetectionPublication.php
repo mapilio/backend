@@ -52,7 +52,7 @@ class RegisterAiDetectionPublication
             'target_layer' => config('mapilio.geo_publication.layer'),
             'feature_count' => $actualFeatureCount,
             'publication_status' => 'blocked',
-            'status_reason' => 'GeoServer catalog and canonical PostGIS projection are not configured.',
+            'status_reason' => 'Database projection has not been reconciled.',
             'attempts' => 0,
             'created_at' => now(),
             'updated_at' => now(),
