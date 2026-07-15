@@ -4,6 +4,7 @@ namespace App\Domain\ImageryUploads\Actions;
 
 use App\Domain\GeoPublishing\Actions\CreateRoadLineForSequence;
 use App\Jobs\DispatchSequencePrediction;
+use App\Jobs\ResolveSequenceAddress;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -116,6 +117,14 @@ class CreateImageryUpload
         ) {
             DispatchSequencePrediction::dispatch($sequenceUuid)
                 ->onQueue((string) config('mapilio.ai_prediction.queue', 'prediction'));
+        }
+
+        if (
+            config('mapilio.address_enrichment.enabled')
+            && config('mapilio.address_enrichment.dispatch_after_upload')
+        ) {
+            ResolveSequenceAddress::dispatch($sequenceUuid)
+                ->onQueue((string) config('mapilio.address_enrichment.queue', 'find-address'));
         }
 
         return [

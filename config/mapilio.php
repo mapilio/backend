@@ -57,6 +57,17 @@ return [
         'max_segmentation_bytes' => (int) env('MAPILIO_AI_MAX_SEGMENTATION_BYTES', 1_048_576),
     ],
 
+    'address_enrichment' => [
+        'enabled' => env('MAPILIO_ADDRESS_ENRICHMENT_ENABLED', false),
+        'dispatch_after_upload' => env('MAPILIO_ADDRESS_DISPATCH_AFTER_UPLOAD', false),
+        'endpoint' => env('MAPILIO_ADDRESS_PROVIDER_ENDPOINT'),
+        'user_agent' => env('MAPILIO_ADDRESS_PROVIDER_USER_AGENT', 'MapilioBackend/1.0'),
+        'queue' => env('MAPILIO_ADDRESS_QUEUE', 'find-address'),
+        'connect_timeout' => (int) env('MAPILIO_ADDRESS_CONNECT_TIMEOUT', 3),
+        'timeout' => (int) env('MAPILIO_ADDRESS_REQUEST_TIMEOUT', 8),
+        'max_point_attempts' => (int) env('MAPILIO_ADDRESS_MAX_POINT_ATTEMPTS', 3),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [

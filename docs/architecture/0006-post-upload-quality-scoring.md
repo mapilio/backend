@@ -27,4 +27,4 @@ The action runs inside the metadata transaction for the current compatibility br
 
 UKM scoring is intentionally separate because it compares each image with historical imagery from other sequences over a six-month window. Its data-access plan and required geospatial indexes must be validated against staging PostgreSQL before implementation.
 
-Address lookup, AI prediction dispatch, GeoServer publication, and image-server end-to-end staging tests also remain separate downstream gates.
+Address lookup and AI prediction dispatch now have separate disabled-by-default queue boundaries. UKM scoring, GeoServer publication, and image-server end-to-end staging tests remain downstream gates.

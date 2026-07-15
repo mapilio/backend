@@ -3,6 +3,7 @@
 namespace Tests\Feature\Legacy;
 
 use App\Jobs\DispatchSequencePrediction;
+use App\Jobs\ResolveSequenceAddress;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
@@ -250,6 +251,32 @@ class ImageryUploadCompatibilityTest extends TestCase
 
         Queue::assertPushedOn('prediction-test', DispatchSequencePrediction::class);
         Queue::assertPushed(DispatchSequencePrediction::class, function (DispatchSequencePrediction $job): bool {
+            return $job->sequenceUuid === 'mobile-sequence-1';
+        });
+    }
+
+    public function test_upload_queues_address_enrichment_only_when_both_flags_are_enabled(): void
+    {
+        Queue::fake();
+        Config::set('mapilio.address_enrichment.enabled', true);
+        Config::set('mapilio.address_enrichment.dispatch_after_upload', false);
+        Config::set('mapilio.address_enrichment.queue', 'address-test');
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertOk();
+
+        Queue::assertNotPushed(ResolveSequenceAddress::class);
+
+        Config::set('mapilio.address_enrichment.dispatch_after_upload', true);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertOk();
+
+        Queue::assertPushedOn('address-test', ResolveSequenceAddress::class);
+        Queue::assertPushed(ResolveSequenceAddress::class, function (ResolveSequenceAddress $job): bool {
             return $job->sequenceUuid === 'mobile-sequence-1';
         });
     }
