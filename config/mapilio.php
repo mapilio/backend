@@ -57,6 +57,19 @@ return [
         'max_segmentation_bytes' => (int) env('MAPILIO_AI_MAX_SEGMENTATION_BYTES', 1_048_576),
     ],
 
+    'ai_status_projection' => [
+        'enabled' => env('MAPILIO_AI_STATUS_PROJECTION_ENABLED', false),
+        'queue' => env('MAPILIO_AI_STATUS_PROJECTION_QUEUE', 'ai-status-projections'),
+    ],
+
+    'geo_publication' => [
+        'registration_enabled' => env('MAPILIO_GEO_PUBLICATION_REGISTRATION_ENABLED', false),
+        'delivery_enabled' => env('MAPILIO_GEO_PUBLICATION_DELIVERY_ENABLED', false),
+        'queue' => env('MAPILIO_GEO_PUBLICATION_QUEUE', 'geo-publications'),
+        'target' => env('MAPILIO_GEO_PUBLICATION_TARGET', 'canonical_ai_detections'),
+        'layer' => env('MAPILIO_GEO_PUBLICATION_LAYER'),
+    ],
+
     'address_enrichment' => [
         'enabled' => env('MAPILIO_ADDRESS_ENRICHMENT_ENABLED', false),
         'dispatch_after_upload' => env('MAPILIO_ADDRESS_DISPATCH_AFTER_UPLOAD', false),

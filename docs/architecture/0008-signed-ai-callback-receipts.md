@@ -60,4 +60,4 @@ When `MAPILIO_AI_CALLBACK_ENABLED=false`, both routes return the existing stable
 
 Only validated receipts may enter result persistence. ADR 0009 defines the canonical feature, observation, and match model plus strict response ownership, class, imagery, coordinate, score, bbox, and payload-size validation. The complete graph is written idempotently in one transaction.
 
-PostGIS geometry/index deployment, legacy compatibility projections, processing-status projection, GeoServer publication, operator quarantine/retry controls, audit events, metrics, and expired nonce cleanup remain required before production activation.
+ADR 0012 adds a disabled-by-default durable processing-status projection and blocked Geo publication outbox. PostGIS geometry/index deployment, any proven-required legacy detection projection, actual GeoServer delivery, operator quarantine/retry controls, audit events, metrics, and expired nonce cleanup remain required before production activation.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for local and staging integration. Disabled by default. Legacy-table projection and GeoServer publication are not enabled.
+Accepted for local and staging integration. Disabled by default. ADR 0012 adds status projection and publication registration boundaries; legacy detection-table projection and GeoServer delivery are not enabled.
 
 ## Context
 
@@ -43,8 +43,8 @@ Canonical latitude, longitude, and GeoJSON are stored now so the contract can be
 ## Deferred work
 
 - project canonical detections into legacy tables only if an active consumer still requires them
-- project processing and sequence status changes through a durable, observable job
-- publish approved detections to GeoServer with reconciliation checks
+- stage-test and activate the durable processing and sequence status projection defined by ADR 0012
+- implement and reconcile actual GeoServer delivery from the blocked publication outbox defined by ADR 0012
 - add operator quarantine, retry controls, audit events, and metrics
 - calibrate payload and graph limits against representative staging results
 - add PostgreSQL/PostGIS geometry columns and spatial indexes

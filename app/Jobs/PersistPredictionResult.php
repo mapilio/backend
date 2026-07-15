@@ -22,6 +22,16 @@ class PersistPredictionResult implements ShouldQueue
     public function handle(PersistPredictionResultAction $results): void
     {
         $results->persist($this->receiptId);
+
+        if (config('mapilio.ai_status_projection.enabled')) {
+            ProjectPredictionProcessingStatus::dispatch($this->receiptId)
+                ->onQueue((string) config('mapilio.ai_status_projection.queue', 'ai-status-projections'));
+        }
+
+        if (config('mapilio.geo_publication.registration_enabled')) {
+            RegisterAiDetectionPublication::dispatch($this->receiptId)
+                ->onQueue((string) config('mapilio.geo_publication.queue', 'geo-publications'));
+        }
     }
 
     public function tags(): array
