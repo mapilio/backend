@@ -18,6 +18,9 @@
     },
     {
       "name": "Public content"
+    },
+    {
+      "name": "Identity"
     }
   ],
   "paths": {
@@ -149,6 +152,65 @@
                 },
                 "example": {
                   "message": "Subscription service is temporarily unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/web/auth/token": {
+      "post": {
+        "operationId": "issueWebToken",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Issue or refresh a first-party web bearer token",
+        "description": "A public browser client does not send a confidential OAuth client secret. Password and refresh grants retain the transitional bearer-token contract used by existing Mapilio APIs.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A new bearer and refresh token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Credentials, account state, grant, or refresh token were rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request fields failed validation or size limits."
+          },
+          "429": {
+            "description": "The per-IP authentication rate limit was exceeded."
+          },
+          "503": {
+            "description": "Token signing or the identity store is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
                 }
               }
             }
@@ -507,6 +569,107 @@
                 "type": "number",
                 "minimum": -90,
                 "maximum": 90
+              }
+            ]
+          }
+        }
+      },
+      "WebTokenRequest": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grant_type",
+              "email",
+              "password"
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "password"
+              },
+              "email": {
+                "type": "string",
+                "maxLength": 254
+              },
+              "password": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grant_type",
+              "refresh_token"
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "refresh_token"
+              },
+              "refresh_token": {
+                "type": "string",
+                "maxLength": 4096
+              }
+            }
+          }
+        ]
+      },
+      "WebTokenResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "success",
+          "token_type",
+          "expires_in",
+          "access_token",
+          "refresh_token"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "success": {
+            "const": true
+          },
+          "token_type": {
+            "const": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 60
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "WebAuthError": {
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "message": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             ]
           }

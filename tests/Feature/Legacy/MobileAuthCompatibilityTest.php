@@ -36,6 +36,7 @@ class MobileAuthCompatibilityTest extends TestCase
         ]);
 
         $response->assertOk()
+            ->assertJsonPath('id', 10)
             ->assertJsonPath('success', true)
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('expires_in', 3600)

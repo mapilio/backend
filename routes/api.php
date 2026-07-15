@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Ai\PredictionCallbackController;
 use App\Http\Controllers\Api\V1\Content\NewsletterSubscriptionController;
 use App\Http\Controllers\Api\V1\Geo\AiFeatureDetailController;
 use App\Http\Controllers\Api\V1\System\HealthController;
+use App\Http\Controllers\Api\V1\Web\WebTokenController;
 use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
 use App\Http\Controllers\Legacy\Config\GeneralConfigController;
@@ -175,6 +176,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('content/newsletter-subscriptions', NewsletterSubscriptionController::class)
         ->middleware('throttle:5,1')
         ->name('content.newsletter-subscriptions.store');
+    Route::post('web/auth/token', WebTokenController::class)
+        ->middleware('throttle:10,1')
+        ->name('web.auth.token');
     Route::get('billing/packages', [BillingPlanController::class, 'packages'])
         ->name('billing.packages');
     Route::get('billing/hosting', [BillingPlanController::class, 'hosting'])

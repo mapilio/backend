@@ -14,12 +14,22 @@ class LegacyMobileAuth
     private const REFRESH_TOKEN_TYPE = 'refresh';
 
     /**
-     * @return array{success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
+     * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
      */
     public function login(array $parameters): array
     {
         $this->assertClient($parameters);
 
+        return $this->issueFirstPartyToken($parameters);
+    }
+
+    /**
+     * Issue a token to a first-party public client that cannot keep a client secret.
+     *
+     * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
+     */
+    public function issueFirstPartyToken(array $parameters): array
+    {
         $grantType = (string) ($parameters['grant_type'] ?? '');
 
         if ($grantType === 'refresh_token') {
@@ -75,7 +85,7 @@ class LegacyMobileAuth
     }
 
     /**
-     * @return array{success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
+     * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
      */
     private function refresh(string $refreshToken): array
     {
@@ -161,7 +171,7 @@ class LegacyMobileAuth
     }
 
     /**
-     * @return array{success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
+     * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
      */
     private function tokenPair(int $userId): array
     {
@@ -169,6 +179,7 @@ class LegacyMobileAuth
         $refreshTtl = max($accessTtl, (int) config('mapilio.mobile_auth.refresh_token_ttl', 36000));
 
         return [
+            'id' => $userId,
             'success' => true,
             'token_type' => 'Bearer',
             'expires_in' => $accessTtl,
