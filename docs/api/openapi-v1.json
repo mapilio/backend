@@ -15,6 +15,9 @@
   "tags": [
     {
       "name": "Geospatial features"
+    },
+    {
+      "name": "Public content"
     }
   ],
   "paths": {
@@ -91,6 +94,61 @@
                 },
                 "example": {
                   "message": "AI feature detail is unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/content/newsletter-subscriptions": {
+      "post": {
+        "operationId": "createNewsletterSubscription",
+        "tags": [
+          "Public content"
+        ],
+        "summary": "Request a newsletter subscription",
+        "description": "Proxies a public subscription request to the configured newsletter provider without exposing provider credentials.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewsletterSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The subscription request was accepted, including an idempotent duplicate or honeypot request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiMessage"
+                },
+                "example": {
+                  "message": "Subscription has been received."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The email or honeypot field failed request validation."
+          },
+          "429": {
+            "description": "The per-IP rate limit was exceeded."
+          },
+          "503": {
+            "description": "The newsletter provider is unavailable or not safely configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Subscription service is temporarily unavailable."
                 }
               }
             }
@@ -451,6 +509,39 @@
                 "maximum": 90
               }
             ]
+          }
+        }
+      },
+      "NewsletterSubscriptionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255,
+            "description": "Honeypot field. Human clients leave this empty."
+          }
+        }
+      },
+      "ApiMessage": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
           }
         }
       },

@@ -34,6 +34,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Disabled-by-default AI completion projection and blocked Geo publication outbox are documented in `docs/architecture/0012-ai-completion-and-geo-publication-outbox.md`.
 - Versioned PostGIS AI feature projection and publication reconciliation are documented in `docs/architecture/0013-versioned-ai-geospatial-projection.md`.
 - Public versioned AI feature detail with bounded graph reads and imagery metadata is available at `/api/v1/geo/ai-features/{featureId}` and documented in `docs/architecture/0014-versioned-ai-feature-detail-api.md`.
+- Public newsletter requests are proxied server-to-server at `POST /api/v1/content/newsletter-subscriptions`; provider credentials never belong in the web bundle. See `docs/architecture/0015-server-side-newsletter-subscriptions.md`.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
@@ -51,6 +52,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0012-ai-completion-and-geo-publication-outbox.md`
   - `docs/architecture/0013-versioned-ai-geospatial-projection.md`
   - `docs/architecture/0014-versioned-ai-feature-detail-api.md`
+  - `docs/architecture/0015-server-side-newsletter-subscriptions.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.

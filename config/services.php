@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'mailcoach' => [
+        'base_url' => env('MAPILIO_MAILCOACH_BASE_URL'),
+        'token' => env('MAPILIO_MAILCOACH_API_TOKEN'),
+        'list_id' => env('MAPILIO_MAILCOACH_LIST_ID'),
+        'skip_confirmation' => env('MAPILIO_MAILCOACH_SKIP_CONFIRMATION', true),
+        'connect_timeout' => (int) env('MAPILIO_MAILCOACH_CONNECT_TIMEOUT', 3),
+        'timeout' => (int) env('MAPILIO_MAILCOACH_REQUEST_TIMEOUT', 8),
+    ],
+
 ];
