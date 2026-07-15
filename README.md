@@ -38,6 +38,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - First-party password and refresh grants are available to the public web client without a browser-exposed confidential client secret at `POST /api/v1/web/auth/token`. See `docs/architecture/0016-first-party-web-auth-boundary.md`.
 - Forwarded client IPs are accepted only from an explicit IP/CIDR allowlist; wildcard proxy trust is rejected. See `docs/architecture/0017-explicit-trusted-proxy-boundary.md`.
 - API security headers, backend-generated request IDs, and opt-in metadata-only request logs are documented in `docs/architecture/0018-api-edge-observability-boundary.md`.
+- A production-blocked staging smoke command verifies mobile and mapilio-kit upload, resume, hash, and image-serving contracts. See `docs/architecture/0019-staging-image-upload-contract-smoke.md`.
 - Full-history secret scanning is enforced by a pinned, checksum-verified Gitleaks workflow and documented in `docs/security/secret-management.md`.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
@@ -60,6 +61,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0016-first-party-web-auth-boundary.md`
   - `docs/architecture/0017-explicit-trusted-proxy-boundary.md`
   - `docs/architecture/0018-api-edge-observability-boundary.md`
+  - `docs/architecture/0019-staging-image-upload-contract-smoke.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
@@ -72,6 +74,7 @@ composer install
 php artisan test
 php artisan serve
 scripts/security/scan-secrets.sh
+php artisan mapilio:smoke-image-upload --mode=all --confirm-write
 ```
 
 ## Migration Rule

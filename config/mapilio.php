@@ -31,6 +31,17 @@ return [
         'hash_contract' => env('MAPILIO_CDN_HASH_CONTRACT', 'encrypted-directory-path'),
     ],
 
+    'image_upload_smoke' => [
+        'enabled' => env('MAPILIO_IMAGE_UPLOAD_SMOKE_ENABLED', false),
+        'base_url' => env('MAPILIO_IMAGE_UPLOAD_SMOKE_BASE_URL'),
+        'allowed_hosts' => env('MAPILIO_IMAGE_UPLOAD_SMOKE_ALLOWED_HOSTS', ''),
+        'connect_timeout' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_CONNECT_TIMEOUT', 3),
+        'request_timeout' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_REQUEST_TIMEOUT', 20),
+        'chunk_size' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_CHUNK_SIZE', 256),
+        'poll_attempts' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_POLL_ATTEMPTS', 10),
+        'poll_delay_ms' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_POLL_DELAY_MS', 500),
+    ],
+
     'ai_prediction' => [
         'enabled' => env('MAPILIO_AI_PREDICTION_ENABLED', false),
         'dispatch_after_upload' => env('MAPILIO_AI_DISPATCH_AFTER_UPLOAD', false),

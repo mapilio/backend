@@ -71,3 +71,5 @@ No production client should point upload traffic at the modern backend alone unt
 4. anonymizer has completed or the image is held back from public serving
 5. image URLs resolve from CDN cache/original storage
 6. AI, score, and GeoServer jobs are either rebuilt or intentionally disabled with visible status
+
+ADR 0019 provides the disabled-by-default, production-blocked smoke harness for the mobile and mapilio-kit image-server portions of this chain.
