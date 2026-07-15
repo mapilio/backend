@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\AddApiSecurityHeaders;
+use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\LogApiRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 | Request::HEADER_X_FORWARDED_PORT,
         );
 
+        $middleware->append([
+            AssignRequestId::class,
+            LogApiRequest::class,
+            AddApiSecurityHeaders::class,
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             'webhook/response-prediction',
         ]);
@@ -33,5 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return null;
+        });
+
+        $exceptions->respond(function ($response) {
+            return AddApiSecurityHeaders::apply($response, request());
         });
     })->create();

@@ -18,6 +18,11 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'observability' => [
+        'api_request_logging_enabled' => env('MAPILIO_API_REQUEST_LOGGING_ENABLED', false),
+        'slow_request_ms' => max(1, (int) env('MAPILIO_API_SLOW_REQUEST_MS', 1000)),
+    ],
+
     'image_server' => [
         'cdn_base_url' => rtrim((string) env('MAPILIO_CDN_BASE_URL', 'https://cdn.mapilio.com'), '/'),
         'image_path_prefix' => trim((string) env('MAPILIO_CDN_IMAGE_PATH_PREFIX', 'im'), '/'),
