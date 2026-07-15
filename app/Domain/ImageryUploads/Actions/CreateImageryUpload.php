@@ -3,6 +3,7 @@
 namespace App\Domain\ImageryUploads\Actions;
 
 use App\Domain\GeoPublishing\Actions\CreateRoadLineForSequence;
+use App\Jobs\CalculateSequenceUkmScores;
 use App\Jobs\DispatchSequencePrediction;
 use App\Jobs\ResolveSequenceAddress;
 use Illuminate\Support\Carbon;
@@ -125,6 +126,14 @@ class CreateImageryUpload
         ) {
             ResolveSequenceAddress::dispatch($sequenceUuid)
                 ->onQueue((string) config('mapilio.address_enrichment.queue', 'find-address'));
+        }
+
+        if (
+            config('mapilio.ukm_scoring.enabled')
+            && config('mapilio.ukm_scoring.dispatch_after_upload')
+        ) {
+            CalculateSequenceUkmScores::dispatch($sequenceUuid)
+                ->onQueue((string) config('mapilio.ukm_scoring.queue', 'ukm-scoring'));
         }
 
         return [

@@ -68,6 +68,20 @@ return [
         'max_point_attempts' => (int) env('MAPILIO_ADDRESS_MAX_POINT_ATTEMPTS', 3),
     ],
 
+    'ukm_scoring' => [
+        'enabled' => env('MAPILIO_UKM_SCORING_ENABLED', false),
+        'dispatch_after_upload' => env('MAPILIO_UKM_DISPATCH_AFTER_UPLOAD', false),
+        'queue' => env('MAPILIO_UKM_QUEUE', 'ukm-scoring'),
+        'history_months' => (int) env('MAPILIO_UKM_HISTORY_MONTHS', 6),
+        'heading_tolerance_degrees' => (float) env('MAPILIO_UKM_HEADING_TOLERANCE', 45),
+        'min_distance_meters' => (float) env('MAPILIO_UKM_MIN_DISTANCE_METERS', 1),
+        'max_distance_meters' => (float) env('MAPILIO_UKM_MAX_DISTANCE_METERS', 40),
+        'max_score' => (float) env('MAPILIO_UKM_MAX_SCORE', 5),
+        'max_points_per_sequence' => (int) env('MAPILIO_UKM_MAX_POINTS_PER_SEQUENCE', 10_000),
+        'require_spatial_index' => env('MAPILIO_UKM_REQUIRE_SPATIAL_INDEX', true),
+        'spatial_index' => env('MAPILIO_UKM_SPATIAL_INDEX', 'ix_imagery_ukm_geography_active'),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [

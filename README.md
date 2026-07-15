@@ -30,6 +30,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Signed, replay-protected AI callback receipts are documented in `docs/architecture/0008-signed-ai-callback-receipts.md`.
 - Strict, transactional AI detection-result persistence is documented in `docs/architecture/0009-canonical-ai-detection-persistence.md`.
 - Disabled-by-default sequence address enrichment is documented in `docs/architecture/0010-sequence-address-enrichment.md`.
+- Disabled-by-default UKM scoring and its PostGIS index gate are documented in `docs/architecture/0011-ukm-scoring-boundary.md`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
@@ -42,7 +43,9 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0008-signed-ai-callback-receipts.md`
   - `docs/architecture/0009-canonical-ai-detection-persistence.md`
   - `docs/architecture/0010-sequence-address-enrichment.md`
+  - `docs/architecture/0011-ukm-scoring-boundary.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
+- UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
 

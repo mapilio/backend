@@ -25,6 +25,6 @@ The action runs inside the metadata transaction for the current compatibility br
 
 ## Deferred work
 
-UKM scoring is intentionally separate because it compares each image with historical imagery from other sequences over a six-month window. Its data-access plan and required geospatial indexes must be validated against staging PostgreSQL before implementation.
+UKM scoring now has a separate disabled-by-default implementation and fail-closed PostGIS index gate documented in ADR 0011. Its geography index, score distribution, and no-neighbor correction still require staging and product acceptance.
 
-Address lookup and AI prediction dispatch now have separate disabled-by-default queue boundaries. UKM scoring, GeoServer publication, and image-server end-to-end staging tests remain downstream gates.
+Address lookup, UKM scoring, and AI prediction dispatch now have separate disabled-by-default queue boundaries. GeoServer publication and image-server end-to-end staging tests remain downstream gates.

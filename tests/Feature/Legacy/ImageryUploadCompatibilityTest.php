@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Jobs\CalculateSequenceUkmScores;
 use App\Jobs\DispatchSequencePrediction;
 use App\Jobs\ResolveSequenceAddress;
 use Illuminate\Support\Facades\Config;
@@ -277,6 +278,32 @@ class ImageryUploadCompatibilityTest extends TestCase
 
         Queue::assertPushedOn('address-test', ResolveSequenceAddress::class);
         Queue::assertPushed(ResolveSequenceAddress::class, function (ResolveSequenceAddress $job): bool {
+            return $job->sequenceUuid === 'mobile-sequence-1';
+        });
+    }
+
+    public function test_upload_queues_ukm_scoring_only_when_both_flags_are_enabled(): void
+    {
+        Queue::fake();
+        Config::set('mapilio.ukm_scoring.enabled', true);
+        Config::set('mapilio.ukm_scoring.dispatch_after_upload', false);
+        Config::set('mapilio.ukm_scoring.queue', 'ukm-test');
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertOk();
+
+        Queue::assertNotPushed(CalculateSequenceUkmScores::class);
+
+        Config::set('mapilio.ukm_scoring.dispatch_after_upload', true);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertOk();
+
+        Queue::assertPushedOn('ukm-test', CalculateSequenceUkmScores::class);
+        Queue::assertPushed(CalculateSequenceUkmScores::class, function (CalculateSequenceUkmScores $job): bool {
             return $job->sequenceUuid === 'mobile-sequence-1';
         });
     }
