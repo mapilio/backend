@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\AiJobsPredictions\Actions\ValidatePredictionCallbackReceipt;
+use App\Jobs\PersistPredictionResult as PersistPredictionResultJob;
 use App\Jobs\ValidatePredictionCallbackReceipt as ValidatePredictionCallbackReceiptJob;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
@@ -235,6 +236,26 @@ class AiPredictionCallbackTest extends TestCase
                 'processing_error' => 'Callback receipt integrity validation failed.',
             ]);
         }
+    }
+
+    public function test_validation_job_queues_result_persistence_only_when_enabled(): void
+    {
+        Config::set('mapilio.ai_result_persistence.enabled', true);
+        Config::set('mapilio.ai_result_persistence.queue', 'ai-results-test');
+        $response = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            json_encode($this->successPayload(), JSON_THROW_ON_ERROR),
+            'nonce-result-handoff-0001',
+        )->assertStatus(202);
+        $receiptId = (int) $response->json('receipt_id');
+
+        $job = new ValidatePredictionCallbackReceiptJob($receiptId);
+        $job->handle(app(ValidatePredictionCallbackReceipt::class));
+
+        Queue::assertPushedOn('ai-results-test', PersistPredictionResultJob::class);
+        Queue::assertPushed(PersistPredictionResultJob::class, function ($queued) use ($receiptId): bool {
+            return $queued->receiptId === $receiptId;
+        });
     }
 
     private function signedPost(

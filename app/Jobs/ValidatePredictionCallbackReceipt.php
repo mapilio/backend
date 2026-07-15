@@ -21,7 +21,12 @@ class ValidatePredictionCallbackReceipt implements ShouldQueue
 
     public function handle(ValidateReceiptAction $receipts): void
     {
-        $receipts->validate($this->receiptId);
+        $validated = $receipts->validate($this->receiptId);
+
+        if ($validated && config('mapilio.ai_result_persistence.enabled')) {
+            PersistPredictionResult::dispatch($this->receiptId)
+                ->onQueue((string) config('mapilio.ai_result_persistence.queue', 'ai-results'));
+        }
     }
 
     public function tags(): array

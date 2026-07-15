@@ -28,6 +28,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Post-upload GPS, capture-time, and sequence-distance scoring is documented in `docs/architecture/0006-post-upload-quality-scoring.md`.
 - The disabled-by-default AI prediction dispatch boundary is documented in `docs/architecture/0007-ai-prediction-dispatch-boundary.md`.
 - Signed, replay-protected AI callback receipts are documented in `docs/architecture/0008-signed-ai-callback-receipts.md`.
+- Strict, transactional AI detection-result persistence is documented in `docs/architecture/0009-canonical-ai-detection-persistence.md`.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
   - `docs/architecture/0001-modern-backend-foundation.md`
@@ -38,6 +39,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0006-post-upload-quality-scoring.md`
   - `docs/architecture/0007-ai-prediction-dispatch-boundary.md`
   - `docs/architecture/0008-signed-ai-callback-receipts.md`
+  - `docs/architecture/0009-canonical-ai-detection-persistence.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.

@@ -9,12 +9,12 @@ use Throwable;
 
 class ValidatePredictionCallbackReceipt
 {
-    public function validate(int $receiptId): void
+    public function validate(int $receiptId): bool
     {
         $receipt = DB::table('ai_prediction_callback_receipts')->find($receiptId);
 
         if ($receipt === null || $receipt->processing_status !== 'received') {
-            return;
+            return false;
         }
 
         try {
@@ -30,7 +30,7 @@ class ValidatePredictionCallbackReceipt
                 throw new PredictionCallbackException('Callback receipt integrity validation failed.');
             }
 
-            DB::table('ai_prediction_callback_receipts')
+            $updated = DB::table('ai_prediction_callback_receipts')
                 ->where('id', $receiptId)
                 ->where('processing_status', 'received')
                 ->update([
@@ -39,6 +39,8 @@ class ValidatePredictionCallbackReceipt
                     'validated_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+            return $updated === 1;
         } catch (Throwable $exception) {
             DB::table('ai_prediction_callback_receipts')
                 ->where('id', $receiptId)

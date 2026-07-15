@@ -49,6 +49,14 @@ return [
         'queue' => env('MAPILIO_AI_CALLBACK_QUEUE', 'ai-callbacks'),
     ],
 
+    'ai_result_persistence' => [
+        'enabled' => env('MAPILIO_AI_RESULT_PERSISTENCE_ENABLED', false),
+        'queue' => env('MAPILIO_AI_RESULT_PERSISTENCE_QUEUE', 'ai-results'),
+        'max_matches_per_feature' => (int) env('MAPILIO_AI_MAX_MATCHES_PER_FEATURE', 1000),
+        'max_attributes_bytes' => (int) env('MAPILIO_AI_MAX_ATTRIBUTES_BYTES', 131_072),
+        'max_segmentation_bytes' => (int) env('MAPILIO_AI_MAX_SEGMENTATION_BYTES', 1_048_576),
+    ],
+
     'mobile_config' => [
         'token' => env('MAPILIO_MOBILE_CONFIG_TOKEN'),
         'general' => [
