@@ -1,0 +1,470 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mapilio API",
+    "version": "1.0.0-draft",
+    "summary": "Versioned contracts implemented by the modern Mapilio backend.",
+    "description": "This document grows endpoint by endpoint as modern contracts are implemented and tested. It is separate from the legacy compatibility inventory."
+  },
+  "servers": [
+    {
+      "url": "https://end.mapilio.com",
+      "description": "Production API; modern route activation remains subject to release gates."
+    }
+  ],
+  "tags": [
+    {
+      "name": "Geospatial features"
+    }
+  ],
+  "paths": {
+    "/api/v1/geo/ai-features/{featureId}": {
+      "get": {
+        "operationId": "getAiFeatureDetail",
+        "tags": [
+          "Geospatial features"
+        ],
+        "summary": "Get a canonical AI feature and its matched imagery observations",
+        "security": [],
+        "parameters": [
+          {
+            "name": "featureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical feature detail",
+            "headers": {
+              "ETag": {
+                "description": "Validator accepted by If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Public cache and stale-while-revalidate policy.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiFeatureDetailResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag still matches."
+          },
+          "404": {
+            "description": "Feature not found or invalid path id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Not Found"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          },
+          "503": {
+            "description": "Canonical graph is unavailable or fails integrity checks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "AI feature detail is unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AiFeatureDetailResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AiFeature"
+          }
+        }
+      },
+      "AiFeature": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "geometry",
+          "properties",
+          "matches"
+        ],
+        "properties": {
+          "type": {
+            "const": "Feature"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/AiFeatureProperties"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiFeatureMatch"
+            }
+          }
+        }
+      },
+      "AiFeatureProperties": {
+        "type": "object",
+        "required": [
+          "class_code",
+          "confidence",
+          "verified",
+          "dimensions",
+          "attributes",
+          "sequence_uuid",
+          "project_key",
+          "organization_key",
+          "created_by_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "class_code": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "dimensions": {
+            "$ref": "#/components/schemas/FeatureDimensions"
+          },
+          "attributes": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "sequence_uuid": {
+            "type": "string"
+          },
+          "project_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_by_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "FeatureDimensions": {
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "area"
+        ],
+        "properties": {
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "area": {
+            "type": "number"
+          }
+        }
+      },
+      "AiFeatureMatch": {
+        "type": "object",
+        "required": [
+          "id",
+          "source_index",
+          "score",
+          "geometry",
+          "observation_1",
+          "observation_2"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/PointGeometry"
+          },
+          "observation_1": {
+            "$ref": "#/components/schemas/AiFeatureObservation"
+          },
+          "observation_2": {
+            "$ref": "#/components/schemas/AiFeatureObservation"
+          }
+        }
+      },
+      "AiFeatureObservation": {
+        "type": "object",
+        "required": [
+          "id",
+          "object_key",
+          "imagery_id",
+          "bbox",
+          "score",
+          "segmentation",
+          "image"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "object_key": {
+            "type": "string"
+          },
+          "imagery_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "bbox": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number"
+            }
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "segmentation": {
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FeatureImagery"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "FeatureImagery": {
+        "type": "object",
+        "required": [
+          "id",
+          "sequence_uuid",
+          "uploaded_hash",
+          "filename",
+          "resolution",
+          "heading",
+          "capture_time",
+          "created_by_id",
+          "geometry",
+          "urls"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sequence_uuid": {
+            "type": "string"
+          },
+          "uploaded_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "filename": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "heading": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "capture_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_by_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "geometry": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointGeometry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "urls": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImageUrls"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ImageUrls": {
+        "type": "object",
+        "required": [
+          "original",
+          "preview_480"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "format": "uri"
+          },
+          "preview_480": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "PointGeometry": {
+        "type": "object",
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "properties": {
+          "type": {
+            "const": "Point"
+          },
+          "coordinates": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+              {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              }
+            ]
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

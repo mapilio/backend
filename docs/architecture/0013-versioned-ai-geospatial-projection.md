@@ -60,7 +60,7 @@ The delivery flag is reserved and is intentionally unused until authenticated ca
 4. Inspect the authenticated GeoServer workspace, store, layer, style, security, and GeoWebCache configuration.
 5. Register `mapilio:ai_features_v1` against the modern store without changing legacy `features`.
 6. Test WFS schema, vector tiles, filters, cache behavior, and rollback with representative data.
-7. Add a versioned backend detail API and migrate web object-detail reads away from legacy `matched_points` JSON.
+7. Validate the versioned backend detail API from ADR 0014 in staging, then migrate web object-detail reads away from legacy `matched_points` JSON behind a rollback flag.
 8. Only after verification, implement the external delivery worker and allow `ready` to become `published`.
 
 ## Consequences

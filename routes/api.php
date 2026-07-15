@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Ai\PredictionCallbackController;
+use App\Http\Controllers\Api\V1\Geo\AiFeatureDetailController;
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
@@ -150,6 +151,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->name('imagery.uploads');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
         ->name('geo.uploaded-roads-group');
+    Route::get('geo/ai-features/{featureId}', AiFeatureDetailController::class)
+        ->whereNumber('featureId')
+        ->middleware('throttle:120,1')
+        ->name('geo.ai-features.show');
     Route::get('inventory/types', [TypeMetadataController::class, 'types'])
         ->name('inventory.types');
     Route::get('inventory/groups', [TypeMetadataController::class, 'groups'])

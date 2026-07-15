@@ -57,6 +57,11 @@ return [
         'max_segmentation_bytes' => (int) env('MAPILIO_AI_MAX_SEGMENTATION_BYTES', 1_048_576),
     ],
 
+    'ai_feature_api' => [
+        'cache_ttl' => (int) env('MAPILIO_AI_FEATURE_API_CACHE_TTL', 60),
+        'stale_while_revalidate' => (int) env('MAPILIO_AI_FEATURE_API_STALE_WHILE_REVALIDATE', 300),
+    ],
+
     'ai_status_projection' => [
         'enabled' => env('MAPILIO_AI_STATUS_PROJECTION_ENABLED', false),
         'queue' => env('MAPILIO_AI_STATUS_PROJECTION_QUEUE', 'ai-status-projections'),
