@@ -43,7 +43,8 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Responsible disclosure and private reporting rules are defined in `SECURITY.md`; public release remains blocked until GitHub private vulnerability reporting is enabled and verified.
 - Security incident roles, severity, ecosystem playbooks, evidence handling, recovery, and post-incident review are documented in `docs/security/incident-response.md`.
 - A strict, read-only backup evidence gate validates encryption, integrity, off-site immutability, PITR/WAL freshness, isolated restore drills, and measured recovery objectives without owning backup credentials. See `docs/architecture/0020-backup-readiness-evidence-gate.md`.
-- GitHub Actions enforces locked dependency audits, Pint, baseline-free Larastan level 5, the full Laravel suite, and strict OpenAPI lint with commit-pinned setup actions. See `docs/architecture/0021-baseline-free-ci-quality-gates.md`.
+- GitHub Actions enforces locked dependency audits, Pint, baseline-free Larastan level 5, Laravel configuration caching, the full Laravel suite, strict OpenAPI lint, and the production asset build with commit-pinned setup actions. See `docs/architecture/0021-baseline-free-ci-quality-gates.md`.
+- The ecosystem release control consolidates automated repository checks, staging evidence, compatibility, privacy, rollout, and rollback for backend, clients, image services, AI, and GeoServer. See `docs/operations/release-readiness.md`.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
@@ -72,6 +73,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
+- Release readiness and rollback checklist: `docs/operations/release-readiness.md`.
 
 ## Local Commands
 
@@ -85,6 +87,7 @@ php artisan mapilio:verify-backup-readiness
 composer format:test
 composer analyse
 npm run lint:openapi
+scripts/release/verify-local-readiness.sh
 ```
 
 ## Migration Rule

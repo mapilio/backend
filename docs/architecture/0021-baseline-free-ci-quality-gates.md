@@ -20,9 +20,10 @@ The PHP 8.2 job runs:
 2. locked dependency installation and advisory audit
 3. Laravel Pint in check mode
 4. Larastan/PHPStan level 5 over `app`, `bootstrap/app.php`, and `routes`
-5. the complete Laravel test suite
+5. Laravel configuration cache creation and clearing
+6. the complete Laravel test suite
 
-The API-contract job uses a locked npm tree and Redocly `recommended-strict` to run npm advisory audit and OpenAPI lint. PHPStan and OpenAPI tool versions are committed to Composer/npm lockfiles. GitHub setup actions are pinned to full commit SHAs.
+The API-contract job uses a locked npm tree and Redocly `recommended-strict` to run npm advisory audit, OpenAPI lint, and the Vite production asset build. PHPStan and OpenAPI tool versions are committed to Composer/npm lockfiles. GitHub setup actions are pinned to full commit SHAs.
 
 No PHPStan baseline, ignored identifier, Redocly ignore file, or warning allowance is committed. Findings must be fixed at their type or contract boundary.
 

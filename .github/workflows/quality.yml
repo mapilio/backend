@@ -46,11 +46,16 @@ jobs:
       - name: Run baseline-free static analysis
         run: composer analyse
 
+      - name: Verify Laravel configuration caching
+        run: |
+          php artisan config:cache
+          php artisan config:clear
+
       - name: Run backend tests
         run: php artisan test
 
   api-contract:
-    name: OpenAPI contract and npm audit
+    name: OpenAPI contract, npm audit, and asset build
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -73,3 +78,6 @@ jobs:
 
       - name: Lint OpenAPI contract
         run: npm run lint:openapi
+
+      - name: Build backend web assets
+        run: npm run build
