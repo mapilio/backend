@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Queue\QueueRuntimeConfiguration;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        QueueRuntimeConfiguration::assertSafe(
+            config('queue.default'),
+            config('queue.connections'),
+        );
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Queue\QueueRuntimeConfiguration;
+
 return [
 
     /*
@@ -40,7 +42,10 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env(
+                'DB_QUEUE_RETRY_AFTER',
+                QueueRuntimeConfiguration::MINIMUM_RETRY_WINDOW_SECONDS,
+            ),
             'after_commit' => false,
         ],
 
@@ -48,7 +53,10 @@ return [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
             'queue' => env('BEANSTALKD_QUEUE', 'default'),
-            'retry_after' => (int) env('BEANSTALKD_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env(
+                'BEANSTALKD_QUEUE_RETRY_AFTER',
+                QueueRuntimeConfiguration::MINIMUM_RETRY_WINDOW_SECONDS,
+            ),
             'block_for' => 0,
             'after_commit' => false,
         ],
@@ -61,6 +69,7 @@ return [
             'queue' => env('SQS_QUEUE', 'default'),
             'suffix' => env('SQS_SUFFIX'),
             'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'visibility_timeout' => (int) env('SQS_VISIBILITY_TIMEOUT', 0),
             'after_commit' => false,
         ],
 
@@ -68,7 +77,10 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env(
+                'REDIS_QUEUE_RETRY_AFTER',
+                QueueRuntimeConfiguration::MINIMUM_RETRY_WINDOW_SECONDS,
+            ),
             'block_for' => null,
             'after_commit' => false,
         ],
