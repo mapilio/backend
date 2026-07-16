@@ -9,7 +9,7 @@ Initial domains:
 - `AiJobsPredictions`: AI requests, callbacks, parsing, retries, idempotency, queue state.
 - `InventoryFeatures`: detected inventory, measurements, bbox/relation/segmentation, correction workflows.
 - `GeoPublishing`: GeoServer publication, geospatial APIs, exports, OSM/community integration.
-- `OperationsDashboard`: admin dashboard, health, incidents, operational metrics, support tools.
+- `OperationsDashboard`: admin dashboard, health, incidents, backup readiness, operational metrics, support tools.
 - `CommunityIntegrations`: public/community data access and external integration contracts.
 
 Compatibility rule:

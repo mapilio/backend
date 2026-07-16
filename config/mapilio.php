@@ -23,6 +23,17 @@ return [
         'slow_request_ms' => max(1, (int) env('MAPILIO_API_SLOW_REQUEST_MS', 1000)),
     ],
 
+    'backup_readiness' => [
+        'evidence_path' => env('MAPILIO_BACKUP_EVIDENCE_PATH'),
+        'expected_environment' => env('MAPILIO_BACKUP_EXPECTED_ENVIRONMENT'),
+        'max_manifest_age_minutes' => env('MAPILIO_BACKUP_MAX_MANIFEST_AGE_MINUTES'),
+        'max_backup_age_hours' => env('MAPILIO_BACKUP_MAX_AGE_HOURS'),
+        'max_wal_age_minutes' => env('MAPILIO_BACKUP_MAX_WAL_AGE_MINUTES'),
+        'max_restore_drill_age_days' => env('MAPILIO_BACKUP_MAX_RESTORE_DRILL_AGE_DAYS'),
+        'max_rpo_seconds' => env('MAPILIO_BACKUP_MAX_RPO_SECONDS'),
+        'max_rto_seconds' => env('MAPILIO_BACKUP_MAX_RTO_SECONDS'),
+    ],
+
     'image_server' => [
         'cdn_base_url' => rtrim((string) env('MAPILIO_CDN_BASE_URL', 'https://cdn.mapilio.com'), '/'),
         'image_path_prefix' => trim((string) env('MAPILIO_CDN_IMAGE_PATH_PREFIX', 'im'), '/'),
