@@ -40,6 +40,8 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - API security headers, backend-generated request IDs, and opt-in metadata-only request logs are documented in `docs/architecture/0018-api-edge-observability-boundary.md`.
 - A production-blocked staging smoke command verifies mobile and mapilio-kit upload, resume, hash, and image-serving contracts. See `docs/architecture/0019-staging-image-upload-contract-smoke.md`.
 - Full-history secret scanning is enforced by a pinned, checksum-verified Gitleaks workflow and documented in `docs/security/secret-management.md`.
+- Responsible disclosure and private reporting rules are defined in `SECURITY.md`; public release remains blocked until GitHub private vulnerability reporting is enabled and verified.
+- Security incident roles, severity, ecosystem playbooks, evidence handling, recovery, and post-incident review are documented in `docs/security/incident-response.md`.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
