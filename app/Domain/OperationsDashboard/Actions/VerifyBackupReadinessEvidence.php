@@ -320,7 +320,7 @@ class VerifyBackupReadinessEvidence
 
         $timestamp = CarbonImmutable::createFromFormat('Y-m-d\TH:i:s\Z', $value, 'UTC');
 
-        if ($timestamp === false || $timestamp->format('Y-m-d\TH:i:s\Z') !== $value) {
+        if ($timestamp === null || $timestamp->format('Y-m-d\TH:i:s\Z') !== $value) {
             $failures[] = "{$field} must be a valid UTC RFC3339 timestamp";
 
             return null;

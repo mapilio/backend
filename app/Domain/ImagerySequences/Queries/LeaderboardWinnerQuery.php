@@ -10,8 +10,7 @@ class LeaderboardWinnerQuery
 {
     public function __construct(
         private readonly LeaderboardQuery $leaderboardQuery,
-    ) {
-    }
+    ) {}
 
     public function get(array $filters = []): array
     {

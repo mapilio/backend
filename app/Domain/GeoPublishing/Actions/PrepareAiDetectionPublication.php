@@ -20,6 +20,10 @@ class PrepareAiDetectionPublication
             throw new GeoPublicationException("Geo publication {$publicationId} was not found.");
         }
 
+        if (! is_object($publication)) {
+            throw new GeoPublicationException('Geo publication has an invalid database representation.');
+        }
+
         if (in_array($publication->publication_status, ['ready', 'published'], true)) {
             return false;
         }
@@ -43,7 +47,7 @@ class PrepareAiDetectionPublication
             $targetLayer = $this->targetLayer();
             $receipt = DB::table('ai_prediction_callback_receipts')->find($publication->callback_receipt_id);
 
-            if ($receipt === null || $receipt->processing_status !== 'processed' || $receipt->response_status !== 'SUCCESS') {
+            if (! is_object($receipt) || $receipt->processing_status !== 'processed' || $receipt->response_status !== 'SUCCESS') {
                 throw new GeoPublicationException('Geo publication source receipt is not a processed successful result.');
             }
 

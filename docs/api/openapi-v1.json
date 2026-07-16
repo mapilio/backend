@@ -4,7 +4,11 @@
     "title": "Mapilio API",
     "version": "1.0.0-draft",
     "summary": "Versioned contracts implemented by the modern Mapilio backend.",
-    "description": "This document grows endpoint by endpoint as modern contracts are implemented and tested. It is separate from the legacy compatibility inventory."
+    "description": "This document grows endpoint by endpoint as modern contracts are implemented and tested. It is separate from the legacy compatibility inventory.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
   },
   "servers": [
     {
@@ -14,13 +18,16 @@
   ],
   "tags": [
     {
-      "name": "Geospatial features"
+      "name": "Geospatial features",
+      "description": "Versioned reads for canonical detections and geospatial publication data."
     },
     {
-      "name": "Public content"
+      "name": "Public content",
+      "description": "Public content and server-side subscription operations."
     },
     {
-      "name": "Identity"
+      "name": "Identity",
+      "description": "First-party authentication contracts for Mapilio clients."
     }
   ],
   "paths": {

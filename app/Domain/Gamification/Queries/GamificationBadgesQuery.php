@@ -3,15 +3,15 @@
 namespace App\Domain\Gamification\Queries;
 
 use App\Domain\ImagerySequences\Queries\LeaderboardQuery;
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class GamificationBadgesQuery
 {
     public function get(Request $request, int $userId, LeaderboardQuery $leaderboardQuery): array
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
 
         if (! $this->userExists($connection, $userId)) {
             return [];
@@ -44,7 +44,7 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function userExists(ConnectionInterface $connection, int $userId): bool
+    private function userExists(Connection $connection, int $userId): bool
     {
         return $connection
             ->table('default_users_users')
@@ -53,9 +53,9 @@ class GamificationBadgesQuery
     }
 
     /**
-     * @return array<int, true>
+     * @return array<int, bool>
      */
-    private function ownedBadgeIds(ConnectionInterface $connection, int $userId): array
+    private function ownedBadgeIds(Connection $connection, int $userId): array
     {
         return $connection
             ->table('default_gamification_user_badge')
@@ -68,7 +68,7 @@ class GamificationBadgesQuery
     /**
      * @return array<int, int>
      */
-    private function levels(ConnectionInterface $connection): array
+    private function levels(Connection $connection): array
     {
         return $connection
             ->table('default_gamification_level')
@@ -77,7 +77,7 @@ class GamificationBadgesQuery
             ->all();
     }
 
-    private function currentLevelId(ConnectionInterface $connection, int $userId): int
+    private function currentLevelId(Connection $connection, int $userId): int
     {
         $levelId = $connection
             ->table('default_gamification_user_level')
@@ -94,7 +94,7 @@ class GamificationBadgesQuery
         return $leaderboard[0]['point'] ?? 0;
     }
 
-    private function badges(ConnectionInterface $connection, string $locale)
+    private function badges(Connection $connection, string $locale)
     {
         $query = $connection
             ->table('default_gamification_badge as badge')
@@ -127,7 +127,7 @@ class GamificationBadgesQuery
     }
 
     /**
-     * @param  array<int, true>  $ownedBadgeIds
+     * @param  array<int, bool>  $ownedBadgeIds
      * @param  array<int, int>  $levels
      */
     private function badgePayload(
@@ -205,7 +205,7 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function disabledImagePayloads(ConnectionInterface $connection, $badges, string $locale): array
+    private function disabledImagePayloads(Connection $connection, $badges, string $locale): array
     {
         $fileIds = $badges
             ->pluck('disabled_image_id')
@@ -290,7 +290,7 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function diskPayloads(ConnectionInterface $connection, array $diskIds, string $locale): array
+    private function diskPayloads(Connection $connection, array $diskIds, string $locale): array
     {
         if ($diskIds === []) {
             return [];
@@ -335,7 +335,7 @@ class GamificationBadgesQuery
             ->all();
     }
 
-    private function folderPayloads(ConnectionInterface $connection, array $folderIds, string $locale): array
+    private function folderPayloads(Connection $connection, array $folderIds, string $locale): array
     {
         if ($folderIds === []) {
             return [];

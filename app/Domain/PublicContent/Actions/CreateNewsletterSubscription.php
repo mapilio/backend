@@ -61,7 +61,7 @@ class CreateNewsletterSubscription
             throw new NewsletterSubscriptionException('Newsletter provider is not configured.');
         }
 
-        if (app()->environment('production') && ($parts['scheme'] ?? null) !== 'https') {
+        if (app()->environment('production') && $parts['scheme'] !== 'https') {
             throw new NewsletterSubscriptionException('Newsletter provider must use HTTPS in production.');
         }
     }

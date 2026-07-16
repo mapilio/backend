@@ -2,9 +2,9 @@
 
 namespace App\Domain\ImagerySequences\Queries;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -20,7 +20,7 @@ class LeaderboardQuery
      */
     public function get(array $filters = [], ?int $limit = null, int $scoreVersion = self::SCORE_VERSION_SEQUENCE): array
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
         $userId = $this->optionalUserId($filters['user_id'] ?? null);
         $dateWindow = $this->dateWindow($filters);
         $scoreVersion = $this->scoreVersion($scoreVersion);
@@ -96,7 +96,7 @@ class LeaderboardQuery
      * @param  array{0: string, 1: string}|null  $dateWindow
      */
     private function sql(
-        ConnectionInterface $connection,
+        Connection $connection,
         ?int $userId,
         ?array $dateWindow,
         ?int $limit,
@@ -112,7 +112,7 @@ class LeaderboardQuery
     /**
      * @param  array{0: string, 1: string}|null  $dateWindow
      */
-    private function sequencePointSql(ConnectionInterface $connection, ?int $userId, ?array $dateWindow, ?int $limit): string
+    private function sequencePointSql(Connection $connection, ?int $userId, ?array $dateWindow, ?int $limit): string
     {
         $sequenceWhere = [
             'entries.deleted_at IS NULL',
@@ -202,7 +202,7 @@ SQL,
     /**
      * @param  array{0: string, 1: string}|null  $dateWindow
      */
-    private function imageScoreSql(ConnectionInterface $connection, ?int $userId, ?array $dateWindow, ?int $limit): string
+    private function imageScoreSql(Connection $connection, ?int $userId, ?array $dateWindow, ?int $limit): string
     {
         $sequenceWhere = [
             'entries.deleted_at IS NULL',
@@ -428,7 +428,7 @@ SQL,
         return $filters;
     }
 
-    private function rolesSelectExpression(ConnectionInterface $connection): string
+    private function rolesSelectExpression(Connection $connection): string
     {
         if ($connection->getDriverName() === 'pgsql') {
             return '(SELECT ARRAY_AGG(selected_roles.slug)

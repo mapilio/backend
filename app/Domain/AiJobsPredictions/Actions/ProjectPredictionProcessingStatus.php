@@ -2,7 +2,8 @@
 
 namespace App\Domain\AiJobsPredictions\Actions;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -20,6 +21,10 @@ class ProjectPredictionProcessingStatus
 
         if ($receipt === null) {
             throw new PredictionStatusProjectionException("Callback receipt {$receiptId} was not found.");
+        }
+
+        if (! is_object($receipt)) {
+            throw new PredictionStatusProjectionException('Callback receipt has an invalid database representation.');
         }
 
         if ($receipt->processing_status !== 'processed') {
@@ -114,7 +119,13 @@ class ProjectPredictionProcessingStatus
             throw new PredictionStatusProjectionException('AI response id does not belong to exactly one processing request.');
         }
 
-        return $rows->first();
+        $processing = $rows->first();
+
+        if (! is_object($processing)) {
+            throw new PredictionStatusProjectionException('Processing request has an invalid database representation.');
+        }
+
+        return $processing;
     }
 
     private function sequenceContext(string $sequenceUuid): object
@@ -129,7 +140,13 @@ class ProjectPredictionProcessingStatus
             throw new PredictionStatusProjectionException('Processing request does not belong to exactly one sequence detail.');
         }
 
-        return $rows->first();
+        $sequence = $rows->first();
+
+        if (! is_object($sequence)) {
+            throw new PredictionStatusProjectionException('Sequence detail has an invalid database representation.');
+        }
+
+        return $sequence;
     }
 
     private function projection(object $receipt, object $processing): object
@@ -145,9 +162,15 @@ class ProjectPredictionProcessingStatus
             'updated_at' => now(),
         ]);
 
-        return DB::table('ai_prediction_status_projections')
+        $projection = DB::table('ai_prediction_status_projections')
             ->where('callback_receipt_id', $receipt->id)
             ->first();
+
+        if (! is_object($projection)) {
+            throw new PredictionStatusProjectionException('Prediction projection could not be loaded.');
+        }
+
+        return $projection;
     }
 
     /**
@@ -162,8 +185,8 @@ class ProjectPredictionProcessingStatus
         return array_intersect_key($values, array_flip($columns));
     }
 
-    private function legacyConnection(): ConnectionInterface
+    private function legacyConnection(): Connection
     {
-        return DB::connection(config('mapilio.legacy_database_connection'));
+        return LegacyDatabase::connection();
     }
 }

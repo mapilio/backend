@@ -2,14 +2,15 @@
 
 namespace App\Domain\GeoPublishing\Queries;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 
 class UploadedRoadsByGroupQuery
 {
     public function get(string $groupKey): array
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
 
         return $connection
             ->table('default_mapilio_road as roads')
@@ -33,7 +34,7 @@ class UploadedRoadsByGroupQuery
             ->all();
     }
 
-    private function lineFeatureExpression(ConnectionInterface $connection): string
+    private function lineFeatureExpression(Connection $connection): string
     {
         if ($connection->getDriverName() === 'pgsql') {
             return 'ST_AsGeoJSON(roads.geom) as linefeature';

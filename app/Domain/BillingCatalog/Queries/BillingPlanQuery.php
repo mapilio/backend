@@ -2,9 +2,10 @@
 
 namespace App\Domain\BillingCatalog\Queries;
 
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class BillingPlanQuery
 {
@@ -58,7 +59,7 @@ class BillingPlanQuery
         callable $mapper,
         array $columns,
     ): array {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
         $page = max(1, (int) $request->query('page', 1));
         $locale = $this->locale($request);
 
@@ -101,7 +102,9 @@ class BillingPlanQuery
 
     private function isSqlite(Builder $query): bool
     {
-        return $query->getConnection()->getDriverName() === 'sqlite';
+        $connection = $query->getConnection();
+
+        return $connection instanceof Connection && $connection->getDriverName() === 'sqlite';
     }
 
     private function mapPackage(object $row, string $assetRoot): array

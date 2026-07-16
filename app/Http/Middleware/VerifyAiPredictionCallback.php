@@ -18,7 +18,7 @@ class VerifyAiPredictionCallback
         $body = $request->getContent();
         $maxBytes = (int) config('mapilio.ai_callback.max_payload_bytes', 5_242_880);
 
-        if ((int) $request->header('Content-Length', 0) > $maxBytes || strlen($body) > $maxBytes) {
+        if ((int) $request->header('Content-Length', '0') > $maxBytes || strlen($body) > $maxBytes) {
             return response()->json(['message' => 'Payload Too Large'], 413);
         }
 

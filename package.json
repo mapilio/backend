@@ -4,9 +4,11 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "lint:openapi": "redocly lint docs/api/openapi-v1.json --format=stylish"
     },
     "devDependencies": {
+        "@redocly/cli": "^2.39.0",
         "@tailwindcss/vite": "^4.0.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",

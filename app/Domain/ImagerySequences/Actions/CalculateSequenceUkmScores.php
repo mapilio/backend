@@ -2,10 +2,10 @@
 
 namespace App\Domain\ImagerySequences\Actions;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
@@ -103,7 +103,7 @@ class CalculateSequenceUkmScores
         }
     }
 
-    private function assertSchema(ConnectionInterface $connection): void
+    private function assertSchema(Connection $connection): void
     {
         $connectionName = config('mapilio.legacy_database_connection');
         $schema = Schema::connection($connectionName);
@@ -146,7 +146,7 @@ class CalculateSequenceUkmScores
         }
     }
 
-    private function assertSequence(ConnectionInterface $connection, string $sequenceUuid): void
+    private function assertSequence(Connection $connection, string $sequenceUuid): void
     {
         $count = $connection->table('default_mapilio_sequence_detail')
             ->where('sequence_uuid', $sequenceUuid)
@@ -160,7 +160,7 @@ class CalculateSequenceUkmScores
         }
     }
 
-    private function assertSpatialIndex(ConnectionInterface $connection): void
+    private function assertSpatialIndex(Connection $connection): void
     {
         if (! config('mapilio.ukm_scoring.require_spatial_index', true)) {
             return;
@@ -178,7 +178,7 @@ class CalculateSequenceUkmScores
         }
     }
 
-    private function pendingCount(ConnectionInterface $connection, string $sequenceUuid): int
+    private function pendingCount(Connection $connection, string $sequenceUuid): int
     {
         return $connection->table('default_mapilio_imagery')
             ->where('sequence_uuid', $sequenceUuid)
@@ -191,7 +191,7 @@ class CalculateSequenceUkmScores
     /**
      * @return Collection<int, object>
      */
-    private function postgresDistances(ConnectionInterface $connection, string $sequenceUuid): Collection
+    private function postgresDistances(Connection $connection, string $sequenceUuid): Collection
     {
         $historyMonths = min(120, max(1, (int) config('mapilio.ukm_scoring.history_months', 6)));
         $headingTolerance = min(180.0, max(0.0, (float) config('mapilio.ukm_scoring.heading_tolerance_degrees', 45)));
@@ -239,10 +239,7 @@ class CalculateSequenceUkmScores
         return collect($rows);
     }
 
-    /**
-     * @return Collection<int, object>
-     */
-    private function portableDistances(ConnectionInterface $connection, string $sequenceUuid): Collection
+    private function portableDistances(Connection $connection, string $sequenceUuid): Collection
     {
         $historyMonths = min(120, max(1, (int) config('mapilio.ukm_scoring.history_months', 6)));
         $headingTolerance = min(180.0, max(0.0, (float) config('mapilio.ukm_scoring.heading_tolerance_degrees', 45)));
@@ -260,7 +257,7 @@ class CalculateSequenceUkmScores
             ->orderBy('id')
             ->get(['id', 'sequence_uuid', 'capture_time', 'heading', 'latitude', 'longitude']);
 
-        return $sources->map(function (object $source) use ($connection, $historyMonths, $headingTolerance, $maximumDistance): object {
+        return $sources->map(function (object $source) use ($connection, $historyMonths, $headingTolerance, $maximumDistance) {
             $captureTime = Carbon::parse((string) $source->capture_time);
             $candidates = $connection->table('default_mapilio_imagery')
                 ->where('id', '!=', $source->id)
@@ -331,7 +328,7 @@ class CalculateSequenceUkmScores
     /**
      * @param  Collection<int, array{id: int, distance: float, score: float}>  $updates
      */
-    private function persist(ConnectionInterface $connection, Collection $updates, Carbon $now): void
+    private function persist(Connection $connection, Collection $updates, Carbon $now): void
     {
         if ($connection->getDriverName() === 'pgsql') {
             $this->persistPostgres($connection, $updates, $now);
@@ -358,7 +355,7 @@ class CalculateSequenceUkmScores
     /**
      * @param  Collection<int, array{id: int, distance: float, score: float}>  $updates
      */
-    private function persistPostgres(ConnectionInterface $connection, Collection $updates, Carbon $now): void
+    private function persistPostgres(Connection $connection, Collection $updates, Carbon $now): void
     {
         $connection->transaction(function () use ($connection, $updates, $now): void {
             $updates->chunk(500)->each(function (Collection $chunk) use ($connection, $now): void {
@@ -392,7 +389,7 @@ class CalculateSequenceUkmScores
         });
     }
 
-    private function markFailed(ConnectionInterface $connection, string $sequenceUuid, string $message): void
+    private function markFailed(Connection $connection, string $sequenceUuid, string $message): void
     {
         $schema = Schema::connection(config('mapilio.legacy_database_connection'));
 
@@ -434,8 +431,8 @@ class CalculateSequenceUkmScores
         return $earthRadius * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
-    private function legacyConnection(): ConnectionInterface
+    private function legacyConnection(): Connection
     {
-        return DB::connection(config('mapilio.legacy_database_connection'));
+        return LegacyDatabase::connection();
     }
 }

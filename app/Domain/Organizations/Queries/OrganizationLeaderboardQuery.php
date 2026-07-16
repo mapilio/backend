@@ -2,8 +2,8 @@
 
 namespace App\Domain\Organizations\Queries;
 
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Support\Facades\DB;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use InvalidArgumentException;
 
 class OrganizationLeaderboardQuery
@@ -14,7 +14,7 @@ class OrganizationLeaderboardQuery
 
     public function get(int $scoreVersion = self::SCORE_VERSION_SEQUENCE): array
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
         $scoreVersion = $this->scoreVersion($scoreVersion);
 
         $rows = $connection->select($this->sql($connection, $scoreVersion));
@@ -33,7 +33,7 @@ class OrganizationLeaderboardQuery
         return $scoreVersion;
     }
 
-    private function sql(ConnectionInterface $connection, int $scoreVersion): string
+    private function sql(Connection $connection, int $scoreVersion): string
     {
         if ($scoreVersion === self::SCORE_VERSION_UKM) {
             return $this->ukmScoreSql($connection);
@@ -42,7 +42,7 @@ class OrganizationLeaderboardQuery
         return $this->sequencePointSql($connection);
     }
 
-    private function sequencePointSql(ConnectionInterface $connection): string
+    private function sequencePointSql(Connection $connection): string
     {
         $pointExpression = $connection->getDriverName() === 'pgsql'
             ? 'ROUND(SUM(filtered_entries.sequence_point)::numeric, 0) AS point'
@@ -94,7 +94,7 @@ SQL,
         );
     }
 
-    private function ukmScoreSql(ConnectionInterface $connection): string
+    private function ukmScoreSql(Connection $connection): string
     {
         $pointExpression = $connection->getDriverName() === 'pgsql'
             ? 'ROUND(SUM(imagery_scores.sequence_score)::numeric, 0) AS point'

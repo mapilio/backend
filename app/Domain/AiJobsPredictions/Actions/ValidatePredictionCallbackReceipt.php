@@ -13,7 +13,7 @@ class ValidatePredictionCallbackReceipt
     {
         $receipt = DB::table('ai_prediction_callback_receipts')->find($receiptId);
 
-        if ($receipt === null || $receipt->processing_status !== 'received') {
+        if (! is_object($receipt) || $receipt->processing_status !== 'received') {
             return false;
         }
 

@@ -2,14 +2,15 @@
 
 namespace App\Domain\Projects\Queries;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 
 class MarketplaceQuery
 {
     public function geojson(?float $lat = null, ?float $lon = null): string
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
 
         if ($connection->getDriverName() === 'pgsql') {
             return $this->postgresGeojson($connection, $lat, $lon);
@@ -18,7 +19,7 @@ class MarketplaceQuery
         return $this->portableGeojson($connection, $lat, $lon);
     }
 
-    private function postgresGeojson(ConnectionInterface $connection, ?float $lat, ?float $lon): string
+    private function postgresGeojson(Connection $connection, ?float $lat, ?float $lon): string
     {
         $distanceField = "'0' as DISTANCE_KM";
         $distanceOrder = '';
@@ -71,7 +72,7 @@ FROM
         return (string) ($rows[0]->geojson ?? '{"type":"FeatureCollection","features":null}');
     }
 
-    private function portableGeojson(ConnectionInterface $connection, ?float $lat, ?float $lon): string
+    private function portableGeojson(Connection $connection, ?float $lat, ?float $lon): string
     {
         $hasPolygonGeojson = $connection->getSchemaBuilder()->hasColumn('default_shapes_shape', 'polygon_geojson');
         $geometryColumn = $hasPolygonGeojson ? 'shape.polygon_geojson' : 'shape.polygon';
@@ -100,27 +101,27 @@ FROM
             ])
             ->orderBy('project.rowid')
             ->get()
-            ->map(fn (object $row): object => $this->withDistance($row, $lat, $lon))
-            ->when(
-                $lat !== null && $lon !== null,
-                fn ($rows) => $rows->sortBy('distance_km')->values(),
-            );
+            ->map(fn (object $row): array => $this->withDistance($row, $lat, $lon));
+
+        if ($lat !== null && $lon !== null) {
+            $rows = $rows->sortBy('distance_km')->values();
+        }
 
         $features = $rows
-            ->map(fn (object $row): array => [
+            ->map(fn (array $row): array => [
                 'type' => 'Feature',
                 'properties' => [
-                    'marketplace_name' => $row->marketplace_name,
-                    'marketplace_description' => $row->marketplace_description,
-                    'id' => (int) $row->id,
-                    'project_key' => $row->project_key,
-                    'organization_key' => $row->project_organization_key,
-                    'created_at' => $this->timestamp($row->created_at),
-                    'owner' => $row->organization_name,
-                    'project_camera_type' => $row->project_camera_type,
-                    'distance_km' => $row->distance_km,
+                    'marketplace_name' => $row['marketplace_name'],
+                    'marketplace_description' => $row['marketplace_description'],
+                    'id' => (int) $row['id'],
+                    'project_key' => $row['project_key'],
+                    'organization_key' => $row['project_organization_key'],
+                    'created_at' => $this->timestamp($row['created_at']),
+                    'owner' => $row['organization_name'],
+                    'project_camera_type' => $row['project_camera_type'],
+                    'distance_km' => $row['distance_km'],
                 ],
-                'geometry' => $this->geometry($row->geometry_json),
+                'geometry' => $this->geometry($row['geometry_json']),
             ])
             ->all();
 
@@ -130,15 +131,29 @@ FROM
         ], JSON_UNESCAPED_SLASHES);
     }
 
-    private function withDistance(object $row, ?float $lat, ?float $lon): object
+    /**
+     * @return array<string, mixed>
+     */
+    private function withDistance(object $row, ?float $lat, ?float $lon): array
     {
-        $row->distance_km = '0';
+        $distance = '0';
 
         if ($lat !== null && $lon !== null && $row->centroid_lat !== null && $row->centroid_lon !== null) {
-            $row->distance_km = $this->distanceKm($lat, $lon, (float) $row->centroid_lat, (float) $row->centroid_lon);
+            $distance = $this->distanceKm($lat, $lon, (float) $row->centroid_lat, (float) $row->centroid_lon);
         }
 
-        return $row;
+        return [
+            'marketplace_name' => $row->marketplace_name,
+            'marketplace_description' => $row->marketplace_description,
+            'id' => $row->id,
+            'project_key' => $row->project_key,
+            'project_organization_key' => $row->project_organization_key,
+            'created_at' => $row->created_at,
+            'organization_name' => $row->organization_name,
+            'project_camera_type' => $row->project_camera_type,
+            'geometry_json' => $row->geometry_json,
+            'distance_km' => $distance,
+        ];
     }
 
     private function distanceKm(float $fromLat, float $fromLon, float $toLat, float $toLon): float

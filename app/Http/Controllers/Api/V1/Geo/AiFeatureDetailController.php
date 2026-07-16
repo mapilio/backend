@@ -31,7 +31,7 @@ class AiFeatureDetailController extends Controller
         $response->setMaxAge(max(0, (int) config('mapilio.ai_feature_api.cache_ttl', 60)));
         $response->headers->addCacheControlDirective(
             'stale-while-revalidate',
-            max(0, (int) config('mapilio.ai_feature_api.stale_while_revalidate', 300)),
+            (string) max(0, (int) config('mapilio.ai_feature_api.stale_while_revalidate', 300)),
         );
         $response->setEtag(hash('sha256', (string) $response->getContent()));
         $response->isNotModified($request);

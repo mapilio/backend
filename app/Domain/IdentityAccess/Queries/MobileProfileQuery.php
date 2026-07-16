@@ -2,15 +2,15 @@
 
 namespace App\Domain\IdentityAccess\Queries;
 
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Support\Facades\DB;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Schema;
 
 class MobileProfileQuery
 {
     public function get(int $userId): ?array
     {
-        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $connection = LegacyDatabase::connection();
         $user = $connection->table('default_users_users')
             ->where('id', $userId)
             ->whereNull('deleted_at')
@@ -52,7 +52,7 @@ class MobileProfileQuery
         ];
     }
 
-    private function isAdmin(ConnectionInterface $connection, int $userId): bool
+    private function isAdmin(Connection $connection, int $userId): bool
     {
         if (! $this->hasTables($connection, ['default_users_users_roles', 'default_users_roles'])) {
             return false;
@@ -65,7 +65,7 @@ class MobileProfileQuery
             ->exists();
     }
 
-    private function sequenceCount(ConnectionInterface $connection, int $userId): int
+    private function sequenceCount(Connection $connection, int $userId): int
     {
         if (! $this->hasTables($connection, ['default_mapilio_imagery'])) {
             return 0;
@@ -84,7 +84,7 @@ class MobileProfileQuery
             ->count();
     }
 
-    private function photoCount(ConnectionInterface $connection, int $userId): int
+    private function photoCount(Connection $connection, int $userId): int
     {
         if (! $this->hasTables($connection, ['default_mapilio_imagery'])) {
             return 0;
@@ -97,7 +97,7 @@ class MobileProfileQuery
             ->count();
     }
 
-    private function capturedMeters(ConnectionInterface $connection, int $userId): string
+    private function capturedMeters(Connection $connection, int $userId): string
     {
         if (! $this->hasTables($connection, ['default_mapilio_sequence_detail'])) {
             return '0';
@@ -111,7 +111,7 @@ class MobileProfileQuery
         return number_format(round((float) $value, 3), 3, '.', '');
     }
 
-    private function score(ConnectionInterface $connection, int $userId): string
+    private function score(Connection $connection, int $userId): string
     {
         if (! $this->hasTables($connection, ['default_mapilio_sequence_detail'])) {
             return '0';
@@ -128,7 +128,7 @@ class MobileProfileQuery
     /**
      * @param  list<string>  $tables
      */
-    private function hasTables(ConnectionInterface $connection, array $tables): bool
+    private function hasTables(Connection $connection, array $tables): bool
     {
         foreach ($tables as $table) {
             if (! Schema::connection($connection->getName())->hasTable($table)) {

@@ -43,6 +43,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - Responsible disclosure and private reporting rules are defined in `SECURITY.md`; public release remains blocked until GitHub private vulnerability reporting is enabled and verified.
 - Security incident roles, severity, ecosystem playbooks, evidence handling, recovery, and post-incident review are documented in `docs/security/incident-response.md`.
 - A strict, read-only backup evidence gate validates encryption, integrity, off-site immutability, PITR/WAL freshness, isolated restore drills, and measured recovery objectives without owning backup credentials. See `docs/architecture/0020-backup-readiness-evidence-gate.md`.
+- GitHub Actions enforces locked dependency audits, Pint, baseline-free Larastan level 5, the full Laravel suite, and strict OpenAPI lint with commit-pinned setup actions. See `docs/architecture/0021-baseline-free-ci-quality-gates.md`.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
@@ -66,6 +67,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0018-api-edge-observability-boundary.md`
   - `docs/architecture/0019-staging-image-upload-contract-smoke.md`
   - `docs/architecture/0020-backup-readiness-evidence-gate.md`
+  - `docs/architecture/0021-baseline-free-ci-quality-gates.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
@@ -80,6 +82,9 @@ php artisan serve
 scripts/security/scan-secrets.sh
 php artisan mapilio:smoke-image-upload --mode=all --confirm-write
 php artisan mapilio:verify-backup-readiness
+composer format:test
+composer analyse
+npm run lint:openapi
 ```
 
 ## Migration Rule

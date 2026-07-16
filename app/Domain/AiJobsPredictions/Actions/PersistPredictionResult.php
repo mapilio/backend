@@ -2,7 +2,8 @@
 
 namespace App\Domain\AiJobsPredictions\Actions;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,6 +24,10 @@ class PersistPredictionResult
 
         if ($receipt === null) {
             throw new PredictionResultPersistenceException("Callback receipt {$receiptId} was not found.");
+        }
+
+        if (! is_object($receipt)) {
+            throw new PredictionResultPersistenceException('Callback receipt has an invalid database representation.');
         }
 
         if ($receipt->processing_status === 'processed') {
@@ -195,7 +200,13 @@ class PersistPredictionResult
             throw new PredictionResultPersistenceException('AI response id does not belong to exactly one processing request.');
         }
 
-        return $entries->first();
+        $entry = $entries->first();
+
+        if (! is_object($entry)) {
+            throw new PredictionResultPersistenceException('AI processing request has an invalid database representation.');
+        }
+
+        return $entry;
     }
 
     /**
@@ -234,9 +245,9 @@ class PersistPredictionResult
         }
     }
 
-    private function legacyConnection(): ConnectionInterface
+    private function legacyConnection(): Connection
     {
-        return DB::connection(config('mapilio.legacy_database_connection'));
+        return LegacyDatabase::connection();
     }
 
     private function json(array $value): string

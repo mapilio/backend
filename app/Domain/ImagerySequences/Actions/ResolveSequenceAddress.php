@@ -2,10 +2,10 @@
 
 namespace App\Domain\ImagerySequences\Actions;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -106,7 +106,7 @@ class ResolveSequenceAddress
         }
     }
 
-    private function sequenceDetail(ConnectionInterface $connection, string $sequenceUuid): object
+    private function sequenceDetail(Connection $connection, string $sequenceUuid): object
     {
         $details = $connection->table('default_mapilio_sequence_detail')
             ->where('sequence_uuid', $sequenceUuid)
@@ -119,10 +119,16 @@ class ResolveSequenceAddress
             throw new SequenceAddressException('Sequence address lookup requires exactly one active sequence.');
         }
 
-        return $details->first();
+        $detail = $details->first();
+
+        if (! is_object($detail)) {
+            throw new SequenceAddressException('Sequence detail has an invalid database representation.');
+        }
+
+        return $detail;
     }
 
-    private function existingAddress(ConnectionInterface $connection, object $detail, string $sequenceUuid): ?string
+    private function existingAddress(Connection $connection, object $detail, string $sequenceUuid): ?string
     {
         $detailAddress = $this->normalizeAddress($detail->start_address ?? null);
 
@@ -143,9 +149,9 @@ class ResolveSequenceAddress
     }
 
     /**
-     * @return Collection<int, object>
+     * @return Collection<int, \stdClass>
      */
-    private function candidatePoints(ConnectionInterface $connection, string $sequenceUuid)
+    private function candidatePoints(Connection $connection, string $sequenceUuid): Collection
     {
         return $connection->table('default_mapilio_imagery')
             ->where('sequence_uuid', $sequenceUuid)
@@ -209,7 +215,7 @@ class ResolveSequenceAddress
         return null;
     }
 
-    private function storeFoundAddress(ConnectionInterface $connection, string $sequenceUuid, string $address): void
+    private function storeFoundAddress(Connection $connection, string $sequenceUuid, string $address): void
     {
         $connection->transaction(function () use ($connection, $sequenceUuid, $address): void {
             $connection->table('default_mapilio_imagery')
@@ -236,7 +242,7 @@ class ResolveSequenceAddress
     /**
      * @param  array<string, mixed>  $values
      */
-    private function updateSequence(ConnectionInterface $connection, string $sequenceUuid, array $values): void
+    private function updateSequence(Connection $connection, string $sequenceUuid, array $values): void
     {
         $values = $this->onlyExistingColumns('default_mapilio_sequence_detail', $values);
 
@@ -301,8 +307,8 @@ class ResolveSequenceAddress
         }
     }
 
-    private function legacyConnection(): ConnectionInterface
+    private function legacyConnection(): Connection
     {
-        return DB::connection(config('mapilio.legacy_database_connection'));
+        return LegacyDatabase::connection();
     }
 }

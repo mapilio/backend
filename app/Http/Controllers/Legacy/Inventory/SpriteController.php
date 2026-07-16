@@ -24,7 +24,7 @@ class SpriteController extends Controller
         $json = file_get_contents($path);
 
         if ($json === false) {
-            throw new RuntimeException("Sprite metadata file is not readable.");
+            throw new RuntimeException('Sprite metadata file is not readable.');
         }
 
         return json_decode($json, true, flags: JSON_THROW_ON_ERROR);

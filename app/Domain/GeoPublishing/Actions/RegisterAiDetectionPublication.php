@@ -2,7 +2,8 @@
 
 namespace App\Domain\GeoPublishing\Actions;
 
-use Illuminate\Database\ConnectionInterface;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 
 class RegisterAiDetectionPublication
@@ -17,6 +18,10 @@ class RegisterAiDetectionPublication
 
         if ($receipt === null) {
             throw new GeoPublicationException("Callback receipt {$receiptId} was not found.");
+        }
+
+        if (! is_object($receipt)) {
+            throw new GeoPublicationException('Callback receipt has an invalid database representation.');
         }
 
         if ($receipt->processing_status !== 'processed') {
@@ -73,15 +78,17 @@ class RegisterAiDetectionPublication
             ->limit(2)
             ->get(['sequence_uuid']);
 
-        if ($processing->count() !== 1 || ! is_string($processing->first()->sequence_uuid)) {
+        $processingRow = $processing->first();
+
+        if ($processing->count() !== 1 || ! is_object($processingRow) || ! is_string($processingRow->sequence_uuid)) {
             throw new GeoPublicationException('AI publication sequence ownership could not be resolved.');
         }
 
-        return $processing->first()->sequence_uuid;
+        return $processingRow->sequence_uuid;
     }
 
-    private function legacyConnection(): ConnectionInterface
+    private function legacyConnection(): Connection
     {
-        return DB::connection(config('mapilio.legacy_database_connection'));
+        return LegacyDatabase::connection();
     }
 }
