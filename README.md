@@ -46,6 +46,7 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
 - GitHub Actions enforces locked dependency audits, Pint, baseline-free Larastan level 5, Laravel configuration caching, the full Laravel suite, strict OpenAPI lint, and the production asset build with commit-pinned setup actions. See `docs/architecture/0021-baseline-free-ci-quality-gates.md`.
 - The ecosystem release control consolidates automated repository checks, staging evidence, compatibility, privacy, rollout, and rollback for backend, clients, image services, AI, and GeoServer. See `docs/operations/release-readiness.md`.
 - Async queue connections now fail closed unless their retry/visibility window safely exceeds every declared job timeout; worker topology and deployment operations are documented in `docs/operations/runtime-and-deployment.md` and ADR 0022.
+- Local demo data now fails closed outside explicitly enabled local/testing SQLite, creates no account or legacy table, and is covered by migration apply/rollback plus versioned API tests. See `docs/operations/local-development.md` and ADR 0023.
 - The modern API contract starts at `docs/api/openapi-v1.json`; the separate legacy compatibility inventory remains a migration input.
 - Domain notes: `app/Domain/README.md`.
 - Architecture decision records:
@@ -71,17 +72,23 @@ This project does not port PyroCMS module structure one-to-one. It preserves ext
   - `docs/architecture/0020-backup-readiness-evidence-gate.md`
   - `docs/architecture/0021-baseline-free-ci-quality-gates.md`
   - `docs/architecture/0022-queue-runtime-safety.md`
+  - `docs/architecture/0023-fail-closed-local-demo-data.md`
 - Database design draft: `docs/database/target-schema-draft.md`.
 - UKM PostGIS index plan: `docs/database/ukm-postgis-index-plan.md`.
 - Legacy usage audit summary: `docs/database/legacy-usage-audit-summary.md`.
 - Scheduled jobs and geospatial summary: `docs/operations/scheduled-jobs-and-geospatial-summary.md`.
 - Release readiness and rollback checklist: `docs/operations/release-readiness.md`.
 - Runtime and deployment operations: `docs/operations/runtime-and-deployment.md`.
+- Safe local database setup and synthetic fixtures: `docs/operations/local-development.md`.
 
 ## Local Commands
 
 ```bash
 composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate:fresh --seed
 php artisan test
 php artisan serve
 scripts/security/scan-secrets.sh

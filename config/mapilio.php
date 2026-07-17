@@ -18,6 +18,10 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'local_demo_seeding' => [
+        'enabled' => env('MAPILIO_DEMO_SEEDING_ENABLED', false),
+    ],
+
     'observability' => [
         'api_request_logging_enabled' => env('MAPILIO_API_REQUEST_LOGGING_ENABLED', false),
         'slow_request_ms' => max(1, (int) env('MAPILIO_API_SLOW_REQUEST_MS', 1000)),
