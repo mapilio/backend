@@ -81,3 +81,53 @@ jobs:
 
       - name: Build backend web assets
         run: npm run build
+
+  postgis-migrations:
+    name: PostgreSQL 14 and PostGIS migrations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgis:
+        image: postgis/postgis:14-3.5@sha256:46b46bcd0ed1a60adceacbcb5116f3370f44608d50b5cc5935849872b762c0ab
+        env:
+          POSTGRES_DB: mapilio_ci
+          POSTGRES_USER: mapilio_ci
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mapilio_ci -d mapilio_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, curl, dom, fileinfo, intl, mbstring, pdo_pgsql, pgsql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install locked PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Verify disposable PostGIS migrations
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: '5432'
+          DB_DATABASE: mapilio_ci
+          DB_USERNAME: mapilio_ci
+          DB_SSLMODE: disable
+          DB_URL: ''
+          MAPILIO_DISPOSABLE_DB_CONFIRMED: 'true'
+          MAPILIO_LEGACY_DB_CONNECTION: sqlite
+          MAPILIO_DEMO_SEEDING_ENABLED: 'false'
+        run: scripts/database/verify-postgis-migrations.sh

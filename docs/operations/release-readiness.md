@@ -61,6 +61,7 @@ The local script is read-only with respect to production and does not run migrat
 
 - [ ] **Restricted:** infrastructure owners approve current RPO/RTO and evidence-age limits.
 - [ ] **Automated:** `php artisan mapilio:verify-backup-readiness` passes against a fresh secret-free evidence manifest before migrations.
+- [ ] **Automated:** the digest-pinned disposable PostgreSQL 14/PostGIS Quality job applies, spatially verifies, rolls back, and reapplies every migration.
 - [ ] **Restricted:** PostgreSQL/PostGIS backup integrity, encryption with an external key, off-site immutable copy, current WAL/PITR, and isolated restore are verified.
 - [ ] **Restricted:** TrueNAS originals/derived imagery, GeoServer configuration, deployment secrets, and durable AI/queue state have independent recovery evidence.
 - [ ] **Restricted:** migrations run successfully on a recent staging copy with representative table sizes and PostGIS extensions.
