@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a scoped backend or API improvement.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user or ecosystem need, not private production implementation details. Large API, schema, identity, upload, privacy, AI, or GeoServer changes require architecture review.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who needs this and what workflow is currently blocked or inefficient?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable behavior and acceptance criteria without prescribing unnecessary internals.
+    validations:
+      required: true
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      options:
+        - New versioned behavior
+        - Backward-compatible legacy behavior
+        - Internal-only change
+        - Unknown and needs investigation
+    validations:
+      required: true
+  - type: textarea
+    id: consumers
+    attributes:
+      label: Consumers and dependencies
+      description: Identify affected web, mobile, mapilio-kit, AI, GeoServer, image, anonymizer, or community contracts.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Security, privacy, data, and operational risks
+      description: Include disable/rollback expectations and required staging evidence.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: This proposal contains no secrets, personal data, production records, imagery, or private infrastructure details.
+          required: true

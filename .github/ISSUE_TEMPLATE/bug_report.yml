@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible backend defect using synthetic data.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include secrets, production records, personal data, unblurred imagery, private coordinates, logs, or infrastructure details. Report vulnerabilities through the private Security process instead.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - API compatibility
+        - Authentication and authorization
+        - Imagery and sequences
+        - AI prediction and callbacks
+        - PostgreSQL and PostGIS
+        - Geo publication
+        - Queues and operations
+        - Documentation or tooling
+        - Other backend area
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Affected revision
+      description: Commit SHA or release; do not paste environment configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Use a sanitized response shape or error message without identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Provide the smallest safe steps, test, or fixture that reproduces the defect.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification already attempted
+      description: List targeted tests or local checks and their sanitized result.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, personal data, production data, imagery, private coordinates, and infrastructure details.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

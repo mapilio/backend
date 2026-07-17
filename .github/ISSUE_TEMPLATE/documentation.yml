@@ -1,0 +1,31 @@
+name: Documentation improvement
+description: Report missing, unclear, or incorrect public documentation.
+title: "[Docs]: "
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Document or section
+      description: Link to the file and heading.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear or incorrect?
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested improvement
+      description: Explain what a new contributor should be able to understand or complete.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: The suggestion contains no credentials, production data, personal data, imagery, or private infrastructure details.
+          required: true
