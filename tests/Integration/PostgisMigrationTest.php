@@ -95,7 +95,7 @@ class PostgisMigrationTest extends TestCase
         $this->assertSame('true', getenv('MAPILIO_DISPOSABLE_DB_CONFIRMED'));
         $this->assertSame('testing', app()->environment());
         $this->assertSame('pgsql', DB::getDriverName());
-        $this->assertNull(config('database.connections.pgsql.url'));
+        $this->assertSame('', config('database.connections.pgsql.url'));
         $this->assertSame('127.0.0.1', config('database.connections.pgsql.host'));
         $this->assertSame('5432', config('database.connections.pgsql.port'));
         $this->assertSame('mapilio_ci', DB::scalar('SELECT current_database()'));
