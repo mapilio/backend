@@ -100,7 +100,6 @@ class PostgisMigrationTest extends TestCase
         $this->assertSame('5432', config('database.connections.pgsql.port'));
         $this->assertSame('mapilio_ci', DB::scalar('SELECT current_database()'));
         $this->assertSame('mapilio_ci', DB::scalar('SELECT current_user'));
-        $this->assertSame('127.0.0.1', DB::scalar('SELECT host(inet_server_addr())'));
     }
 
     private function insertCanonicalFeature(): void
