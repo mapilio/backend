@@ -49,13 +49,13 @@ class ApiEdgeHardeningTest extends TestCase
         app()->detectEnvironment(fn (): string => 'production');
 
         try {
-            $this->withServerVariables(['REMOTE_ADDR' => '10.20.30.40'])
+            $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.40'])
                 ->withHeader('X-Forwarded-Proto', 'https')
                 ->getJson('/api/v1/system/health')
                 ->assertOk()
                 ->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
-            $this->withServerVariables(['REMOTE_ADDR' => '10.20.30.40'])
+            $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.40'])
                 ->withHeader('X-Forwarded-Proto', 'http')
                 ->getJson('/api/v1/system/health')
                 ->assertOk()

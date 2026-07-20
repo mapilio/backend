@@ -12,8 +12,8 @@ class TrustedProxyConfigurationTest extends TestCase
     public function test_it_parses_deduplicates_and_preserves_explicit_ip_ranges(): void
     {
         $this->assertSame(
-            ['10.0.0.1', '192.0.2.0/24', '2001:db8::/32'],
-            TrustedProxyConfiguration::parse(' 10.0.0.1,192.0.2.0/24,10.0.0.1,2001:db8::/32 '),
+            ['192.0.2.1', '198.51.100.0/24', '2001:db8::/32'],
+            TrustedProxyConfiguration::parse(' 192.0.2.1,198.51.100.0/24,192.0.2.1,2001:db8::/32 '),
         );
 
         $this->assertSame([], TrustedProxyConfiguration::parse(null));
@@ -37,13 +37,13 @@ class TrustedProxyConfigurationTest extends TestCase
             'wildcard' => ['*'],
             'double wildcard' => ['**'],
             'calling address shortcut' => ['REMOTE_ADDR'],
-            'hostname' => ['proxy.internal'],
+            'hostname' => ['proxy.example.test'],
             'invalid IPv4' => ['999.10.10.10'],
             'invalid IPv4 prefix' => ['192.0.2.0/33'],
             'invalid IPv6 prefix' => ['2001:db8::/129'],
-            'negative prefix' => ['10.0.0.0/-1'],
-            'multiple separators' => ['10.0.0.0/8/1'],
-            'empty list entry' => ['10.0.0.1,,10.0.0.2'],
+            'negative prefix' => ['192.0.2.0/-1'],
+            'multiple separators' => ['192.0.2.0/24/1'],
+            'empty list entry' => ['192.0.2.1,,192.0.2.2'],
         ];
     }
 }

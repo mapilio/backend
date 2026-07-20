@@ -29,7 +29,9 @@ Enable GitHub private vulnerability reporting, verify it from a non-maintainer a
 
 ### Public-content audit
 
-Before changing visibility, review the full history and current tree for secrets, private hostnames/IPs, production identifiers, logs, dumps, backups, real imagery, personal data, and internal operational evidence. Passing Gitleaks does not detect every kind of private data.
+The automated [public-content audit](../security/public-content-audit.md) now rejects private network/hostname patterns, personal email addresses, developer-local paths, risky artifacts, unapproved Mapilio hostnames, and prohibited legacy identifiers in the candidate tree and complete Git history without printing matched values. Reviewed historical exceptions are fingerprinted, path/commit-bound synthetic test fixtures that no longer exist in the current tree.
+
+Before changing visibility, owners must still review provenance that pattern matching cannot prove: coordinates and identifiers claimed to be synthetic, approved public hostnames, commit/file names, author/committer identity metadata, operational descriptions, third-party notices, and every fingerprinted historical exception. The current history contains one inventoried non-reserved commit identity whose retention or coordinated rewrite is still an owner decision. This review covers the complete tree/history and records approval outside the repository. Passing Gitleaks and the automated public-content gate does not authorize public launch by itself.
 
 ## Launch Evidence
 

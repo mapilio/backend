@@ -5,6 +5,7 @@
     "scripts": {
         "build": "vite build",
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",
+        "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
         "check:api-docs": "npm run build:api-docs && git diff --exit-code -- public/docs/api",
         "dev": "vite",
         "lint:openapi": "redocly lint docs/api/openapi-v1.json --format=stylish"

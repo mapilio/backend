@@ -37,3 +37,5 @@ The script scans tracked Git history plus tracked and commit-candidate files in 
 6. Re-run the full-history scanner and document the incident without reproducing the credential.
 
 History rewriting is not a substitute for rotation. A secret may already exist in clones, caches, build logs, or third-party mirrors.
+
+Gitleaks does not identify every private hostname, personal email, local path, tracked dump, media artifact, or non-secret operational identifier. The separate [public-content audit](public-content-audit.md) covers those repository-publication risks with redacted output; both gates are required.

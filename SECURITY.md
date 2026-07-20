@@ -58,5 +58,6 @@ Before this repository becomes public, its owners must:
 3. confirm that this policy is visible from the repository Security page
 4. assign incident roles and complete a tabletop exercise using the incident response runbook
 5. require the secret-scanning and test checks on the protected release branch
+6. complete the automated and owner-reviewed public-content audit for the exact public revision and full history
 
 Operational handling is documented in [docs/security/incident-response.md](docs/security/incident-response.md). Secret rotation and repository scanning are documented in [docs/security/secret-management.md](docs/security/secret-management.md).

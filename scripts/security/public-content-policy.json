@@ -1,0 +1,72 @@
+{
+    "approvedMapilioHosts": {
+        "mapilio.com": "Public platform hostname documented for ecosystem context.",
+        "end.mapilio.com": "Published production API hostname in the OpenAPI server contract.",
+        "cdn.mapilio.com": "Published image-delivery hostname and explicit production smoke-test deny target."
+    },
+    "thirdPartyMetadataPaths": [
+        "composer.lock",
+        "package-lock.json"
+    ],
+    "vendoredArtifactPaths": [
+        "public/docs/api/redoc.standalone.js",
+        "public/docs/api/redoc.standalone.js.LICENSE.txt"
+    ],
+    "allowedTrackedArtifactPaths": [
+        ".env.example"
+    ],
+    "prohibitedTokenSha256": [
+        "1ac3142e0c301e971f1c934a7a7116f2972ee79ef27c561fa62993091686b07c"
+    ],
+    "reviewedHistoryExceptions": [
+        {
+            "category": "private-network-ip",
+            "commit": "19b1825cf8fdcd8d07a4bbb39cdee03cca61854d",
+            "path": "tests/Feature/Security/ApiEdgeHardeningTest.php",
+            "fingerprint": "fec9cdeaf025e268325956b138339005d0b106c7b2823ccc21515a71496040dc",
+            "reason": "Synthetic proxy fixture replaced in the current tree with an RFC documentation address."
+        },
+        {
+            "category": "private-network-ip",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "phpunit.xml",
+            "fingerprint": "b0d56c1d28390f7e4ece0ae355b30ebe8c8618788c2d769736a939a7e0bb4dd4",
+            "reason": "Synthetic trusted-proxy fixture replaced in the current tree with an RFC documentation network."
+        },
+        {
+            "category": "private-network-ip",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "tests/Feature/Security/TrustedProxyRateLimitTest.php",
+            "fingerprint": "fec9cdeaf025e268325956b138339005d0b106c7b2823ccc21515a71496040dc",
+            "reason": "Synthetic proxy fixture replaced in the current tree with an RFC documentation address."
+        },
+        {
+            "category": "private-network-ip",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "tests/Unit/TrustedProxyConfigurationTest.php",
+            "fingerprint": "f5047344122f0dee9974ba6761e61c6b8649e1f3968d13a635ebbf7be53a3a0d",
+            "reason": "Synthetic parser fixture replaced in the current tree with RFC documentation addresses."
+        },
+        {
+            "category": "private-hostname",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "tests/Unit/TrustedProxyConfigurationTest.php",
+            "fingerprint": "a53e1d16ceb91818fa9386ca6340b42bc375fb77eff604615440a1fdfc1ce91b",
+            "reason": "Synthetic invalid-hostname fixture replaced in the current tree with a reserved example domain."
+        },
+        {
+            "category": "private-network-ip",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "tests/Unit/TrustedProxyConfigurationTest.php",
+            "fingerprint": "b0d56c1d28390f7e4ece0ae355b30ebe8c8618788c2d769736a939a7e0bb4dd4",
+            "reason": "Synthetic malformed-prefix fixture replaced in the current tree with an RFC documentation network."
+        },
+        {
+            "category": "private-network-ip",
+            "commit": "8c3454d2bae276e66652cb93090071c7afebdfae",
+            "path": "tests/Unit/TrustedProxyConfigurationTest.php",
+            "fingerprint": "cb5f37b4762871e6bbeccee663cb332438340c469160c634566ecc7c7e01009f",
+            "reason": "Synthetic parser fixture replaced in the current tree with RFC documentation addresses."
+        }
+    ]
+}

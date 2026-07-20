@@ -38,6 +38,7 @@
 - [0023: Fail-closed local demo data](architecture/0023-fail-closed-local-demo-data.md)
 - [0024: Disposable PostGIS migration gate](architecture/0024-disposable-postgis-migration-gate.md)
 - [0025: Generated API reference](architecture/0025-generated-api-reference.md)
+- [0026: Public-content release gate](architecture/0026-public-content-release-gate.md)
 
 ## Database
 
@@ -57,6 +58,7 @@
 
 - [Security policy](../SECURITY.md)
 - [Secret management](security/secret-management.md)
+- [Public-content audit](security/public-content-audit.md)
 - [Incident response](security/incident-response.md)
 - [Public-release decisions](governance/public-release-decisions.md)
 

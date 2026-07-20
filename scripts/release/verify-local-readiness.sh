@@ -54,5 +54,6 @@ run_gate 'Validate the OpenAPI contract' npm run lint:openapi
 run_gate 'Verify generated API documentation' npm run check:api-docs
 run_gate 'Build backend web assets' npm run build
 run_gate 'Scan Git history and commit-candidate files for secrets' scripts/security/scan-secrets.sh
+run_gate 'Audit public repository content and history' npm run audit:public-content
 
 printf '\nLocal repository release gates passed. Staging, infrastructure, privacy, and operator approvals are still required.\n'

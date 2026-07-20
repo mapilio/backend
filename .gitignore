@@ -22,6 +22,7 @@
 /storage/pail
 /vendor
 gitleaks-report.*
+/public-content-audit.*
 Homestead.json
 Homestead.yaml
 Thumbs.db

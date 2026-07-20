@@ -125,7 +125,7 @@ Run the complete local repository gate before opening a pull request:
 scripts/release/verify-local-readiness.sh
 ```
 
-It checks locked dependency metadata and advisories, formatting, baseline-free static analysis, Laravel configuration caching, the full test suite, OpenAPI, the production asset build, and Git history/worktree secrets. Gitleaks `8.30.1` is required locally.
+It checks locked dependency metadata and advisories, formatting, baseline-free static analysis, Laravel configuration caching, the full test suite, OpenAPI, the production asset build, Git history/worktree secrets, and redacted public-content policy across the candidate tree and complete history. Gitleaks `8.30.1` is required locally.
 
 Focused commands:
 
@@ -135,6 +135,7 @@ composer format:test
 composer analyse
 npm run lint:openapi
 npm run check:api-docs
+npm run audit:public-content
 npm run build
 ```
 
@@ -158,6 +159,7 @@ Maintainers use the [community issue triage policy](docs/community/issue-triage.
 - [Runtime and deployment](docs/operations/runtime-and-deployment.md)
 - [Release readiness](docs/operations/release-readiness.md)
 - [Security incident response](docs/security/incident-response.md)
+- [Public-content audit](docs/security/public-content-audit.md)
 
 ## Governance And License
 

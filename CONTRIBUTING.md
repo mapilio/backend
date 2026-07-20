@@ -50,6 +50,8 @@ At minimum, targeted tests must pass while developing. Before review, the comple
 
 `npm run check:api-docs` regenerates the public API reference and fails when the committed output is stale. Edit the OpenAPI source or generator, never the files under `public/docs/api` directly.
 
+`npm run audit:public-content` checks the candidate tree and complete reachable history without printing matched values. Use `--show-locations` only in a trusted local environment and never paste a private finding into public collaboration surfaces.
+
 Tests should cover success, validation, authorization, disabled behavior, idempotent retry, safe failure envelopes, and relevant compatibility shapes. Mock external services unless a dedicated production-blocked staging harness already exists.
 
 ## Pull Requests

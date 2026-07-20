@@ -49,16 +49,16 @@ class TrustedProxyRateLimitTest extends TestCase
     public function test_explicitly_trusted_proxy_uses_the_forwarded_client_ip_for_auth_throttling(): void
     {
         for ($attempt = 1; $attempt <= 10; $attempt++) {
-            $response = $this->failedLogin('10.20.30.40', '198.51.100.10')
+            $response = $this->failedLogin('192.0.2.40', '198.51.100.10')
                 ->assertStatus(400);
 
             $this->assertSame('198.51.100.10', $response->baseRequest->ip());
         }
 
-        $this->failedLogin('10.20.30.40', '198.51.100.11')
+        $this->failedLogin('192.0.2.40', '198.51.100.11')
             ->assertStatus(400);
 
-        $this->failedLogin('10.20.30.40', '198.51.100.10')
+        $this->failedLogin('192.0.2.40', '198.51.100.10')
             ->assertTooManyRequests();
     }
 

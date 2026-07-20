@@ -50,12 +50,13 @@ Stop the release when any of the following is true:
 - [ ] **Automated:** `Quality / PHP style, analysis, audit, and tests` passes for the exact commit.
 - [ ] **Automated:** `Quality / OpenAPI contract, npm audit, and asset build` passes for the exact commit.
 - [ ] **Automated:** `Secret Scan / Gitleaks history` passes for the exact commit and complete Git history.
+- [ ] **Automated:** the redacted public-content audit passes against the exact candidate tree and complete Git history.
 - [ ] **Automated:** `scripts/release/verify-local-readiness.sh` passes in a clean trusted environment using locked dependencies.
 - [ ] **Operator:** dependency lockfile changes and GitHub Action SHA changes are explicitly reviewed.
 - [ ] **Operator:** the public security policy is visible and GitHub private vulnerability reporting has been tested from a non-maintainer account.
 - [ ] **Operator:** release artifacts come from CI or another reproducible trusted builder; a developer working tree is not promoted directly.
 
-The local script is read-only with respect to production and does not run migrations or call external Mapilio services. It validates Composer metadata, dependency advisories, formatting, static analysis, Laravel config caching, tests, npm advisories, OpenAPI, the asset build, and secret scanning. It does not replace staging or infrastructure evidence.
+The local script is read-only with respect to production and does not run migrations or call external Mapilio services. It validates Composer metadata, dependency advisories, formatting, static analysis, Laravel config caching, tests, npm advisories, OpenAPI, the asset build, secret scanning, and public-content policy. It does not replace owner provenance review, staging, or infrastructure evidence.
 
 ## 2. Recovery and Database Gates
 
