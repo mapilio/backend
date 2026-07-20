@@ -109,6 +109,7 @@ The demo seeder creates no account, password, legacy table, or external-service 
 
 ## API Contracts
 
+- [Generated API reference](public/docs/api/index.html)
 - [Modern OpenAPI 3.1 contract](docs/api/openapi-v1.json)
 - [Legacy compatibility policy](docs/architecture/0003-legacy-compatibility-endpoints.md)
 - [Unsupported legacy surface guardrails](docs/architecture/0004-unsupported-legacy-surface-guardrails.md)
@@ -133,6 +134,7 @@ php artisan test
 composer format:test
 composer analyse
 npm run lint:openapi
+npm run check:api-docs
 npm run build
 ```
 

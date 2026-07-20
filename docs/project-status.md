@@ -14,7 +14,7 @@ Implemented foundations include:
 - versioned PostGIS AI projection and public AI feature detail;
 - sequence quality, address enrichment, and UKM scoring boundaries;
 - request IDs, security headers, trusted proxies, bounded metadata-only request events, and rate limits;
-- backup/readiness, queue runtime, secret scanning, dependency audits, static analysis, OpenAPI, SQLite migrations, and disposable PostgreSQL/PostGIS gates.
+- backup/readiness, queue runtime, secret scanning, dependency audits, static analysis, strict OpenAPI, a self-contained generated API reference, SQLite migrations, and disposable PostgreSQL/PostGIS gates.
 
 ## Deliberately Disabled Or Incomplete
 

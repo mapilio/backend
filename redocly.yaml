@@ -1,2 +1,6 @@
 extends:
   - recommended-strict
+
+apis:
+  mapilio@v1:
+    root: docs/api/openapi-v1.json

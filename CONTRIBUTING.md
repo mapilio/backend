@@ -18,7 +18,7 @@ Follow [local development](docs/operations/local-development.md). The supported 
 - Follow existing Laravel domain, action, query, job, request, and controller boundaries.
 - Preserve legacy response behavior only where an active compatibility contract requires it.
 - Put new public behavior under an explicit versioned API namespace.
-- Update `docs/api/openapi-v1.json` and tests with every modern API contract change.
+- Update `docs/api/openapi-v1.json` and tests with every modern API contract change, then run `npm run build:api-docs` and commit the regenerated reference.
 - Keep controllers thin and move business rules into domain code.
 - Make queue jobs idempotent, timeout-aware, observable, and independently disableable where they call external systems.
 - Use parameterized database APIs and prove index changes with representative query plans.
@@ -45,6 +45,8 @@ scripts/release/verify-local-readiness.sh
 ```
 
 At minimum, targeted tests must pass while developing. Before review, the complete gate must pass. GitHub additionally validates the schema on disposable PostgreSQL 14/PostGIS.
+
+`npm run check:api-docs` regenerates the public API reference and fails when the committed output is stale. Edit the OpenAPI source or generator, never the files under `public/docs/api` directly.
 
 Tests should cover success, validation, authorization, disabled behavior, idempotent retry, safe failure envelopes, and relevant compatibility shapes. Mock external services unless a dedicated production-blocked staging harness already exists.
 

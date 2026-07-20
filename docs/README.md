@@ -7,6 +7,7 @@
 - [Ecosystem architecture](architecture/ecosystem.md)
 - [Domain boundaries](../app/Domain/README.md)
 - [Modern OpenAPI contract](api/openapi-v1.json)
+- [Generated API reference](../public/docs/api/index.html)
 - [Local development](operations/local-development.md)
 - [Contributing](../CONTRIBUTING.md)
 
@@ -36,6 +37,7 @@
 - [0022: Queue runtime safety](architecture/0022-queue-runtime-safety.md)
 - [0023: Fail-closed local demo data](architecture/0023-fail-closed-local-demo-data.md)
 - [0024: Disposable PostGIS migration gate](architecture/0024-disposable-postgis-migration-gate.md)
+- [0025: Generated API reference](architecture/0025-generated-api-reference.md)
 
 ## Database
 

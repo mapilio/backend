@@ -36,7 +36,7 @@ This public roadmap summarizes direction without exposing private infrastructure
 - route-by-route or canary production migration with measured rollback windows;
 - retire compatibility routes only after client telemetry and deprecation policy allow it;
 - remove the legacy database from runtime after backfill and reconciliation are accepted;
-- publish stable releases and generated API documentation;
+- publish stable releases and host the generated API reference at a versioned public URL;
 - grow community-owned tests, SDK examples, localization, data tools, and OpenStreetMap integrations.
 
 ## Community Work
