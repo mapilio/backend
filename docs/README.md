@@ -59,3 +59,8 @@
 - [Secret management](security/secret-management.md)
 - [Incident response](security/incident-response.md)
 - [Public-release decisions](governance/public-release-decisions.md)
+
+## Community
+
+- [Issue triage policy](community/issue-triage.md)
+- [Initial community issue catalog](community/initial-issue-catalog.md)

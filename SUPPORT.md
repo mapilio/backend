@@ -16,3 +16,5 @@ This repository does not provide an emergency production support channel or guar
 Security issues must follow [SECURITY.md](SECURITY.md). If the private vulnerability option is unavailable, do not publish the details.
 
 Questions about the web client, mobile apps, image server, AI models, anonymizer, GeoServer administration, or infrastructure should be filed in their owning project when one is available. Backend issues may describe only the sanitized interface contract needed to diagnose cross-service behavior.
+
+Issue screening, labels, response targets, and closure behavior are defined in the [community triage policy](docs/community/issue-triage.md). Response targets begin only after maintainers and backups are assigned for public launch and are not support guarantees.

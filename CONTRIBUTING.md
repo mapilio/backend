@@ -9,6 +9,8 @@ Thank you for helping improve Mapilio's open mapping and street-level imagery in
 3. Use the bug, feature, or documentation issue form. Keep security reports private under [SECURITY.md](SECURITY.md).
 4. For large API, schema, identity, privacy, upload, AI, or GeoServer changes, open an issue before implementation so maintainers can confirm scope and compatibility.
 
+The [triage policy](docs/community/issue-triage.md) explains how scope is accepted and when `good first issue` or `help wanted` applies. Drafts in the [initial issue catalog](docs/community/initial-issue-catalog.md) are not open work until maintainers publish them after the public-release gates.
+
 ## Local Setup
 
 Follow [local development](docs/operations/local-development.md). The supported contributor path uses disposable SQLite and synthetic fixtures. Do not connect development commands to a production, shared, or write-capable remote database.

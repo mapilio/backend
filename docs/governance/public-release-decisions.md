@@ -23,9 +23,9 @@ Enable GitHub private vulnerability reporting, verify it from a non-maintainer a
 - require Quality and Secret Scan checks on the protected default branch;
 - require pull-request review and prevent direct unreviewed changes;
 - assign maintainers for API, database, imagery/privacy, AI, GeoServer, mobile compatibility, and operations;
-- define issue triage labels, response expectations, and stale/closure policy;
+- approve and activate the drafted [issue triage labels, response expectations, and closure policy](../community/issue-triage.md);
 - decide whether Discussions should be enabled and who moderates them;
-- publish a sanitized initial issue set with clear scope and acceptance criteria.
+- select still-relevant drafts from the sanitized [initial issue catalog](../community/initial-issue-catalog.md) and publish them with assigned reviewers.
 
 ### Public-content audit
 

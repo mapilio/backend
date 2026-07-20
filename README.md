@@ -146,6 +146,8 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), then use the structured issue tem
 
 Security vulnerabilities must follow [SECURITY.md](SECURITY.md) and must never be posted publicly. General usage and project questions follow [SUPPORT.md](SUPPORT.md).
 
+Maintainers use the [community issue triage policy](docs/community/issue-triage.md). The [initial issue catalog](docs/community/initial-issue-catalog.md) is a pre-public draft and does not authorize contribution work before the license and governance gates are complete.
+
 ## Documentation
 
 - [Documentation index](docs/README.md)
