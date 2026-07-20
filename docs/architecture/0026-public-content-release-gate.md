@@ -10,7 +10,7 @@ The repository is intended for future public contribution. Credential scanning a
 
 ## Decision
 
-A dependency-free Node gate scans both tracked/commit-candidate files and every reachable Git patch plus commit message. It reports categories and counts by default; a trusted local option reveals only path, line, and abbreviated commit. Matched values are never printed.
+A dependency-free Node gate scans both tracked/commit-candidate files and every reachable Git patch plus commit message. Historical content is evaluated at introduction through commit messages and added patch lines, so removed values remain tied to their original revision instead of being reassigned to a deletion commit. It reports categories and counts by default; a trusted local option reveals only path, line, and abbreviated commit. Matched values are never printed.
 
 The versioned policy explicitly approves public Mapilio hostnames, identifies third-party metadata treatment, records prohibited identifiers as SHA-256 hashes, and binds reviewed history exceptions to category, full commit, path, and value fingerprint. Exceptions require a public rationale and fail when stale. The candidate tree receives no historical exceptions.
 

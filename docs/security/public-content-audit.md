@@ -38,6 +38,8 @@ Composer/npm lockfiles are still scanned for every category except third-party a
 
 Seven commit/path/fingerprint-bound exceptions cover old synthetic proxy/parser fixtures introduced in two known commits. They contain no credential or production evidence and were replaced in the current tree with RFC documentation addresses and reserved example domains. Raw values are absent from policy. An exception that no longer matches reachable history fails as stale, and a new occurrence in another commit or path is not accepted.
 
+History content is evaluated when it enters a commit: commit messages and added patch lines are scanned across every reachable revision. Removed lines are not attributed again to the later deletion commit. A file absent from the current tree remains covered by the commit that introduced its content.
+
 The current candidate tree, reachable patches, and commit messages pass the automated gate. This means no unreviewed pattern in the defined categories was found; it does not prove data provenance.
 
 Commit author/committer metadata is a separate launch decision because public contribution necessarily records contributor identities. The current history contains one distinct author/committer identity using a non-reserved email domain. Its value is not reproduced here. Owners must approve keeping that metadata or coordinate a history rewrite before public launch.

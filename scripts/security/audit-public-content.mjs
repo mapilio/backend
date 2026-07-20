@@ -367,6 +367,10 @@ function decodeDiffPath(value) {
     return unquoted.startsWith('b/') ? unquoted.slice(2) : unquoted;
 }
 
+export function isAuditableHistoryDiffLine(line) {
+    return line.startsWith('+') && !line.startsWith('+++');
+}
+
 function scanHistory(policy) {
     const output = execFileSync(
         'git',
@@ -449,7 +453,7 @@ function scanHistory(policy) {
             continue;
         }
 
-        if (line.startsWith('+') && !line.startsWith('+++')) {
+        if (isAuditableHistoryDiffLine(line)) {
             findings.push(...auditText(line.slice(1), {
                 commit,
                 ignorePersonalEmails: isThirdPartyMetadataPath(currentPath, policy),
@@ -462,13 +466,6 @@ function scanHistory(policy) {
         }
 
         if (line.startsWith('-') && !line.startsWith('---')) {
-            findings.push(...auditText(line.slice(1), {
-                commit,
-                ignorePersonalEmails: isThirdPartyMetadataPath(currentPath, policy),
-                lineOffset: oldLine,
-                path: currentPath,
-                source: 'history',
-            }, policy));
             oldLine += 1;
             continue;
         }

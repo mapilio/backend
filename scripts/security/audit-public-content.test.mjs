@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { auditPath, auditText, formatFindings, validatePolicy } from './audit-public-content.mjs';
+import {
+    auditPath,
+    auditText,
+    formatFindings,
+    isAuditableHistoryDiffLine,
+    validatePolicy,
+} from './audit-public-content.mjs';
 
 const prohibitedIdentifier = ['legacy', 'owner', 'name'].join('-');
 const policy = {
@@ -82,6 +88,13 @@ test('redacted output contains categories and locations but never matched conten
     assert.match(output, /personal-email: 1/);
     assert.match(output, /fixture\.txt:1/);
     assert.doesNotMatch(output, new RegExp(sensitiveValue.replace('.', '\\.')));
+});
+
+test('history scans introductions without assigning removed content to its deletion commit', () => {
+    assert.equal(isAuditableHistoryDiffLine('+introduced content'), true);
+    assert.equal(isAuditableHistoryDiffLine('-removed content'), false);
+    assert.equal(isAuditableHistoryDiffLine(' unchanged content'), false);
+    assert.equal(isAuditableHistoryDiffLine('+++ b/example.txt'), false);
 });
 
 test('policy validation rejects incomplete reviewed history exceptions', () => {
