@@ -5,25 +5,12 @@ set -euo pipefail
 repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repository_root}"
 
-for command_name in php composer node npm gitleaks; do
-    if ! command -v "${command_name}" >/dev/null 2>&1; then
-        echo "${command_name} is required for the local release gate." >&2
-        exit 127
-    fi
-done
+scripts/development/doctor.test.sh
+scripts/development/doctor.sh
 
-node_version=$(node -p 'process.versions.node')
-node_major=${node_version%%.*}
-node_remainder=${node_version#*.}
-node_minor=${node_remainder%%.*}
-
-if ! {
-    [[ ${node_major} -eq 20 && ${node_minor} -ge 19 ]] ||
-        [[ ${node_major} -eq 22 && ${node_minor} -ge 12 ]] ||
-        [[ ${node_major} -ge 24 ]];
-}; then
-    echo "Node.js ${node_version} is unsupported; use 20.19+, 22.12+, or 24+." >&2
-    exit 2
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo 'gitleaks is required for the local release gate.' >&2
+    exit 127
 fi
 
 cleanup() {

@@ -71,7 +71,11 @@ The legacy database remains a migration source while compatibility routes are re
 
 ## Quick Start
 
-Requirements: PHP 8.2, Composer, Node.js 20.19+/22.12+/24+, npm, and the PHP SQLite extension.
+Requirements: PHP 8.2+, Composer 2.2+, Node.js 20.19+/22.12+/24+, npm 10+, and the documented PHP extensions. See the [platform matrix](docs/operations/contributor-platform-matrix.md), then run the read-only doctor before installing anything:
+
+```bash
+scripts/development/doctor.sh
+```
 
 ```bash
 git clone git@github.com:mapilio/backend.git
@@ -158,6 +162,7 @@ Maintainers use the [community issue triage policy](docs/community/issue-triage.
 - [Domain boundaries](app/Domain/README.md)
 - [Target database schema](docs/database/target-schema-draft.md)
 - [Runtime and deployment](docs/operations/runtime-and-deployment.md)
+- [Contributor platform matrix](docs/operations/contributor-platform-matrix.md)
 - [Release readiness](docs/operations/release-readiness.md)
 - [Security incident response](docs/security/incident-response.md)
 - [Public-content audit](docs/security/public-content-audit.md)

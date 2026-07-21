@@ -13,7 +13,7 @@ The [triage policy](docs/community/issue-triage.md) explains how scope is accept
 
 ## Local Setup
 
-Follow [local development](docs/operations/local-development.md). The supported contributor path uses disposable SQLite and synthetic fixtures. Do not connect development commands to a production, shared, or write-capable remote database.
+Check the [contributor platform matrix](docs/operations/contributor-platform-matrix.md), run `scripts/development/doctor.sh`, then follow [local development](docs/operations/local-development.md). The supported contributor path uses disposable SQLite and synthetic fixtures. Do not connect development commands to a production, shared, or write-capable remote database.
 
 ## Development Rules
 

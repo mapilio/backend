@@ -9,6 +9,7 @@
 - [Modern OpenAPI contract](api/openapi-v1.json)
 - [Generated API reference](../public/docs/api/index.html)
 - [Local development](operations/local-development.md)
+- [Contributor platform matrix and doctor](operations/contributor-platform-matrix.md)
 - [Contributing](../CONTRIBUTING.md)
 
 ## Architecture Decisions
@@ -50,6 +51,7 @@
 ## Operations
 
 - [Runtime and deployment](operations/runtime-and-deployment.md)
+- [Contributor platform matrix and doctor](operations/contributor-platform-matrix.md)
 - [Release readiness](operations/release-readiness.md)
 - [Backup and restore](operations/backup-and-restore.md)
 - [Disposable PostGIS migration gate](operations/postgis-migration-gate.md)

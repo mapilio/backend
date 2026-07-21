@@ -18,6 +18,7 @@ Implemented foundations include:
 - contributor issue forms, a safety-bounded triage policy, and eight sanitized initial community issue drafts awaiting owner-controlled publication.
 - full-history secret scanning plus a redacted public-content policy gate for private network/hostname patterns, personal emails, local paths, risky artifacts, and unapproved platform hosts.
 - a tested package/OpenAPI metadata gate that prevents an open-source license claim while license selection remains an owner decision.
+- a read-only contributor environment doctor plus macOS, Ubuntu/WSL, CI, PHP-extension, and optional PostGIS tooling matrix.
 
 ## Deliberately Disabled Or Incomplete
 

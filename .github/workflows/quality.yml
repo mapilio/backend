@@ -31,6 +31,19 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Set up Node.js for contributor environment verification
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.12.0'
+
+      - name: Verify contributor environment rules and CI platform
+        run: |
+          scripts/development/doctor.test.sh
+          before=$(git status --porcelain=v1)
+          scripts/development/doctor.sh
+          after=$(git status --porcelain=v1)
+          test "${before}" = "${after}"
+
       - name: Validate Composer metadata
         run: composer validate --strict
 

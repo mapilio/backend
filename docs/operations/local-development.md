@@ -4,10 +4,16 @@ This workflow creates a disposable SQLite database containing synthetic modern-s
 
 ## Requirements
 
-- PHP 8.2 or newer supported by the locked dependencies
-- Composer
-- Node.js and npm for frontend asset verification
-- PHP SQLite extension
+- a host and toolchain from the [contributor platform matrix](contributor-platform-matrix.md);
+- a passing read-only environment doctor.
+
+Run this before installing dependencies:
+
+```bash
+scripts/development/doctor.sh
+```
+
+It does not inspect `.env`, write files, access a database, or contact local/remote services.
 
 Install the locked dependencies and create local configuration:
 
