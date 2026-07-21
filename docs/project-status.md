@@ -17,6 +17,7 @@ Implemented foundations include:
 - backup/readiness, queue runtime, secret scanning, dependency audits, static analysis, strict OpenAPI, a self-contained generated API reference, SQLite migrations, and disposable PostgreSQL/PostGIS gates.
 - contributor issue forms, a safety-bounded triage policy, and eight sanitized initial community issue drafts awaiting owner-controlled publication.
 - full-history secret scanning plus a redacted public-content policy gate for private network/hostname patterns, personal emails, local paths, risky artifacts, and unapproved platform hosts.
+- a tested package/OpenAPI metadata gate that prevents an open-source license claim while license selection remains an owner decision.
 
 ## Deliberately Disabled Or Incomplete
 

@@ -4,7 +4,7 @@
     "type": "project",
     "description": "Modern Laravel backend foundation for the Mapilio platform.",
     "keywords": ["mapilio", "laravel", "imagery", "geospatial"],
-    "license": "MIT",
+    "license": "proprietary",
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
@@ -19,6 +19,9 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^11.5.50"
+    },
+    "conflict": {
+        "guzzlehttp/guzzle": "<7.15.1"
     },
     "autoload": {
         "psr-4": {

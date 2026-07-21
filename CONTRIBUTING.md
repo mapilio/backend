@@ -50,6 +50,8 @@ At minimum, targeted tests must pass while developing. Before review, the comple
 
 `npm run check:api-docs` regenerates the public API reference and fails when the committed output is stale. Edit the OpenAPI source or generator, never the files under `public/docs/api` directly.
 
+`npm run check:license-state` verifies the explicit proprietary/unlicensed package metadata, pending OpenAPI status, and absence of a root project-license file. It guards the current owner-decision state; it does not select terms or classify third-party dependency licenses.
+
 `npm run audit:public-content` checks the candidate tree and complete reachable history without printing matched values. Use `--show-locations` only in a trusted local environment and never paste a private finding into public collaboration surfaces.
 
 Tests should cover success, validation, authorization, disabled behavior, idempotent retry, safe failure envelopes, and relevant compatibility shapes. Mock external services unless a dedicated production-blocked staging harness already exists.
@@ -67,4 +69,4 @@ Maintainers may request smaller changes, additional contract fixtures, an ADR, o
 
 ## Licensing Gate
 
-The repository owners have not selected a project license. Contributions cannot be treated as open-source licensed until a reviewed `LICENSE` and contribution terms are added. See [public-release decisions](docs/governance/public-release-decisions.md).
+The repository owners have not selected a project license. Root package metadata deliberately remains proprietary/unlicensed while this decision is pending. Contributions cannot be treated as open-source licensed until a reviewed `LICENSE`, matching package metadata, and contribution terms are added. See [public-release decisions](docs/governance/public-release-decisions.md).

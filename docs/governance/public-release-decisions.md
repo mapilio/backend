@@ -10,6 +10,8 @@ No license is currently selected and no `LICENSE` file should be added by implem
 
 Until then, default copyright applies and the repository must not claim that reuse, redistribution, or modification is licensed.
 
+The root Composer package must remain `proprietary`, the private npm package must remain `UNLICENSED`, the OpenAPI document must say that the license is not yet selected, and no root `LICENSE` or `COPYING` file may be added while this gate is pending. `npm run check:license-state` enforces those statements without interpreting third-party dependency licenses. Once owners approve terms, replace this pending-state gate and all four surfaces in one reviewed change.
+
 ### Conduct reporting
 
 The code of conduct defines behavior and enforcement principles, but public launch requires a confidential reporting channel, at least two assigned maintainers, privacy/retention rules, and a tested escalation path. Do not use public issues for conduct reports.

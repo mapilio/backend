@@ -39,6 +39,7 @@
 - [0024: Disposable PostGIS migration gate](architecture/0024-disposable-postgis-migration-gate.md)
 - [0025: Generated API reference](architecture/0025-generated-api-reference.md)
 - [0026: Public-content release gate](architecture/0026-public-content-release-gate.md)
+- [0027: Pending license-state gate](architecture/0027-pending-license-state-gate.md)
 
 ## Database
 

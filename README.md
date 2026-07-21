@@ -135,6 +135,7 @@ composer format:test
 composer analyse
 npm run lint:openapi
 npm run check:api-docs
+npm run check:license-state
 npm run audit:public-content
 npm run build
 ```
@@ -163,4 +164,4 @@ Maintainers use the [community issue triage policy](docs/community/issue-triage.
 
 ## Governance And License
 
-Community behavior is defined in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). The repository is still private and its license has not been selected. No open-source license is implied until the owners add a reviewed `LICENSE` file; see the [public-release decisions](docs/governance/public-release-decisions.md).
+Community behavior is defined in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). The repository is still private and its license has not been selected. Root Composer and npm metadata therefore identify this project as proprietary/unlicensed; those markers do not change the licenses of third-party dependencies. No open-source license is implied until the owners add a reviewed `LICENSE` file and update the guarded metadata; see the [public-release decisions](docs/governance/public-release-decisions.md).

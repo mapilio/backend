@@ -1,11 +1,13 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
+    "license": "UNLICENSED",
     "type": "module",
     "scripts": {
         "build": "vite build",
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",
         "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
+        "check:license-state": "node --test scripts/governance/verify-license-state.test.mjs && node scripts/governance/verify-license-state.mjs",
         "check:api-docs": "npm run build:api-docs && git diff --exit-code -- public/docs/api",
         "dev": "vite",
         "lint:openapi": "redocly lint docs/api/openapi-v1.json --format=stylish"
@@ -19,5 +21,8 @@
         "redoc": "2.5.3",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.7"
+    },
+    "overrides": {
+        "js-yaml": "4.3.0"
     }
 }
