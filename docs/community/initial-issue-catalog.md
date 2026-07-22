@@ -70,9 +70,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** The two focused files passed before and after extraction with the same 13 tests and 55 assertions; focused PHPStan and formatting checks also passed. The complete local release gate passed with 257 Laravel tests and 1,116 assertions. No remote database, external service, or production system was accessed.
 
-## C005: Add A Reusable Database Query-Budget Assertion
+## C005: Add A Reusable Database Query-Budget Assertion (Completed; Non-publishable)
 
-**Suggested labels:** `enhancement`, `help wanted`, `area: tooling`, `area: api`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `enhancement`, `help wanted`, `area: tooling`, `area: api`, `status: completed`
 
 **Outcome:** Bounded-query API tests can express their query budget without duplicating listener/filter bookkeeping.
 
@@ -82,7 +84,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** Production query logging, benchmarking production data, changing SQL, adding indexes, or migrating every test.
 
-**Verification:** focused helper tests, `AiFeatureDetailApiTest`, and the complete Laravel suite.
+**Verification completed:** Six focused helper regressions and the unchanged seven-test feature-detail suite passed together with 13 tests and 72 assertions; focused static analysis, formatting, and independent review also passed. The complete local release gate passed with 263 Laravel tests and 1,143 assertions. No remote database, external service, or production system was accessed.
 
 ## C006: Inventory Public API Messages For Localization Readiness
 

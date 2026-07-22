@@ -23,6 +23,7 @@ Implemented foundations include:
 - deterministic relative-link checking for tracked Markdown, with focused unit coverage and local/Quality gate integration.
 - a synthetic local API cookbook covering the health and seeded feature-detail `GET` checks; an isolated local SQLite smoke was verified on loopback port `18000` with shell environment overrides, response assertions, and cleanup, and the complete local release gate passed with 257 tests and 1,116 assertions.
 - a test-only legacy mobile-auth fixture helper shared by the email-modal and project-job compatibility suites; exact synthetic account rows and all 55 focused assertions are preserved, and the complete local release gate passed with 257 tests and 1,116 assertions.
+- a reusable test-only query-budget assertion with explicit connection/table scopes and isolated listener lifecycle; six helper regressions protect exact budgets, unrelated-query exclusion, dispatcher restoration, and callback behavior while the AI feature-detail contract remains exactly four bounded graph reads, and the complete local release gate passed with 263 tests and 1,143 assertions.
 
 ## Deliberately Disabled Or Incomplete
 

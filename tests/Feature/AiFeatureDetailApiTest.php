@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
+use Tests\Support\AssertsQueryBudgets;
 use Tests\TestCase;
 
 class AiFeatureDetailApiTest extends TestCase
 {
+    use AssertsQueryBudgets;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -26,48 +29,50 @@ class AiFeatureDetailApiTest extends TestCase
 
     public function test_versioned_feature_detail_returns_the_public_detection_graph_without_n_plus_one_queries(): void
     {
-        $queries = [];
-
-        DB::listen(function (QueryExecuted $query) use (&$queries): void {
-            if (str_contains($query->sql, 'ai_detection_') || str_contains($query->sql, 'default_mapilio_imagery')) {
-                $queries[] = $query->sql;
-            }
-        });
-
-        $response = $this->getJson('/api/v1/geo/ai-features/7')
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'max-age=60, public, stale-while-revalidate=300')
-            ->assertJsonMissingPath('data.properties.response_id')
-            ->assertJsonMissingPath('data.properties.callback_receipt_id')
-            ->assertJsonPath('data.type', 'Feature')
-            ->assertJsonPath('data.id', 7)
-            ->assertJsonPath('data.geometry.type', 'Point')
-            ->assertJsonPath('data.geometry.coordinates.0', 29.0255)
-            ->assertJsonPath('data.properties.class_code', 'stop-sign')
-            ->assertJsonPath('data.properties.confidence', 0.91)
-            ->assertJsonPath('data.properties.verified', true)
-            ->assertJsonPath('data.properties.dimensions.width', 0.8)
-            ->assertJsonPath('data.properties.attributes.color', 'red')
-            ->assertJsonPath('data.properties.sequence_uuid', 'sequence-ai-1')
-            ->assertJsonPath('data.properties.created_at', '2026-07-15T10:00:00+00:00')
-            ->assertJsonCount(1, 'data.matches')
-            ->assertJsonPath('data.matches.0.source_index', 0)
-            ->assertJsonPath('data.matches.0.observation_1.object_key', 'object-left')
-            ->assertJsonPath('data.matches.0.observation_1.bbox', [10, 20, 110, 220])
-            ->assertJsonPath('data.matches.0.observation_1.segmentation.0', [10, 20])
-            ->assertJsonPath('data.matches.0.observation_1.image.uploaded_hash', 'hash/left')
-            ->assertJsonPath('data.matches.0.observation_1.image.geometry.coordinates', [29.0251, 40.9911])
-            ->assertJsonPath(
-                'data.matches.0.observation_1.image.urls.original',
-                'https://images.example.test/im/hash%2Fleft/left%20image.jpg',
-            )
-            ->assertJsonPath(
-                'data.matches.0.observation_1.image.urls.preview_480',
-                'https://images.example.test/im/hash%2Fleft/left%20image.jpg/480',
-            );
+        $response = $this->assertQueryBudget(function (): TestResponse {
+            return $this->getJson('/api/v1/geo/ai-features/7')
+                ->assertOk()
+                ->assertHeader('Cache-Control', 'max-age=60, public, stale-while-revalidate=300')
+                ->assertJsonMissingPath('data.properties.response_id')
+                ->assertJsonMissingPath('data.properties.callback_receipt_id')
+                ->assertJsonPath('data.type', 'Feature')
+                ->assertJsonPath('data.id', 7)
+                ->assertJsonPath('data.geometry.type', 'Point')
+                ->assertJsonPath('data.geometry.coordinates.0', 29.0255)
+                ->assertJsonPath('data.properties.class_code', 'stop-sign')
+                ->assertJsonPath('data.properties.confidence', 0.91)
+                ->assertJsonPath('data.properties.verified', true)
+                ->assertJsonPath('data.properties.dimensions.width', 0.8)
+                ->assertJsonPath('data.properties.attributes.color', 'red')
+                ->assertJsonPath('data.properties.sequence_uuid', 'sequence-ai-1')
+                ->assertJsonPath('data.properties.created_at', '2026-07-15T10:00:00+00:00')
+                ->assertJsonCount(1, 'data.matches')
+                ->assertJsonPath('data.matches.0.source_index', 0)
+                ->assertJsonPath('data.matches.0.observation_1.object_key', 'object-left')
+                ->assertJsonPath('data.matches.0.observation_1.bbox', [10, 20, 110, 220])
+                ->assertJsonPath('data.matches.0.observation_1.segmentation.0', [10, 20])
+                ->assertJsonPath('data.matches.0.observation_1.image.uploaded_hash', 'hash/left')
+                ->assertJsonPath('data.matches.0.observation_1.image.geometry.coordinates', [29.0251, 40.9911])
+                ->assertJsonPath(
+                    'data.matches.0.observation_1.image.urls.original',
+                    'https://images.example.test/im/hash%2Fleft/left%20image.jpg',
+                )
+                ->assertJsonPath(
+                    'data.matches.0.observation_1.image.urls.preview_480',
+                    'https://images.example.test/im/hash%2Fleft/left%20image.jpg/480',
+                );
+        }, 4, [
+            ['connection' => (string) config('database.default'), 'tables' => [
+                'ai_detection_features',
+                'ai_detection_matches',
+                'ai_detection_observations',
+            ]],
+            ['connection' => (string) config('mapilio.legacy_database_connection'), 'tables' => [
+                'default_mapilio_imagery',
+            ]],
+        ]);
 
         $this->assertNotNull($response->headers->get('ETag'));
-        $this->assertCount(4, $queries);
     }
 
     public function test_missing_inactive_or_cross_sequence_imagery_is_not_exposed(): void

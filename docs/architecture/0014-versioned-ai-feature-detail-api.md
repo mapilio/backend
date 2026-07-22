@@ -19,7 +19,7 @@ Canonical AI persistence already separates features, observations, and matches. 
 - two observations per match, including imagery id, bounding box, score, and optional segmentation
 - active imagery metadata, Point geometry, and original/480 image URLs when the imagery belongs to the same sequence
 
-The query uses four bounded reads regardless of match count: feature, matches, observations, and legacy imagery metadata. It does not perform a query per observation.
+The query uses four bounded batch reads regardless of match count: feature, matches, observations, and legacy imagery metadata. It does not perform a query per observation, so graph size cannot introduce an N+1 query pattern. The feature test enforces this exact budget with the test-only `Tests\Support\AssertsQueryBudgets` helper, scoped to these four explicit table identifiers; the helper is not production instrumentation.
 
 The API deliberately does not return callback receipt ids, prediction response ids, processing errors, or the legacy `matched_points` string. Missing, deleted, anomalous, or cross-sequence imagery remains identifiable by `imagery_id`, but its metadata is returned as `null`.
 
