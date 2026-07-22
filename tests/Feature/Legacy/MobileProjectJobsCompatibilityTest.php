@@ -2,28 +2,28 @@
 
 namespace Tests\Feature\Legacy;
 
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
 
 class MobileProjectJobsCompatibilityTest extends TestCase
 {
+    use LegacyMobileAuthFixtures;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Config::set('mapilio.mobile_auth.client_id', 'mobile-client');
-        Config::set('mapilio.mobile_auth.client_secret', 'mobile-secret');
-        Config::set('mapilio.mobile_auth.signing_key', 'test-signing-key');
+        $this->configureLegacyMobileAuth();
 
         $this->createTables();
+        $this->seedLegacyUsers();
         $this->seedData();
     }
 
     public function test_mobile_get_my_jobs_preserves_project_modal_contract(): void
     {
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $this->withToken($login->json('access_token'))
             ->getJson('/api/function/projects/job/getMyJobs')
@@ -52,7 +52,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_get_my_jobs_returns_empty_array_for_no_jobs(): void
     {
-        $login = $this->login('empty@example.test');
+        $login = $this->loginAsLegacyUser('empty_jobs');
 
         $this->withToken($login->json('access_token'))
             ->getJson('/api/function/projects/job/getMyJobs')
@@ -64,7 +64,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_versioned_mobile_get_my_jobs_alias_matches_legacy_contract(): void
     {
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $legacy = $this->withToken($login->json('access_token'))
             ->getJson('/api/function/projects/job/getMyJobs')
@@ -79,7 +79,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_create_job_accepts_marketplace_project_for_authenticated_user(): void
     {
-        $login = $this->login('empty@example.test');
+        $login = $this->loginAsLegacyUser('empty_jobs');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/projects/job/createJob', [
@@ -120,7 +120,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_create_job_preserves_validation_and_domain_errors(): void
     {
-        $login = $this->login('empty@example.test');
+        $login = $this->loginAsLegacyUser('empty_jobs');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/projects/job/createJob')
@@ -164,7 +164,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_create_job_rejects_existing_membership(): void
     {
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/projects/job/createJob', [
@@ -184,7 +184,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_versioned_mobile_create_job_alias_matches_legacy_write_contract(): void
     {
-        $login = $this->login('empty@example.test');
+        $login = $this->loginAsLegacyUser('empty_jobs');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/v1/projects/jobs', [
@@ -206,29 +206,9 @@ class MobileProjectJobsCompatibilityTest extends TestCase
         ]);
     }
 
-    private function login(string $email)
-    {
-        return $this->postJson('/api/v2/login', [
-            'grant_type' => 'password',
-            'client_id' => 'mobile-client',
-            'client_secret' => 'mobile-secret',
-            'email' => $email,
-            'password' => 'correct-password',
-        ])->assertOk();
-    }
-
     private function createTables(): void
     {
-        Schema::create('default_users_users', function ($table): void {
-            $table->id();
-            $table->string('email')->nullable();
-            $table->string('username')->nullable();
-            $table->string('password')->nullable();
-            $table->string('display_name')->nullable();
-            $table->boolean('activated')->default(true);
-            $table->boolean('enabled')->default(true);
-            $table->timestamp('deleted_at')->nullable();
-        });
+        $this->createLegacyUsersTable();
 
         Schema::create('default_projects_project', function ($table): void {
             $table->id();
@@ -256,39 +236,6 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     private function seedData(): void
     {
-        Schema::getConnection()->table('default_users_users')->insert([
-            [
-                'id' => 10,
-                'email' => 'alice@example.test',
-                'username' => 'alice',
-                'password' => Hash::make('correct-password'),
-                'display_name' => 'Alice Example',
-                'activated' => true,
-                'enabled' => true,
-                'deleted_at' => null,
-            ],
-            [
-                'id' => 20,
-                'email' => 'empty@example.test',
-                'username' => 'empty',
-                'password' => Hash::make('correct-password'),
-                'display_name' => 'Empty Jobs',
-                'activated' => true,
-                'enabled' => true,
-                'deleted_at' => null,
-            ],
-            [
-                'id' => 30,
-                'email' => 'other@example.test',
-                'username' => 'other',
-                'password' => Hash::make('correct-password'),
-                'display_name' => 'Other User',
-                'activated' => true,
-                'enabled' => true,
-                'deleted_at' => null,
-            ],
-        ]);
-
         Schema::getConnection()->table('default_projects_project')->insert([
             [
                 'id' => 100,

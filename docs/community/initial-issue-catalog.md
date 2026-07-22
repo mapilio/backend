@@ -54,9 +54,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** focused validator tests, repository coverage validation, `npm run lint:openapi`, `npm run build:api-docs`, and the complete local release gate with 257 Laravel tests and 1,116 assertions. No live service was used for this bounded documentation/tooling item.
 
-## C004: Extract A Small Synthetic Legacy Test Fixture Builder
+## C004: Extract A Small Synthetic Legacy Test Fixture Builder (Completed; Non-publishable)
 
-**Suggested labels:** `enhancement`, `good first issue`, `area: tooling`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `enhancement`, `good first issue`, `area: tooling`, `status: completed`
 
 **Outcome:** Repeated synthetic user setup in a small pair of mobile compatibility tests becomes easier to read without changing behavior.
 
@@ -66,7 +68,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** A universal factory framework, production data imports, auth redesign, response cleanup, and unrelated test refactors.
 
-**Verification:** run the two focused test files, then the complete Laravel suite.
+**Verification completed:** The two focused files passed before and after extraction with the same 13 tests and 55 assertions; focused PHPStan and formatting checks also passed. The complete local release gate passed with 257 Laravel tests and 1,116 assertions. No remote database, external service, or production system was accessed.
 
 ## C005: Add A Reusable Database Query-Budget Assertion
 

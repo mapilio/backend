@@ -2,28 +2,27 @@
 
 namespace Tests\Feature\Legacy;
 
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
 
 class MobileEmailModalCompatibilityTest extends TestCase
 {
+    use LegacyMobileAuthFixtures;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Config::set('mapilio.mobile_auth.client_id', 'mobile-client');
-        Config::set('mapilio.mobile_auth.client_secret', 'mobile-secret');
-        Config::set('mapilio.mobile_auth.signing_key', 'test-signing-key');
+        $this->configureLegacyMobileAuth();
 
         $this->createTables();
-        $this->seedUsers();
+        $this->seedLegacyUsers(['alice']);
     }
 
     public function test_mobile_check_email_modal_creates_first_seen_record_and_returns_false(): void
     {
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/user_profile/profile/checkIsModalShown')
@@ -47,7 +46,7 @@ class MobileEmailModalCompatibilityTest extends TestCase
             'updated_at' => '2026-01-01 00:00:00',
         ]);
 
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/user_profile/profile/checkIsModalShown')
@@ -70,7 +69,7 @@ class MobileEmailModalCompatibilityTest extends TestCase
 
     public function test_versioned_mobile_check_email_modal_alias_matches_legacy_contract(): void
     {
-        $login = $this->login('alice@example.test');
+        $login = $this->loginAsLegacyUser('alice');
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/v1/mobile/profile/email-modal')
@@ -80,29 +79,9 @@ class MobileEmailModalCompatibilityTest extends TestCase
             ]);
     }
 
-    private function login(string $email)
-    {
-        return $this->postJson('/api/v2/login', [
-            'grant_type' => 'password',
-            'client_id' => 'mobile-client',
-            'client_secret' => 'mobile-secret',
-            'email' => $email,
-            'password' => 'correct-password',
-        ])->assertOk();
-    }
-
     private function createTables(): void
     {
-        Schema::create('default_users_users', function ($table): void {
-            $table->id();
-            $table->string('email')->nullable();
-            $table->string('username')->nullable();
-            $table->string('password')->nullable();
-            $table->string('display_name')->nullable();
-            $table->boolean('activated')->default(true);
-            $table->boolean('enabled')->default(true);
-            $table->timestamp('deleted_at')->nullable();
-        });
+        $this->createLegacyUsersTable();
 
         Schema::create('default_user_profile_profile', function ($table): void {
             $table->id();
@@ -112,21 +91,5 @@ class MobileEmailModalCompatibilityTest extends TestCase
             $table->timestamp('updated_at')->nullable();
             $table->integer('updated_by_id')->nullable();
         });
-    }
-
-    private function seedUsers(): void
-    {
-        Schema::getConnection()->table('default_users_users')->insert([
-            [
-                'id' => 10,
-                'email' => 'alice@example.test',
-                'username' => 'alice',
-                'password' => Hash::make('correct-password'),
-                'display_name' => 'Alice Example',
-                'activated' => true,
-                'enabled' => true,
-                'deleted_at' => null,
-            ],
-        ]);
     }
 }
