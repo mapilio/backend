@@ -141,6 +141,7 @@ npm run lint:openapi
 npm run validate:api-examples
 npm run check:api-docs
 npm run check:license-state
+npm run check:markdown-links
 npm run audit:public-content
 npm run build
 ```

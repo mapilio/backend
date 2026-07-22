@@ -20,6 +20,7 @@ Implemented foundations include:
 - a tested package/OpenAPI metadata gate that prevents an open-source license claim while license selection remains an owner decision.
 - a read-only contributor environment doctor plus macOS, Ubuntu/WSL, CI, PHP-extension, and optional PostGIS tooling matrix.
 - validated synthetic request/response examples for every schema-bearing JSON media type in the three documented modern operations, with focused coverage checks and generated API documentation.
+- deterministic relative-link checking for tracked Markdown, with focused unit coverage and local/Quality gate integration.
 
 ## Deliberately Disabled Or Incomplete
 

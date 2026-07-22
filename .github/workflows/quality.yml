@@ -93,6 +93,9 @@ jobs:
       - name: Verify pending project-license state
         run: npm run check:license-state
 
+      - name: Check tracked Markdown links
+        run: npm run check:markdown-links
+
       - name: Audit public repository content and history
         run: npm run audit:public-content
 

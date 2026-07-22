@@ -9,6 +9,7 @@
         "validate:api-examples": "node --test scripts/docs/validate-openapi-example-coverage.test.mjs && node scripts/docs/validate-openapi-example-coverage.mjs",
         "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
         "check:license-state": "node --test scripts/governance/verify-license-state.test.mjs && node scripts/governance/verify-license-state.mjs",
+        "check:markdown-links": "node --test scripts/docs/check-markdown-links.test.mjs && node scripts/docs/check-markdown-links.mjs",
         "check:api-docs": "npm run build:api-docs && git diff --exit-code -- public/docs/api",
         "dev": "vite",
         "lint:openapi": "redocly lint docs/api/openapi-v1.json --format=stylish"

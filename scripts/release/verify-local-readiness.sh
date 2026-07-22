@@ -38,6 +38,7 @@ run_gate 'Run the complete backend test suite' php artisan test
 run_gate 'Install locked npm dependencies' npm ci --ignore-scripts
 run_gate 'Audit locked npm dependencies' npm audit --audit-level=high
 run_gate 'Verify pending project-license state' npm run check:license-state
+run_gate 'Check tracked Markdown links' npm run check:markdown-links
 run_gate 'Validate the OpenAPI contract' npm run lint:openapi
 run_gate 'Validate OpenAPI examples' npm run validate:api-examples
 run_gate 'Verify generated API documentation' npm run check:api-docs

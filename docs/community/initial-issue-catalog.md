@@ -6,11 +6,13 @@ Draft. These issue bodies are sanitized and scoped for future publication, but t
 
 When publishing, recheck every referenced path against the selected release revision, create the labels from [the triage policy](issue-triage.md), assign a domain reviewer, and publish only the issues that still describe unfinished work.
 
-## C001: Add A Deterministic Relative Markdown Link Check
+## C001: Add A Deterministic Relative Markdown Link Check (Completed; Non-publishable)
 
-**Suggested labels:** `documentation`, `good first issue`, `area: docs`, `area: tooling`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
 
-**Outcome:** Broken repository-relative links in tracked Markdown fail locally and in the Quality workflow.
+**Suggested labels:** `documentation`, `good first issue`, `area: docs`, `area: tooling`, `status: completed`
+
+**Outcome:** Broken repository-relative links in tracked Markdown fail locally and in the Quality workflow. Implemented with a dependency-free Node checker and focused unit tests.
 
 **Scope:** Add a small dependency-free checker for relative file links in tracked Markdown. Ignore `http`, `https`, `mailto`, fragment-only links, code fences, generated API assets, dependencies, and ignored files. Resolve links from the containing document and report only repository-relative paths. Add the command to the local release gate and the existing OpenAPI/npm CI job.
 
@@ -18,7 +20,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** External network link checking, rewriting documentation, production access, and HTML anchor validation.
 
-**Verification:** focused checker tests, the new command against the repository, and `scripts/release/verify-local-readiness.sh`.
+**Verification completed:** 24 focused checker tests, all 54 tracked Markdown files, and the complete local release gate with 257 Laravel tests and 1,116 assertions passed. No external URL, database, or live service was accessed.
 
 ## C002: Add A Synthetic Local API Cookbook
 
