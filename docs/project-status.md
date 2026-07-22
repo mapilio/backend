@@ -19,6 +19,7 @@ Implemented foundations include:
 - full-history secret scanning plus a redacted public-content policy gate for private network/hostname patterns, personal emails, local paths, risky artifacts, and unapproved platform hosts.
 - a tested package/OpenAPI metadata gate that prevents an open-source license claim while license selection remains an owner decision.
 - a read-only contributor environment doctor plus macOS, Ubuntu/WSL, CI, PHP-extension, and optional PostGIS tooling matrix.
+- validated synthetic request/response examples for every schema-bearing JSON media type in the three documented modern operations, with focused coverage checks and generated API documentation.
 
 ## Deliberately Disabled Or Incomplete
 

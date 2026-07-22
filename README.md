@@ -138,6 +138,7 @@ php artisan test
 composer format:test
 composer analyse
 npm run lint:openapi
+npm run validate:api-examples
 npm run check:api-docs
 npm run check:license-state
 npm run audit:public-content

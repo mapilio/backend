@@ -1,6 +1,11 @@
 extends:
   - recommended-strict
 
+rules:
+  no-invalid-media-type-examples:
+    severity: error
+    allowAdditionalProperties: false
+
 apis:
   mapilio@v1:
     root: docs/api/openapi-v1.json

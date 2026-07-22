@@ -48,7 +48,8 @@
               "type": "integer",
               "format": "int64",
               "minimum": 1
-            }
+            },
+            "example": 900000001
           }
         ],
         "responses": {
@@ -72,6 +73,84 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AiFeatureDetailResponse"
+                },
+                "example": {
+                  "data": {
+                    "type": "Feature",
+                    "id": 900000001,
+                    "geometry": {
+                      "type": "Point",
+                      "coordinates": [29.0255, 40.9911]
+                    },
+                    "properties": {
+                      "class_code": "stop-sign",
+                      "confidence": 0.91,
+                      "verified": true,
+                      "dimensions": {
+                        "width": 0.8,
+                        "height": 1.6,
+                        "area": 1.28
+                      },
+                      "attributes": {
+                        "color": "red"
+                      },
+                      "sequence_uuid": "sequence-synthetic-1",
+                      "project_key": "project-synthetic",
+                      "organization_key": "organization-synthetic",
+                      "created_by_id": 10,
+                      "created_at": "2026-07-15T10:00:00+00:00",
+                      "updated_at": "2026-07-15T10:05:00+00:00"
+                    },
+                    "matches": [
+                      {
+                        "id": 900000011,
+                        "source_index": 0,
+                        "score": 0.89,
+                        "geometry": {
+                          "type": "Point",
+                          "coordinates": [29.0251, 40.9911]
+                        },
+                        "observation_1": {
+                          "id": 900000021,
+                          "object_key": "synthetic-object-left",
+                          "imagery_id": 900000031,
+                          "bbox": [10, 20, 110, 220],
+                          "score": 0.88,
+                          "segmentation": [
+                            [10, 20],
+                            [110, 220]
+                          ],
+                          "image": {
+                            "id": 900000031,
+                            "sequence_uuid": "sequence-synthetic-1",
+                            "uploaded_hash": "synthetic-hash-left",
+                            "filename": "synthetic-left.jpg",
+                            "resolution": "1920x1080",
+                            "heading": 90,
+                            "capture_time": "2026-07-15T09:55:00+00:00",
+                            "created_by_id": 10,
+                            "geometry": {
+                              "type": "Point",
+                              "coordinates": [29.0251, 40.9911]
+                            },
+                            "urls": {
+                              "original": "https://images.example.test/synthetic/original.jpg",
+                              "preview_480": "https://images.example.test/synthetic/preview-480.jpg"
+                            }
+                          }
+                        },
+                        "observation_2": {
+                          "id": 900000022,
+                          "object_key": "synthetic-object-right",
+                          "imagery_id": 900000032,
+                          "bbox": [12, 22, 112, 222],
+                          "score": 0.87,
+                          "segmentation": null,
+                          "image": null
+                        }
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -126,6 +205,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NewsletterSubscriptionRequest"
+              },
+              "example": {
+                "email": "subscriber@example.test",
+                "website": ""
               }
             }
           }
@@ -181,6 +264,11 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/WebTokenRequest"
+              },
+              "example": {
+                "grant_type": "password",
+                "email": "alice@example.test",
+                "password": "synthetic-password-for-example"
               }
             }
           }
@@ -192,6 +280,14 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebTokenResponse"
+                },
+                "example": {
+                  "id": 10,
+                  "success": true,
+                  "token_type": "Bearer",
+                  "expires_in": 3600,
+                  "access_token": "synthetic-access-token-not-a-credential",
+                  "refresh_token": "synthetic-refresh-token-not-a-credential"
                 }
               }
             }
@@ -202,6 +298,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": ["Email or password is invalid."]
                 }
               }
             }
@@ -218,6 +318,10 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Authentication service is temporarily unavailable."
                 }
               }
             }

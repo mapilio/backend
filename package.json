@@ -6,6 +6,7 @@
     "scripts": {
         "build": "vite build",
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",
+        "validate:api-examples": "node --test scripts/docs/validate-openapi-example-coverage.test.mjs && node scripts/docs/validate-openapi-example-coverage.mjs",
         "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
         "check:license-state": "node --test scripts/governance/verify-license-state.test.mjs && node scripts/governance/verify-license-state.mjs",
         "check:api-docs": "npm run build:api-docs && git diff --exit-code -- public/docs/api",

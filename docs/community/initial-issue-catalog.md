@@ -34,9 +34,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification:** rebuild the synthetic SQLite database, run each command locally, and run the complete documentation/release gate.
 
-## C003: Add Validated Synthetic OpenAPI Examples
+## C003: Add Validated Synthetic OpenAPI Examples (Completed; Non-publishable)
 
-**Suggested labels:** `documentation`, `help wanted`, `area: api`, `area: docs`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `documentation`, `help wanted`, `area: api`, `area: docs`, `status: completed`
 
 **Outcome:** Implemented modern operations show meaningful request and response examples that conform to their schemas.
 
@@ -46,7 +48,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** New endpoints, contract changes, production payload capture, interactive authorization, and calling any live service.
 
-**Verification:** example validator, `npm run lint:openapi`, `npm run check:api-docs`, and relevant Laravel feature tests.
+**Verification completed:** focused validator tests, repository coverage validation, `npm run lint:openapi`, `npm run build:api-docs`, and the complete local release gate with 257 Laravel tests and 1,116 assertions. No live service was used for this bounded documentation/tooling item.
 
 ## C004: Extract A Small Synthetic Legacy Test Fixture Builder
 

@@ -99,6 +99,9 @@ jobs:
       - name: Lint OpenAPI contract
         run: npm run lint:openapi
 
+      - name: Validate OpenAPI examples
+        run: npm run validate:api-examples
+
       - name: Verify generated API documentation
         run: npm run check:api-docs
 
