@@ -48,6 +48,8 @@ php artisan migrate:fresh --seed
 php artisan serve
 ```
 
+After the server starts, use the [synthetic local API cookbook](../api/local-api-cookbook.md) for the two read-only endpoint checks. It also documents the expected response shapes and optional `jq` summaries.
+
 Open:
 
 ```text

@@ -22,9 +22,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** 24 focused checker tests, all 54 tracked Markdown files, and the complete local release gate with 257 Laravel tests and 1,116 assertions passed. No external URL, database, or live service was accessed.
 
-## C002: Add A Synthetic Local API Cookbook
+## C002: Add A Synthetic Local API Cookbook (Completed; Non-publishable)
 
-**Suggested labels:** `documentation`, `good first issue`, `area: api`, `area: docs`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `documentation`, `good first issue`, `area: api`, `area: docs`, `status: completed`
 
 **Outcome:** A contributor can exercise safe read-only endpoints after the documented SQLite seed without private knowledge.
 
@@ -34,7 +36,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** Login examples, upload calls, newsletter writes, production calls, SDK generation, and external-service setup.
 
-**Verification:** rebuild the synthetic SQLite database, run each command locally, and run the complete documentation/release gate.
+**Verification completed:** An isolated local SQLite smoke used shell environment overrides and loopback port `18000`; both `GET` requests returned HTTP 200 and their response assertions passed, followed by cleanup. The complete local release gate also passed with 257 Laravel tests and 1,116 assertions. No external URL, remote database, or live service was accessed.
 
 ## C003: Add Validated Synthetic OpenAPI Examples (Completed; Non-publishable)
 

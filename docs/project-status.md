@@ -21,6 +21,7 @@ Implemented foundations include:
 - a read-only contributor environment doctor plus macOS, Ubuntu/WSL, CI, PHP-extension, and optional PostGIS tooling matrix.
 - validated synthetic request/response examples for every schema-bearing JSON media type in the three documented modern operations, with focused coverage checks and generated API documentation.
 - deterministic relative-link checking for tracked Markdown, with focused unit coverage and local/Quality gate integration.
+- a synthetic local API cookbook covering the health and seeded feature-detail `GET` checks; an isolated local SQLite smoke was verified on loopback port `18000` with shell environment overrides, response assertions, and cleanup, and the complete local release gate passed with 257 tests and 1,116 assertions.
 
 ## Deliberately Disabled Or Incomplete
 

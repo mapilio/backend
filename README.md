@@ -108,6 +108,7 @@ Useful local endpoints:
 
 - health: `http://127.0.0.1:8000/api/v1/system/health`
 - synthetic AI feature: `http://127.0.0.1:8000/api/v1/geo/ai-features/900000001`
+- [Synthetic local API cookbook](docs/api/local-api-cookbook.md) for read-only checks and safe response summaries
 
 The demo seeder creates no account, password, legacy table, or external-service record. It refuses to run outside local/testing SQLite. Read the [full local setup and safety rules](docs/operations/local-development.md) before changing database configuration.
 
@@ -115,6 +116,7 @@ The demo seeder creates no account, password, legacy table, or external-service 
 
 - [Generated API reference](public/docs/api/index.html)
 - [Modern OpenAPI 3.1 contract](docs/api/openapi-v1.json)
+- [Synthetic local API cookbook](docs/api/local-api-cookbook.md)
 - [Legacy compatibility policy](docs/architecture/0003-legacy-compatibility-endpoints.md)
 - [Unsupported legacy surface guardrails](docs/architecture/0004-unsupported-legacy-surface-guardrails.md)
 - [Current implementation status](docs/project-status.md)

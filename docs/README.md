@@ -7,6 +7,7 @@
 - [Ecosystem architecture](architecture/ecosystem.md)
 - [Domain boundaries](../app/Domain/README.md)
 - [Modern OpenAPI contract](api/openapi-v1.json)
+- [Synthetic local API cookbook](api/local-api-cookbook.md)
 - [Generated API reference](../public/docs/api/index.html)
 - [Local development](operations/local-development.md)
 - [Contributor platform matrix and doctor](operations/contributor-platform-matrix.md)
