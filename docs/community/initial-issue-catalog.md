@@ -86,9 +86,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** Six focused helper regressions and the unchanged seven-test feature-detail suite passed together with 13 tests and 72 assertions; focused static analysis, formatting, and independent review also passed. The complete local release gate passed with 263 Laravel tests and 1,143 assertions. No remote database, external service, or production system was accessed.
 
-## C006: Inventory Public API Messages For Localization Readiness
+## C006: Inventory Public API Messages For Localization Readiness (Completed; Non-publishable)
 
-**Suggested labels:** `documentation`, `help wanted`, `area: api`, `area: docs`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `documentation`, `help wanted`, `area: api`, `area: docs`, `status: completed`
 
 **Outcome:** Maintainers know which response messages are compatibility-sensitive, internal-only, or candidates for future message codes/localization.
 
@@ -98,7 +100,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** Translation files, locale negotiation, changing response envelopes, mobile/web UI text, and production traffic analysis.
 
-**Verification:** repository search evidence, documentation link check when available, and the complete Laravel suite to prove no behavior changed.
+**Verification completed:** Explicit routes, controllers, middleware, domain exceptions, and compatibility tests were reviewed; every inventory row links to repository evidence and an independent contract review approved the result. Documentation gates passed across 56 tracked Markdown files, and the complete local release gate passed with 263 Laravel tests and 1,143 assertions. No remote database, external service, or production system was accessed.
 
 ## C007: Add A Synthetic GeoJSON Fixture Validator
 

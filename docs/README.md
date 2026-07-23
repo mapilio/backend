@@ -7,6 +7,7 @@
 - [Ecosystem architecture](architecture/ecosystem.md)
 - [Domain boundaries](../app/Domain/README.md)
 - [Modern OpenAPI contract](api/openapi-v1.json)
+- [Public API message compatibility and localization readiness](api/public-message-compatibility.md)
 - [Synthetic local API cookbook](api/local-api-cookbook.md)
 - [Generated API reference](../public/docs/api/index.html)
 - [Local development](operations/local-development.md)
