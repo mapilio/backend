@@ -87,6 +87,9 @@ jobs:
       - name: Install locked contract tooling
         run: npm ci --ignore-scripts
 
+      - name: Test the local GeoJSON validator
+        run: npm run test:geojson-validator
+
       - name: Audit locked npm dependencies
         run: npm audit --audit-level=high
 

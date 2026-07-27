@@ -9,6 +9,7 @@
 - [Modern OpenAPI contract](api/openapi-v1.json)
 - [Public API message compatibility and localization readiness](api/public-message-compatibility.md)
 - [Synthetic local API cookbook](api/local-api-cookbook.md)
+- [Synthetic GeoJSON fixtures and local validator](geospatial/synthetic-geojson-fixtures.md)
 - [Generated API reference](../public/docs/api/index.html)
 - [Local development](operations/local-development.md)
 - [Contributor platform matrix and doctor](operations/contributor-platform-matrix.md)

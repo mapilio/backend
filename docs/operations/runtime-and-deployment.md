@@ -8,6 +8,10 @@ Do not place production credentials, internal hostnames, user data, imagery iden
 
 The [release readiness checklist](release-readiness.md) remains the go/no-go control. This runbook explains how to operate the backend; it does not authorize production deployment.
 
+## Static API Reference Security
+
+The generated `/docs/api/` page has a restrictive meta Content Security Policy for its static resource boundary, but a meta CSP cannot enforce framing protection. The hosting or reverse-proxy layer must send `Content-Security-Policy: frame-ancestors 'none'` for `/docs/api/` responses and retain the other appropriate security headers. Do not infer deployment-specific configuration from this runbook; verify the actual response headers through the deployment-owned edge.
+
 ## Runtime Processes
 
 The backend needs these process classes when their related features are active:

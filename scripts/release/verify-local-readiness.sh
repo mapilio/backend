@@ -36,6 +36,7 @@ run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test
 run_gate 'Install locked npm dependencies' npm ci --ignore-scripts
+run_gate 'Test the local GeoJSON validator' npm run test:geojson-validator
 run_gate 'Audit locked npm dependencies' npm audit --audit-level=high
 run_gate 'Verify pending project-license state' npm run check:license-state
 run_gate 'Check tracked Markdown links' npm run check:markdown-links

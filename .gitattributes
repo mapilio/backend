@@ -6,6 +6,10 @@
 *.md diff=markdown
 *.php diff=php
 
+public/docs/api/redoc.LICENSE -whitespace
+resources/docs/redoc.LICENSE -whitespace
+resources/docs/redoc.standalone.js -whitespace
+
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore

@@ -102,9 +102,11 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** Explicit routes, controllers, middleware, domain exceptions, and compatibility tests were reviewed; every inventory row links to repository evidence and an independent contract review approved the result. Documentation gates passed across 56 tracked Markdown files, and the complete local release gate passed with 263 Laravel tests and 1,143 assertions. No remote database, external service, or production system was accessed.
 
-## C007: Add A Synthetic GeoJSON Fixture Validator
+## C007: Add A Synthetic GeoJSON Fixture Validator (Completed; Non-publishable)
 
-**Suggested labels:** `enhancement`, `help wanted`, `area: geospatial`, `area: tooling`, `status: accepted`
+**Catalog status:** Completed in the repository. Keep this draft closed and non-publishable until the governance and launch requirements in the catalog status above are complete.
+
+**Suggested labels:** `enhancement`, `help wanted`, `area: geospatial`, `area: tooling`, `status: completed`
 
 **Outcome:** Contributors can validate small synthetic GeoJSON fixtures before using them in contract tests.
 
@@ -114,7 +116,7 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Out of scope:** Production data repair, shapefile support, reprojection, GeoServer publication, uploads, and accepting arbitrary geometry types.
 
-**Verification:** focused synthetic fixtures, static analysis/formatting, and the complete local release gate.
+**Verification completed:** Nine focused synthetic tests cover accepted shapes, malformed and unsupported input, coordinate and property failures, strict UTF-8, safe CLI output, regular-file enforcement, and exact 1 MiB/depth-32 boundaries. Documentation links, shell syntax, CI YAML, staged diff checks, and independent security/contract review passed. The complete local release gate passed with 263 Laravel tests and 1,143 assertions, zero dependency advisories, 57 clean Markdown files, 309 public-content candidates, and a 76-commit secret scan. No database, external Mapilio service, staging, or production system was accessed.
 
 ## C008: Map The OpenStreetMap-Facing Backend Contract
 

@@ -8,6 +8,8 @@
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",
         "validate:api-examples": "node --test scripts/docs/validate-openapi-example-coverage.test.mjs && node scripts/docs/validate-openapi-example-coverage.mjs",
         "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
+        "validate:geojson": "node scripts/geospatial/validate-geojson.mjs",
+        "test:geojson-validator": "node --test scripts/geospatial/validate-geojson.test.mjs",
         "check:license-state": "node --test scripts/governance/verify-license-state.test.mjs && node scripts/governance/verify-license-state.mjs",
         "check:markdown-links": "node --test scripts/docs/check-markdown-links.test.mjs && node scripts/docs/check-markdown-links.mjs",
         "check:api-docs": "npm run build:api-docs && git diff --exit-code -- public/docs/api",
@@ -20,7 +22,6 @@
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
-        "redoc": "2.5.3",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.7"
     },

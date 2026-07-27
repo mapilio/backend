@@ -10,7 +10,8 @@
     ],
     "vendoredArtifactPaths": [
         "public/docs/api/redoc.standalone.js",
-        "public/docs/api/redoc.standalone.js.LICENSE.txt"
+        "public/docs/api/redoc.standalone.js.LICENSE.txt",
+        "resources/docs/redoc.standalone.js"
     ],
     "allowedTrackedArtifactPaths": [
         ".env.example"

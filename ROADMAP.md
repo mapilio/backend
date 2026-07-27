@@ -43,7 +43,7 @@ This public roadmap summarizes direction without exposing private infrastructure
 
 Good first public issues should be bounded, synthetic, and independent of private infrastructure. The [initial issue catalog](docs/community/initial-issue-catalog.md) contains publication-ready drafts for documentation, API contracts, tests, localization, data tooling, performance safeguards, and OSM-facing contract documentation. The [triage policy](docs/community/issue-triage.md) defines safety screening, labels, acceptance, response targets, and closure behavior.
 
-C001, the deterministic relative Markdown link check, C002, the synthetic local API cookbook, C003, validated synthetic OpenAPI examples, C004, the focused synthetic legacy mobile-auth fixture helper, C005, the isolated database query-budget assertion, and C006, the public API message compatibility and localization-readiness inventory, are complete in the repository. Their issue drafts remain non-publishable until the governance and launch gates below are complete.
+C001, the deterministic relative Markdown link check, C002, the synthetic local API cookbook, C003, validated synthetic OpenAPI examples, C004, the focused synthetic legacy mobile-auth fixture helper, C005, the isolated database query-budget assertion, C006, the public API message compatibility and localization-readiness inventory, and C007, the bounded synthetic GeoJSON fixture validator, are complete in the repository. Their issue drafts remain non-publishable until the governance and launch gates below are complete.
 
 Do not begin a schema redesign, auth change, upload protocol change, AI/GeoServer integration, or privacy-sensitive workflow from this summary alone. Open a scoped issue and follow [CONTRIBUTING.md](CONTRIBUTING.md).
 

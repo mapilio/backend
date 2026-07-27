@@ -38,6 +38,8 @@ MAPILIO_DEMO_SEEDING_ENABLED=true
 
 The demo feature has no legacy imagery observations, so browsing it does not require PyroCMS tables.
 
+For local synthetic GeoJSON files, run `npm run validate:geojson -- path/to/fixture.geojson`. The validator is dependency-free and local-only; see the [fixture limits and accepted shapes](../geospatial/synthetic-geojson-fixtures.md).
+
 ## Rebuild And Seed
 
 `migrate:fresh` destroys every table on the selected connection. Run it only against the disposable SQLite file above.

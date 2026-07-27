@@ -6,16 +6,33 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const specificationPath = resolve(repositoryRoot, 'docs/api/openapi-v1.json');
 const outputDirectory = resolve(repositoryRoot, 'public/docs/api');
-const runtimeSource = resolve(repositoryRoot, 'node_modules/redoc/bundles/redoc.standalone.js');
+const runtimeSource = resolve(repositoryRoot, 'resources/docs/redoc.standalone.js');
 const runtimeTarget = resolve(outputDirectory, 'redoc.standalone.js');
-const runtimeLicenseSource = resolve(repositoryRoot, 'node_modules/redoc/bundles/redoc.standalone.js.LICENSE.txt');
+const runtimeLicenseSource = resolve(repositoryRoot, 'resources/docs/redoc.standalone.js.LICENSE.txt');
 const runtimeLicenseTarget = resolve(outputDirectory, 'redoc.standalone.js.LICENSE.txt');
+const packageLicenseSource = resolve(repositoryRoot, 'resources/docs/redoc.LICENSE');
+const packageLicenseTarget = resolve(outputDirectory, 'redoc.LICENSE');
 const htmlPath = resolve(outputDirectory, 'index.html');
+const reviewedRuntimeSha256 = '1320f442151c57c447d3b70c7ffc6c4f86d08464020fe34c8cc5d3164e9944f0';
+const reviewedLicenseSha256 = '469cc94b600aac09643f70e167cd1f66f24301ebb546532fad5db7c60f7b30d0';
+const reviewedPackageLicenseSha256 = 'd3026d549cf68ab7355bcfa85877bf8f845b3334a7efbfdc63936432fb34ff0e';
 
-const [specificationSource, runtime] = await Promise.all([
+const assertReviewedBytes = (label, bytes, expectedSha256) => {
+    const actualSha256 = createHash('sha256').update(bytes).digest('hex');
+    if (actualSha256 !== expectedSha256) {
+        throw new Error(`Reviewed ${label} checksum mismatch.`);
+    }
+};
+
+const [specificationSource, runtime, runtimeLicense, packageLicense] = await Promise.all([
     readFile(specificationPath, 'utf8'),
     readFile(runtimeSource),
+    readFile(runtimeLicenseSource),
+    readFile(packageLicenseSource),
 ]);
+assertReviewedBytes('Redoc runtime', runtime, reviewedRuntimeSha256);
+assertReviewedBytes('Redoc license notice', runtimeLicense, reviewedLicenseSha256);
+assertReviewedBytes('Redoc package license', packageLicense, reviewedPackageLicenseSha256);
 const specification = JSON.parse(specificationSource);
 const integrity = `sha384-${createHash('sha384').update(runtime).digest('base64')}`;
 const options = {
@@ -60,7 +77,7 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
   <meta name="description" content="Versioned Mapilio backend API reference generated from the OpenAPI contract.">
   <title>Mapilio API Reference</title>
   <style>body { margin: 0; padding: 0; }</style>
@@ -82,6 +99,7 @@ await Promise.all([
     writeFile(htmlPath, html),
     copyFile(runtimeSource, runtimeTarget),
     copyFile(runtimeLicenseSource, runtimeLicenseTarget),
+    copyFile(packageLicenseSource, packageLicenseTarget),
 ]);
 
 console.log(`Generated ${htmlPath}`);
