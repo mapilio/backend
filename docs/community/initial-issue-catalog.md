@@ -118,7 +118,9 @@ When publishing, recheck every referenced path against the selected release revi
 
 **Verification completed:** Nine focused synthetic tests cover accepted shapes, malformed and unsupported input, coordinate and property failures, strict UTF-8, safe CLI output, regular-file enforcement, and exact 1 MiB/depth-32 boundaries. Documentation links, shell syntax, CI YAML, staged diff checks, and independent security/contract review passed. The complete local release gate passed with 263 Laravel tests and 1,143 assertions, zero dependency advisories, 57 clean Markdown files, 309 public-content candidates, and a 76-commit secret scan. No database, external Mapilio service, staging, or production system was accessed.
 
-## C008: Map The OpenStreetMap-Facing Backend Contract
+## C008: Map The OpenStreetMap-Facing Backend Contract (Implemented; Non-publishable)
+
+**Catalog status:** Implemented and technically verified in the repository. API/geospatial owner review remains pending; keep this draft closed and non-publishable. It does not imply OpenStreetMap Foundation endorsement, authorization, or an active integration.
 
 **Suggested labels:** `documentation`, `help wanted`, `area: geospatial`, `area: docs`, `status: accepted`
 
@@ -131,3 +133,5 @@ When publishing, recheck every referenced path against the selected release revi
 **Out of scope:** Changing OSM integrations, scraping public services, publishing layers, editing imagery, licensing decisions, and making API compatibility promises without owner approval.
 
 **Verification:** maintainer review by the API/geospatial owner, documentation links, and the repository release gate.
+
+**Implementation and verification status:** The repository-evidence-only map is implemented as [`docs/integrations/openstreetmap-facing-contract.md`](../integrations/openstreetmap-facing-contract.md) and technically verified. It is synthetic and explicitly does not establish OSMF endorsement or authorization, an active OSM integration, or a publishable issue. It records read/write ownership and versioning, image/anonymizer/GeoServer boundaries, attribution/privacy/license unknowns, and owner questions. Focused verification covered 28 related API compatibility tests with 137 assertions; an independent public API/geospatial/security review approved it after two example-shape repairs. The complete local release gate then passed with 263 Laravel tests and 1,143 assertions, zero dependency advisories, 58 clean Markdown files, 310 clean public-content candidates, and a 77-commit secret scan. No database, external service, staging, or production access was used. API/geospatial owner review remains required, acceptance is not complete, and the document remains non-publishable.

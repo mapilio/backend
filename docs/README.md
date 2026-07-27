@@ -15,6 +15,10 @@
 - [Contributor platform matrix and doctor](operations/contributor-platform-matrix.md)
 - [Contributing](../CONTRIBUTING.md)
 
+## Integrations
+
+- [OpenStreetMap-facing backend contract map](integrations/openstreetmap-facing-contract.md) — implemented draft; API/geospatial owner review required; non-publishable
+
 ## Architecture Decisions
 
 - [0001: Modern backend foundation](architecture/0001-modern-backend-foundation.md)
