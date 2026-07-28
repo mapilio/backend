@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "manifest_id", "domain", "source", "target", "policy", "approvals", "mappings"],
+  "properties": {
+    "schema_version": {"const": 1}, "manifest_id": {"$ref": "#/$defs/slug"}, "domain": {"const": "identity_users"},
+    "source": {"$ref": "#/$defs/system"}, "target": {"$ref": "#/$defs/system"}, "policy": {"$ref": "#/$defs/policy"},
+    "approvals": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/approval"}, "allOf": [{"contains": {"type": "object", "properties": {"role": {"const": "data_owner"}}}, "minContains": 1, "maxContains": 1}, {"contains": {"type": "object", "properties": {"role": {"const": "identity_owner"}}}, "minContains": 1, "maxContains": 1}, {"contains": {"type": "object", "properties": {"role": {"const": "security_owner"}}}, "minContains": 1, "maxContains": 1}]},
+    "mappings": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"$ref": "#/$defs/mapping"}}
+  },
+  "$defs": {
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "identifier": {"type": "string", "pattern": "^[a-z_][a-z0-9_]*$"},
+    "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "system": {"type": "object", "additionalProperties": false, "required": ["system", "table", "schema_fingerprint"], "properties": {"system": {"$ref": "#/$defs/slug"}, "table": {"$ref": "#/$defs/identifier"}, "schema_fingerprint": {"$ref": "#/$defs/fingerprint"}}},
+    "policy": {"type": "object", "additionalProperties": false, "required": ["collision", "unknown_columns", "pii_handling", "external_ids", "rollback", "password_strategy"], "properties": {"collision": {"const": "reject"}, "unknown_columns": {"const": "reject"}, "pii_handling": {"const": "restricted"}, "external_ids": {"const": "preserve"}, "rollback": {"const": "required"}, "password_strategy": {"enum": ["preserve_supported_hash", "force_reset"]}}},
+    "approval": {"type": "object", "additionalProperties": false, "required": ["role", "approval_id", "approved_at"], "properties": {"role": {"enum": ["data_owner", "identity_owner", "security_owner"]}, "approval_id": {"$ref": "#/$defs/slug"}, "approved_at": {"type": "string", "format": "date-time", "pattern": "^(?:(?:(?:[0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]|[0-9][1-9][0-9]{2}|[1-9][0-9]{3})-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12][0-9]|3[01])|(?:0[469]|11)-(?:0[1-9]|[12][0-9]|30)|02-(?:0[1-9]|1[0-9]|2[0-8])))|(?:(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:0[48]|[2468][048]|[13579][26])00)-02-29))T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$"}}},
+    "mapping": {"type": "object", "additionalProperties": false, "required": ["source_column", "source_type", "source_nullable", "target_column", "target_type", "target_nullable", "classification", "external_id", "transformation"], "properties": {"source_column": {"$ref": "#/$defs/identifier"}, "source_type": {"enum": ["bigint", "integer", "string", "text", "boolean", "datetime", "password_hash"]}, "source_nullable": {"type": "boolean"}, "target_column": {"$ref": "#/$defs/identifier"}, "target_type": {"enum": ["bigint", "integer", "string", "text", "boolean", "datetime", "password_hash"]}, "target_nullable": {"type": "boolean"}, "classification": {"enum": ["none", "stable_identifier", "contact", "credential", "profile"]}, "external_id": {"enum": ["preserve", "not_external"]}, "transformation": {"enum": ["identity", "nullable_identity", "datetime_utc", "boolean_normalize", "password_hash_preserve", "force_password_reset"]}}}
+  }
+}

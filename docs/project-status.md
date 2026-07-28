@@ -28,6 +28,7 @@ Implemented foundations include:
 - a dependency-free local GeoJSON fixture validator for bounded synthetic `Point`, `Feature`, and `FeatureCollection` inputs, with strict UTF-8, WGS84 coordinate, regular-file, 1 MiB, depth-32, and non-disclosing CLI safeguards; nine focused tests, independent review, and the complete local release gate passed with 263 Laravel tests and 1,143 assertions.
 - an implemented, technically verified repository-evidence-only OpenStreetMap-facing contract map covering read/write ownership, versioning, image/anonymizer/GeoServer boundaries, attribution/privacy/license unknowns, and owner questions; independent review and the complete local release gate passed with 263 Laravel tests and 1,143 assertions, 58 clean Markdown files, 310 clean public-content candidates, zero dependency advisories, and a 77-commit secret scan, with API/geospatial owner review still required.
 - a fail-closed legacy import preflight foundation for restricted schema/aggregate-count evidence; 14 focused synthetic/mocked tests, independent security review, and the complete local release gate passed with 277 Laravel tests and 1,287 assertions, 60 clean Markdown files, 317 clean public-content candidates, zero dependency advisories, and a 78-commit secret scan, while real PostgreSQL/staging evidence is still required.
+- a database-free, fail-closed identity import mapping validator for strict schema fingerprints, owner roles, PII classification, stable external IDs, nullability, and password-strategy decisions; 13 focused synthetic tests with 96 assertions and independent security review passed, and the complete local release gate passed with 290 Laravel tests and 1,383 assertions, 62 clean Markdown files, 325 clean public-content candidates, zero dependency advisories, and a 79-commit secret scan. No real mapping, approval, user data, database, or importer is included.
 
 ## Deliberately Disabled Or Incomplete
 
@@ -37,7 +38,7 @@ Implemented foundations include:
 - The modern web feature-detail path remains behind client flags pending canonical/legacy comparison.
 - Image anonymization holdback and end-to-end staging upload cleanup still require infrastructure proof.
 - A replacement operator dashboard has not been built; only approved active workflows will be rebuilt.
-- Write-capable legacy-to-modern import/backfill and owner-approved source-to-target mappings remain incomplete.
+- The real owner-approved identity mapping and write-capable legacy-to-modern import/backfill remain incomplete.
 - Final browser HttpOnly session/BFF and direct social-provider verification remain open.
 
 ## Release Blockers

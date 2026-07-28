@@ -13,9 +13,9 @@ This public roadmap summarizes direction without exposing private infrastructure
 
 ## Now
 
-- use the implemented fail-closed legacy import preflight foundation while source-to-target mappings and write-capable import/backfill remain open; this does not complete the roadmap item;
+- use the implemented fail-closed legacy import preflight and identity mapping validator foundations while the real owner-approved mapping and write-capable import/backfill remain open; these do not complete the roadmap item;
 - complete the active legacy API compatibility inventory and contract coverage;
-- design repeatable legacy-to-modern import/backfill with source-to-target mappings;
+- obtain owner decisions for identity keys, duplicate emails, password strategy, roles/status/profile retention, and approve a schema-fingerprinted identity mapping before importer design;
 - finish identity/session boundaries and route authorization review;
 - harden upload/privacy holdback across image server, TrueNAS cache, and anonymizer;
 - define only the operator dashboard workflows that Mapilio still uses;

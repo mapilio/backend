@@ -49,6 +49,7 @@
 - [0026: Public-content release gate](architecture/0026-public-content-release-gate.md)
 - [0027: Pending license-state gate](architecture/0027-pending-license-state-gate.md)
 - [0028: Legacy import preflight evidence](architecture/0028-legacy-import-preflight.md)
+- [0029: Identity import mapping contract](architecture/0029-identity-import-mapping-contract.md)
 
 ## Database
 
@@ -56,6 +57,8 @@
 - [Legacy usage audit summary](database/legacy-usage-audit-summary.md)
 - [UKM PostGIS index plan](database/ukm-postgis-index-plan.md)
 - [Legacy import preflight](database/legacy-import-preflight.md)
+- [Identity import mapping validation](database/identity-import-mapping.md)
+- [Identity import mapping schema](database/identity-import-mapping.schema.json)
 
 ## Operations
 

@@ -61,6 +61,7 @@ The local script is read-only with respect to production and does not run migrat
 ## 2. Recovery and Database Gates
 
 - [ ] **Restricted/Operator:** `php artisan mapilio:legacy-import-preflight --output=<new-basename>.json --confirm-read-only-source` produces restricted pre-migration evidence only; this gate requires an isolated PostgreSQL/staging run with the owner-approved table allowlist. See [legacy import preflight](../database/legacy-import-preflight.md).
+- [ ] **Restricted/Operator:** `php artisan mapilio:validate-import-mapping <restricted-manifest> --source-fingerprint=<actual-source-fingerprint> --target-fingerprint=<actual-target-fingerprint>` validates the owner-approved identity decision manifest before importer design. A synthetic pass does not approve a real mapping. See [identity import mapping validation](../database/identity-import-mapping.md).
 - [ ] **Restricted:** infrastructure owners approve current RPO/RTO and evidence-age limits.
 - [ ] **Automated:** `php artisan mapilio:verify-backup-readiness` passes against a fresh secret-free evidence manifest before migrations.
 - [ ] **Automated:** the digest-pinned disposable PostgreSQL 14/PostGIS Quality job applies, spatially verifies, rolls back, and reapplies every migration.
