@@ -18,6 +18,21 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'legacy_import_preflight' => [
+        'enabled' => env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_ENABLED', false),
+        'table_allowlist' => (($configuredTables = trim((string) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_TABLES', ''))) === ''
+            ? []
+            : array_values(array_map('trim', explode(',', $configuredTables)))),
+        'output_directory' => (string) (env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_OUTPUT_DIRECTORY')
+            ?: storage_path('app/private/legacy-import-preflight')),
+        'postgresql' => [
+            'connect_timeout_seconds' => max(1, min(30, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_CONNECT_TIMEOUT_SECONDS', 5))),
+            'statement_timeout_ms' => max(100, min(60000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_STATEMENT_TIMEOUT_MS', 5000))),
+            'lock_timeout_ms' => max(100, min(10000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_LOCK_TIMEOUT_MS', 1000))),
+            'max_runtime_ms' => max(1000, min(120000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_MAX_RUNTIME_MS', 30000))),
+        ],
+    ],
+
     'local_demo_seeding' => [
         'enabled' => env('MAPILIO_DEMO_SEEDING_ENABLED', false),
     ],

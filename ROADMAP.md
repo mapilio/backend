@@ -13,6 +13,7 @@ This public roadmap summarizes direction without exposing private infrastructure
 
 ## Now
 
+- use the implemented fail-closed legacy import preflight foundation while source-to-target mappings and write-capable import/backfill remain open; this does not complete the roadmap item;
 - complete the active legacy API compatibility inventory and contract coverage;
 - design repeatable legacy-to-modern import/backfill with source-to-target mappings;
 - finish identity/session boundaries and route authorization review;

@@ -48,12 +48,14 @@
 - [0025: Generated API reference](architecture/0025-generated-api-reference.md)
 - [0026: Public-content release gate](architecture/0026-public-content-release-gate.md)
 - [0027: Pending license-state gate](architecture/0027-pending-license-state-gate.md)
+- [0028: Legacy import preflight evidence](architecture/0028-legacy-import-preflight.md)
 
 ## Database
 
 - [Target schema draft](database/target-schema-draft.md)
 - [Legacy usage audit summary](database/legacy-usage-audit-summary.md)
 - [UKM PostGIS index plan](database/ukm-postgis-index-plan.md)
+- [Legacy import preflight](database/legacy-import-preflight.md)
 
 ## Operations
 
