@@ -51,6 +51,7 @@
 - [0028: Legacy import preflight evidence](architecture/0028-legacy-import-preflight.md)
 - [0029: Identity import mapping contract](architecture/0029-identity-import-mapping-contract.md)
 - [0030: Import schema fingerprint contract](architecture/0030-import-schema-fingerprint-contract.md)
+- [0031: PostgreSQL import schema descriptor extraction](architecture/0031-postgresql-import-schema-descriptor-extraction.md)
 
 ## Database
 
@@ -61,6 +62,7 @@
 - [Identity import mapping validation](database/identity-import-mapping.md)
 - [Identity import mapping schema](database/identity-import-mapping.schema.json)
 - [Import schema fingerprint](database/import-schema-fingerprint.md)
+- [PostgreSQL import schema descriptor extractor](database/import-schema-descriptor-extractor.md)
 - [Import schema fingerprint schema](database/import-schema-fingerprint.schema.json)
 
 ## Operations

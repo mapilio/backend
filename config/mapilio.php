@@ -22,7 +22,7 @@ return [
         'enabled' => env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_ENABLED', false),
         'table_allowlist' => (($configuredTables = trim((string) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_TABLES', ''))) === ''
             ? []
-            : array_values(array_map('trim', explode(',', $configuredTables)))),
+            : array_map('trim', explode(',', $configuredTables))),
         'output_directory' => (string) (env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_OUTPUT_DIRECTORY')
             ?: storage_path('app/private/legacy-import-preflight')),
         'postgresql' => [
@@ -30,6 +30,21 @@ return [
             'statement_timeout_ms' => max(100, min(60000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_STATEMENT_TIMEOUT_MS', 5000))),
             'lock_timeout_ms' => max(100, min(10000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_LOCK_TIMEOUT_MS', 1000))),
             'max_runtime_ms' => max(1000, min(120000, (int) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_MAX_RUNTIME_MS', 30000))),
+        ],
+    ],
+
+    'import_schema_extractor' => [
+        'enabled' => env('MAPILIO_IMPORT_SCHEMA_EXTRACTOR_ENABLED', false),
+        'source_connection' => env('MAPILIO_IMPORT_SCHEMA_SOURCE_CONNECTION', 'legacy_pgsql'),
+        'source_connection_allowlist' => ['legacy_pgsql'],
+        'schema' => env('MAPILIO_IMPORT_SCHEMA_SCHEMA'),
+        'table' => env('MAPILIO_IMPORT_SCHEMA_TABLE'),
+        'output_directory' => (string) (env('MAPILIO_IMPORT_SCHEMA_OUTPUT_DIRECTORY') ?: storage_path('app/private/import-schema-descriptors')),
+        'postgresql' => [
+            'connect_timeout_seconds' => max(1, min(30, (int) env('MAPILIO_IMPORT_SCHEMA_CONNECT_TIMEOUT_SECONDS', 5))),
+            'statement_timeout_ms' => max(100, min(60000, (int) env('MAPILIO_IMPORT_SCHEMA_STATEMENT_TIMEOUT_MS', 5000))),
+            'lock_timeout_ms' => max(100, min(10000, (int) env('MAPILIO_IMPORT_SCHEMA_LOCK_TIMEOUT_MS', 1000))),
+            'max_runtime_ms' => max(1000, min(120000, (int) env('MAPILIO_IMPORT_SCHEMA_MAX_RUNTIME_MS', 30000))),
         ],
     ],
 
