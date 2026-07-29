@@ -25,6 +25,7 @@ The zero-alert result is point-in-time evidence, not a permanent assurance. It d
 The repository source now records the following planned or implemented controls:
 
 - **Dependency Review:** `.github/workflows/dependency-review.yml` runs only for pull requests targeting `main`, with read-only contents access, a five-minute limit, PR-scoped concurrency, no checkout or code-execution step, and the pinned `actions/dependency-review-action` v5.0.0. It fails on high or critical severity and shows patched versions.
+- **Dependency graph:** the repository-level graph is enabled so GitHub can inspect supported committed manifests and Dependency Review can compare pull-request changes. Automatic dependency submission remains disabled because the current Composer and npm manifests are already supported and no build-only ecosystem requirement has been approved.
 - **Weekly version maintenance:** `.github/dependabot.yml` schedules distinct weekly UTC runs for Composer, npm, and GitHub Actions. Each ecosystem groups minor and patch updates, limits open version-update pull requests, and uses the conventional `deps` commit prefix. These version groups do not authorize merging. Dependabot security updates remain urgent and repository-setting-driven; owners must verify their enabled, unpaused live state.
 - **CodeQL default setup:** native default setup is enabled for Actions and JavaScript/TypeScript only, using the default query suite, `remote_and_local` threat model, standard runner, and weekly schedule. PHP is unsupported by CodeQL here; PHPStan, tests, Composer audit, and the existing PHP quality gates remain required.
 - **Workflow hardening:** repository policy requires full action SHAs, the default `GITHUB_TOKEN` is read-only, and workflows cannot approve pull requests.
@@ -40,7 +41,7 @@ The July 29, 2026 pre-change audit found read-only default workflow permissions,
 - enabled full-length action SHA enforcement
 - enabled CodeQL default setup for Actions and JavaScript/TypeScript
 
-Both initial CodeQL jobs completed successfully. The scan opened two high-severity findings: an incomplete hostname regular expression in a public-content regression test and an insufficiently bounded local fixture path in the GeoJSON validator. The source change that adds Dependency Review also corrects both findings without dismissal; closure requires a successful scan of the merged revision.
+Both initial CodeQL jobs completed successfully. The scan opened two high-severity findings: an incomplete hostname regular expression in a public-content regression test and an insufficiently bounded local fixture path in the GeoJSON validator. The source change that adds Dependency Review also corrects both findings without dismissal; closure requires a successful scan of the merged revision. After the repository Dependency Graph was enabled, the first read-only Dependency Review run passed.
 
 Before release, owners must re-read these live settings, retain the source-controlled workflow and update policy, verify the exact CodeQL revision and alert dispositions, and record restricted notification ownership.
 

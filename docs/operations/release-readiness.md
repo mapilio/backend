@@ -50,7 +50,7 @@ Stop the release when any of the following is true:
 - [ ] **Automated:** `Quality / PHP style, analysis, audit, and tests` passes for the exact commit.
 - [ ] **Automated:** `Quality / OpenAPI contract, npm audit, and asset build` passes for the exact commit.
 - [ ] **Automated:** `Secret Scan / Gitleaks history` passes for the exact commit and complete Git history.
-- [ ] **Automated:** `Dependency Review / Dependency Review` passes for the exact pull request commit targeting `main`; its first GitHub run is still pending after source configuration.
+- [ ] **Automated:** `Dependency Review / Dependency Review` passes for the exact pull request commit targeting `main`. The repository Dependency Graph is enabled and the first read-only workflow run passed; each later release candidate still needs its own result.
 - [ ] **Automated:** native CodeQL default setup for Actions and JavaScript/TypeScript passes for the exact commit and every open alert has an approved disposition; PHP remains covered by PHPStan, tests, Composer audit, and existing PHP quality gates.
 - [ ] **Automated:** the redacted public-content audit passes against the exact candidate tree and complete Git history.
 - [ ] **Automated:** `scripts/release/verify-local-readiness.sh` passes in a clean trusted environment using locked dependencies.

@@ -1,4 +1,4 @@
-import { constants as fsConstants } from 'node:fs';
+import { constants as fsConstants, realpathSync } from 'node:fs';
 import { lstat, open, realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { TextDecoder } from 'node:util';
@@ -111,7 +111,7 @@ async function resolveFixturePath(filePath) {
             return null;
         }
 
-        const resolvedPath = await realpath(candidatePath);
+        const resolvedPath = realpathSync(candidatePath);
         return resolvedPath === candidatePath && isWithinRoot(rootPath, resolvedPath)
             ? candidatePath
             : null;

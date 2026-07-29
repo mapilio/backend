@@ -8,7 +8,7 @@ Secrets must never be committed to this repository, placed in frontend configura
 
 ## CI Gate
 
-`.github/workflows/secret-scan.yml` runs for every push and pull request, on manual dispatch, and weekly. It:
+`.github/workflows/secret-scan.yml` runs once for pull requests targeting `main`, again for the merged `main` revision, on manual dispatch, and weekly. Feature-branch pushes are intentionally covered by the pull-request run instead of creating duplicate jobs. It:
 
 1. checks out complete Git history with credentials disabled
 2. downloads the pinned Gitleaks release over TLS
