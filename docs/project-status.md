@@ -14,6 +14,7 @@ Implemented foundations include:
 - versioned PostGIS AI projection and public AI feature detail;
 - sequence quality, address enrichment, and UKM scoring boundaries;
 - request IDs, security headers, trusted proxies, bounded metadata-only request events, and rate limits;
+- a shared, grant-aware mobile authentication limiter across legacy and versioned aliases with bounded configuration and a stable legacy-shaped 429 response; independent security review approved the implementation, and the complete local release gate passed with 347 Laravel tests and 1,947 assertions, 69 clean Markdown files, 351 clean public-content candidates, zero dependency advisories, and an 83-commit secret scan. Staging/edge validation remains pending;
 - backup/readiness, queue runtime, secret scanning, dependency audits, static analysis, strict OpenAPI, a self-contained generated API reference, SQLite migrations, and disposable PostgreSQL/PostGIS gates.
 - contributor issue forms, a safety-bounded triage policy, and eight sanitized initial community issue drafts awaiting owner-controlled publication.
 - full-history secret scanning plus a redacted public-content policy gate for private network/hostname patterns, personal emails, local paths, risky artifacts, and unapproved platform hosts.
@@ -51,6 +52,6 @@ Implemented foundations include:
 - backup/PITR and isolated restore evidence owned by infrastructure;
 - anonymizer, image cache, AI, GeoServer, and mobile/mapilio-kit staging evidence;
 - dashboards, alerts, owners, canary scope, and rollback exercise;
-- private vulnerability reporting verification, branch protection, license selection, and confidential conduct-reporting ownership before public release.
+- non-maintainer private vulnerability reporting flow verification, branch protection, license selection, and confidential conduct-reporting ownership.
 
 See [release readiness](operations/release-readiness.md) for the complete gate and the external [roadmap](https://github.com/mapilio/backend/issues) for public work once issues are published.

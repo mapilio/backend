@@ -53,6 +53,7 @@
 - [0030: Import schema fingerprint contract](architecture/0030-import-schema-fingerprint-contract.md)
 - [0031: PostgreSQL import schema descriptor extraction](architecture/0031-postgresql-import-schema-descriptor-extraction.md)
 - [0032: PostgreSQL target schema descriptor extraction](architecture/0032-postgresql-target-schema-descriptor-extraction.md)
+- [0033: Shared mobile authentication rate-limit boundary](architecture/0033-mobile-auth-rate-limit-boundary.md)
 
 ## Database
 

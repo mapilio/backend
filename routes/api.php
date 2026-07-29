@@ -96,6 +96,7 @@ Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
 Route::get('error/{code}', LegacyErrorController::class)
     ->name('api.legacy.error');
 Route::post('v2/login', MobileLoginController::class)
+    ->middleware('throttle:mobile-auth')
     ->name('api.legacy.v2.mobile-login');
 Route::get('function/user_profile/profile/getProfile', MobileProfileController::class)
     ->name('api.legacy.mobile-profile');
@@ -118,6 +119,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('mobile/config/general', GeneralConfigController::class)
         ->name('mobile.config.general');
     Route::post('mobile/auth/token', MobileLoginController::class)
+        ->middleware('throttle:mobile-auth')
         ->name('mobile.auth.token');
     Route::get('mobile/profile', MobileProfileController::class)
         ->name('mobile.profile');

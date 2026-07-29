@@ -18,6 +18,8 @@ class MobileAuthCompatibilityTest extends TestCase
         Config::set('mapilio.mobile_auth.signing_key', 'test-signing-key');
         Config::set('mapilio.mobile_auth.access_token_ttl', 3600);
         Config::set('mapilio.mobile_auth.refresh_token_ttl', 36000);
+        Config::set('mapilio.mobile_auth.rate_limits.password', 10);
+        Config::set('mapilio.mobile_auth.rate_limits.refresh', 30);
         Config::set('mapilio.mobile_auth.default_profile_photo_url', 'https://mapilio.test/default-avatar.png');
         Config::set('mapilio.mobile_auth.onesignal_rest_api_key', 'onesignal-key');
 
@@ -241,6 +243,188 @@ class MobileAuthCompatibilityTest extends TestCase
             ->getJson('/api/v1/mobile/profile')
             ->assertOk()
             ->assertJsonPath('data.0.email', 'alice@example.test');
+    }
+
+    public function test_mobile_auth_aliases_share_the_password_bucket(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 2);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.10')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.10')->assertStatus(400);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.10')
+            ->assertTooManyRequests();
+    }
+
+    public function test_switching_mobile_auth_aliases_cannot_bypass_the_password_limit(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 3);
+
+        foreach (['/api/v2/login', '/api/v1/mobile/auth/token', '/api/v2/login'] as $path) {
+            $this->mobileAuthRequest($path, '198.51.100.11')->assertStatus(400);
+        }
+
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.11')
+            ->assertTooManyRequests();
+    }
+
+    public function test_malformed_password_rate_limits_use_the_password_default(): void
+    {
+        foreach (['not-a-number', true, 1.5, '1.5', '', null] as $index => $configuredLimit) {
+            Config::set('mapilio.mobile_auth.rate_limits.password', $configuredLimit);
+
+            $this->mobileAuthRequest('/api/v2/login', '198.51.100.'.(30 + $index))
+                ->assertStatus(400)
+                ->assertHeader('X-RateLimit-Limit', '10');
+        }
+    }
+
+    public function test_malformed_refresh_rate_limits_use_the_refresh_default(): void
+    {
+        $login = $this->mobileAuthRequest('/api/v2/login', '198.51.100.40', [
+            'password' => 'correct-password',
+        ])->assertOk();
+        $refresh = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $login->json('refresh_token'),
+        ];
+
+        foreach (['not-a-number', false, 1.5, '1.5', '', null] as $index => $configuredLimit) {
+            Config::set('mapilio.mobile_auth.rate_limits.refresh', $configuredLimit);
+
+            $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.'.(50 + $index), $refresh)
+                ->assertOk()
+                ->assertHeader('X-RateLimit-Limit', '30');
+        }
+    }
+
+    public function test_password_rate_limits_clamp_zero_negative_and_oversized_values(): void
+    {
+        foreach ([[0, 1], [-5, 1], [1001, 1000], [5000, 1000], ['0', 1], ['-5', 1], ['1001', 1000], ['5000', 1000]] as $index => [$configuredLimit, $expectedLimit]) {
+            Config::set('mapilio.mobile_auth.rate_limits.password', $configuredLimit);
+
+            $this->mobileAuthRequest('/api/v2/login', '198.51.100.'.(80 + $index))
+                ->assertStatus(400)
+                ->assertHeader('X-RateLimit-Limit', (string) $expectedLimit);
+        }
+    }
+
+    public function test_refresh_rate_limits_clamp_zero_negative_and_oversized_values(): void
+    {
+        $login = $this->mobileAuthRequest('/api/v2/login', '198.51.100.70', [
+            'password' => 'correct-password',
+        ])->assertOk();
+        $refresh = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $login->json('refresh_token'),
+        ];
+
+        foreach ([[0, 1], [-5, 1], [1001, 1000], [5000, 1000], ['0', 1], ['-5', 1], ['1001', 1000], ['5000', 1000]] as $index => [$configuredLimit, $expectedLimit]) {
+            Config::set('mapilio.mobile_auth.rate_limits.refresh', $configuredLimit);
+
+            $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.'.(90 + $index), $refresh)
+                ->assertOk()
+                ->assertHeader('X-RateLimit-Limit', (string) $expectedLimit);
+        }
+    }
+
+    public function test_mobile_password_and_refresh_budgets_are_independent(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 2);
+        Config::set('mapilio.mobile_auth.rate_limits.refresh', 2);
+
+        $login = $this->mobileAuthRequest('/api/v2/login', '198.51.100.12', [
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+        $refresh = [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $login->json('refresh_token'),
+        ];
+
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.12', $refresh)->assertOk();
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.12', $refresh)->assertOk();
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.12', $refresh)
+            ->assertTooManyRequests();
+
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.12')->assertStatus(400);
+    }
+
+    public function test_mobile_auth_budgets_are_independent_per_resolved_client_ip(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 1);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.13')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.14')->assertStatus(400);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.13')->assertTooManyRequests();
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.14')->assertTooManyRequests();
+    }
+
+    public function test_mobile_auth_rate_limit_returns_stable_legacy_json_and_retry_header(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 1);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.15')->assertStatus(400);
+
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.15')
+            ->assertStatus(429)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Too many authentication attempts. Please try again later.'],
+            ])
+            ->assertHeader('Retry-After')
+            ->assertHeader('X-RateLimit-Limit', '1')
+            ->assertHeader('X-RateLimit-Remaining', '0');
+    }
+
+    public function test_mobile_auth_rate_limit_allows_a_request_after_the_window_resets(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 1);
+
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.16')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v2/login', '198.51.100.16')->assertTooManyRequests();
+
+        $this->travel(61)->seconds();
+
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '198.51.100.16')->assertStatus(400);
+    }
+
+    public function test_mobile_auth_uses_trusted_forwarded_ip_but_ignores_untrusted_forwarding(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 1);
+
+        $this->mobileAuthRequest('/api/v2/login', '203.0.113.20', [], '198.51.100.20')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '203.0.113.20', [], '198.51.100.21')
+            ->assertTooManyRequests();
+
+        $this->mobileAuthRequest('/api/v2/login', '192.0.2.20', [], '198.51.100.22')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v1/mobile/auth/token', '192.0.2.20', [], '198.51.100.23')->assertStatus(400);
+        $this->mobileAuthRequest('/api/v2/login', '192.0.2.20', [], '198.51.100.22')
+            ->assertTooManyRequests();
+    }
+
+    private function mobileAuthRequest(
+        string $path,
+        string $remoteAddress,
+        array $overrides = [],
+        ?string $forwardedFor = null,
+    ) {
+        $payload = array_merge([
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'wrong-password',
+        ], $overrides);
+
+        $request = $this->withServerVariables(['REMOTE_ADDR' => $remoteAddress]);
+
+        if ($forwardedFor !== null) {
+            $request = $request->withHeader('X-Forwarded-For', $forwardedFor);
+        }
+
+        return $request->postJson($path, $payload);
     }
 
     private function createTables(): void
