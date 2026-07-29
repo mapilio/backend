@@ -18,6 +18,7 @@ Implemented foundations include:
 - backup/readiness, queue runtime, secret scanning, dependency audits, static analysis, strict OpenAPI, a self-contained generated API reference, SQLite migrations, and disposable PostgreSQL/PostGIS gates.
 - contributor issue forms, a safety-bounded triage policy, and eight sanitized initial community issue drafts awaiting owner-controlled publication.
 - full-history secret scanning plus a redacted public-content policy gate for private network/hostname patterns, personal emails, local paths, risky artifacts, and unapproved platform hosts.
+- protected `main` with strict proposed-branch updates, four GitHub-Actions-bound required checks, and force-push/deletion disabled. Administrator enforcement and mandatory pull-request review remain deliberate follow-up decisions. The documentation-policy update passed the complete local release gate with 347 Laravel tests and 1,947 assertions, 70 clean Markdown files, 352 clean public-content candidates, zero dependency advisories, and an 84-commit secret scan.
 - a tested package/OpenAPI metadata gate that prevents an open-source license claim while license selection remains an owner decision.
 - a read-only contributor environment doctor plus macOS, Ubuntu/WSL, CI, PHP-extension, and optional PostGIS tooling matrix.
 - validated synthetic request/response examples for every schema-bearing JSON media type in the three documented modern operations, with focused coverage checks and generated API documentation.
@@ -52,6 +53,6 @@ Implemented foundations include:
 - backup/PITR and isolated restore evidence owned by infrastructure;
 - anonymizer, image cache, AI, GeoServer, and mobile/mapilio-kit staging evidence;
 - dashboards, alerts, owners, canary scope, and rollback exercise;
-- non-maintainer private vulnerability reporting flow verification, branch protection, license selection, and confidential conduct-reporting ownership.
+- non-maintainer private vulnerability reporting flow verification, mandatory pull-request review/administrator enforcement decisions, license selection, and confidential conduct-reporting ownership.
 
 See [release readiness](operations/release-readiness.md) for the complete gate and the external [roadmap](https://github.com/mapilio/backend/issues) for public work once issues are published.

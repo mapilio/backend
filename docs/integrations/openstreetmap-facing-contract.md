@@ -311,8 +311,8 @@ workflow owners must separately approve any attribution, privacy notice,
 consent, data-rights assessment, and user-facing disclosure.
 
 The [public-release decisions](../governance/public-release-decisions.md) state
-that the repository is private, default copyright applies while the license is
-pending, and public launch requires owner-reviewed provenance and controls. The
+that the repository is public, default copyright applies while the license is
+pending, and stable release requires owner-reviewed provenance and controls. The
 [security policy](../../SECURITY.md) prohibits sharing credentials, personal
 data, unauthorized imagery, or testing third-party infrastructure without
 permission.

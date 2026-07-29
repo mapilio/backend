@@ -1,6 +1,6 @@
 # Public-Release Governance Decisions
 
-The repository is currently private. Source quality and secret scanning are necessary but do not by themselves authorize a public launch.
+The repository is public but remains a pre-release migration target. Public visibility, source quality, and secret scanning do not by themselves authorize a stable release or production cutover.
 
 ## Required Owner Decisions
 
@@ -14,16 +14,16 @@ The root Composer package must remain `proprietary`, the private npm package mus
 
 ### Conduct reporting
 
-The code of conduct defines behavior and enforcement principles, but public launch requires a confidential reporting channel, at least two assigned maintainers, privacy/retention rules, and a tested escalation path. Do not use public issues for conduct reports.
+The code of conduct defines behavior and enforcement principles, but accepting community contributions requires a confidential reporting channel, at least two assigned maintainers, privacy/retention rules, and a tested escalation path. Do not use public issues for conduct reports.
 
 ### Vulnerability reporting
 
-Enable GitHub private vulnerability reporting, verify it from a non-maintainer account, and ensure the Security page renders `SECURITY.md`. Security reports must not be routed through public issue templates.
+GitHub private vulnerability reporting is enabled. Verify it from a non-maintainer account and ensure the Security page renders `SECURITY.md`. Security reports must not be routed through public issue templates.
 
 ### Repository controls
 
-- require Quality and Secret Scan checks on the protected default branch;
-- require pull-request review and prevent direct unreviewed changes;
+- retain the four GitHub-Actions-bound Quality, PostGIS migration, and Secret Scan checks now required on protected `main`;
+- decide whether to enforce protection for administrators, require pull-request review, and prevent every direct unreviewed change;
 - assign maintainers for API, database, imagery/privacy, AI, GeoServer, mobile compatibility, and operations;
 - approve and activate the drafted [issue triage labels, response expectations, and closure policy](../community/issue-triage.md);
 - decide whether Discussions should be enabled and who moderates them;
@@ -33,8 +33,8 @@ Enable GitHub private vulnerability reporting, verify it from a non-maintainer a
 
 The automated [public-content audit](../security/public-content-audit.md) now rejects private network/hostname patterns, personal email addresses, developer-local paths, risky artifacts, unapproved Mapilio hostnames, and prohibited legacy identifiers in the candidate tree and complete Git history without printing matched values. Reviewed historical exceptions are fingerprinted, path/commit-bound synthetic test fixtures that no longer exist in the current tree.
 
-Before changing visibility, owners must still review provenance that pattern matching cannot prove: coordinates and identifiers claimed to be synthetic, approved public hostnames, commit/file names, author/committer identity metadata, operational descriptions, third-party notices, and every fingerprinted historical exception. The current history contains one inventoried non-reserved commit identity whose retention or coordinated rewrite is still an owner decision. This review covers the complete tree/history and records approval outside the repository. Passing Gitleaks and the automated public-content gate does not authorize public launch by itself.
+Before a stable release or production cutover, owners must still review provenance that pattern matching cannot prove: coordinates and identifiers claimed to be synthetic, approved public hostnames, commit/file names, author/committer identity metadata, operational descriptions, third-party notices, and every fingerprinted historical exception. The current history contains one inventoried non-reserved commit identity whose retention or coordinated rewrite is still an owner decision. This review covers the complete tree/history and records approval outside the repository. Passing Gitleaks and the automated public-content gate does not authorize a stable release or production cutover by itself.
 
 ## Launch Evidence
 
-Record the final go/no-go decision outside the public repository with the exact revision, completed controls, assigned owners, unresolved risks, and rollback/visibility reversal authority. Do not commit private contact details or completed sensitive evidence here.
+Record the stable-release and production-cutover go/no-go decisions outside the public repository with the exact revision, completed controls, assigned owners, unresolved risks, and rollback authority. Do not commit private contact details or completed sensitive evidence here.

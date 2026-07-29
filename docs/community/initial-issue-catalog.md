@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft. These issue bodies are sanitized and scoped for future publication, but they must not be opened for community implementation until owners select a license and contribution terms, assign triage/domain reviewers, enable repository controls, and approve public launch.
+Draft. These issue bodies are sanitized and scoped for future publication, but they must not be opened for community implementation until owners select a license and contribution terms, assign triage/domain reviewers, retain the required repository controls, and approve community contribution intake.
 
 When publishing, recheck every referenced path against the selected release revision, create the labels from [the triage policy](issue-triage.md), assign a domain reviewer, and publish only the issues that still describe unfinished work.
 

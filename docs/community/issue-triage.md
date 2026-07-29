@@ -1,6 +1,6 @@
 # Community Issue Triage
 
-This policy defines how public backend issues should be screened, classified, accepted, and closed. It becomes operational only after repository owners assign maintainers, select contribution terms, and approve public launch.
+This policy defines how public backend issues should be screened, classified, accepted, and closed. It becomes operational only after repository owners assign maintainers, select contribution terms, and approve community contribution intake.
 
 ## Safety Boundary
 
@@ -68,7 +68,7 @@ The following are public-launch targets, not support guarantees:
 
 Closed issues may be reopened when new synthetic reproduction evidence or an owner decision changes the outcome. Lock a conversation only for conduct, spam, repeated disclosure risk, or sustained unproductive behavior under the Code of Conduct.
 
-## Required Roles Before Publication
+## Required Roles Before Contribution Intake
 
 Owners must assign, outside this repository where contact details are private:
 
@@ -77,4 +77,4 @@ Owners must assign, outside this repository where contact details are private:
 - a private security contact and confidential conduct-reporting path;
 - authority for final scope disputes and repository visibility reversal.
 
-The initial catalog is in [initial-issue-catalog.md](initial-issue-catalog.md). Publish from it only after the license/contribution gate, role assignment, labels, branch protection, and private vulnerability reporting are ready.
+The initial catalog is in [initial-issue-catalog.md](initial-issue-catalog.md). `main` protection and private vulnerability reporting are enabled. Publish from the catalog only after the license/contribution gate, role assignment, labels, and non-maintainer verification of the private reporting flow are ready.

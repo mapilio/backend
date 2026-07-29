@@ -42,11 +42,11 @@ History content is evaluated when it enters a commit: commit messages and added 
 
 The current candidate tree, reachable patches, and commit messages pass the automated gate. This means no unreviewed pattern in the defined categories was found; it does not prove data provenance.
 
-Commit author/committer metadata is a separate launch decision because public contribution necessarily records contributor identities. The current history contains one distinct author/committer identity using a non-reserved email domain. Its value is not reproduced here. Owners must approve keeping that metadata or coordinate a history rewrite before public launch.
+Commit author/committer metadata remains a separate release decision because public contribution records contributor identities. The current history contains one distinct author/committer identity using a non-reserved email domain. Its value is not reproduced here. Owners must approve keeping that metadata or coordinate a history rewrite before a stable release.
 
 ## Required Owner Review
 
-Before repository visibility changes, assigned owners must inspect the exact release revision and complete history for:
+Before a stable release or production cutover, assigned owners must inspect the exact release revision and complete history for:
 
 - provenance of coordinates, UUIDs, hashes, names, and records claimed to be synthetic;
 - whether every approved public hostname and operational description is necessary;
@@ -61,4 +61,4 @@ Store the signed review, identities of reviewers, sensitive findings, and go/no-
 
 ## Limitations
 
-The audit uses bounded deterministic patterns, not content classification or a production-data oracle. A plausible coordinate or identifier may be synthetic or real, and automation cannot decide which. Passing results do not replace credential rotation, Gitleaks, legal/license decisions, privacy review, private vulnerability reporting, branch protection, or the final public-content owner approval.
+The audit uses bounded deterministic patterns, not content classification or a production-data oracle. A plausible coordinate or identifier may be synthetic or real, and automation cannot decide which. Passing results do not replace credential rotation, Gitleaks, legal/license decisions, privacy review, verification of the enabled private vulnerability reporting flow, continued branch-protection enforcement, or the final public-content owner approval.
