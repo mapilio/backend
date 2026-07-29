@@ -83,6 +83,7 @@ Never run the rejected legacy `mysqldump` deployment task. Backup creation and r
 - [ ] **Operator:** all new external side effects and unfinished workflows remain disabled by default.
 - [ ] **Operator:** expand-compatible database changes are deployed before code or clients that require them.
 - [ ] **Operator:** queue workers and scheduler processes are restarted onto the new immutable release after code and configuration activation.
+- [ ] **Restricted:** the validated four-pool worker plan is installed in isolated staging at one process per pool, and crash, graceful restart, redelivery, failed-job retry, shared-lock, and configured failover exercises have recorded evidence.
 - [ ] **Restricted:** `/api/v1/system/health` succeeds through the real CDN/reverse-proxy path without exposing dependency details.
 - [ ] **Restricted:** normal, validation, authentication, rate-limit, not-found, and server-error responses preserve request IDs, security headers, CORS, ETag, and cache policy.
 - [ ] **Restricted:** logs contain only the approved bounded metadata fields and do not contain tokens, bodies, query values, concrete route parameters, IP addresses, or personal data.

@@ -92,6 +92,10 @@ class QueueRuntimeConfigurationTest extends TestCase
             max($timeouts),
             QueueRuntimeConfiguration::MINIMUM_RETRY_WINDOW_SECONDS,
         );
+        $this->assertGreaterThan(
+            max($timeouts),
+            QueueRuntimeConfiguration::MINIMUM_GRACEFUL_STOP_SECONDS,
+        );
     }
 
     /**

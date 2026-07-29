@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Domain\DataMigration\JsonPublisher;
 use App\Domain\DataMigration\PrivateJsonPublisher;
 use App\Support\Queue\QueueRuntimeConfiguration;
+use App\Support\Queue\QueueWorkerPoolConfiguration;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
         QueueRuntimeConfiguration::assertSafe(
             config('queue.default'),
             config('queue.connections'),
+        );
+        QueueWorkerPoolConfiguration::plan(
+            config('queue-workers'),
+            static fn (string $key): mixed => config($key),
         );
 
         RateLimiter::for('mobile-auth', function (Request $request): Limit {

@@ -35,6 +35,8 @@ A unit test discovers every `ShouldQueue` class under `app/Jobs`, reads its decl
 - Failed jobs are inspected and reconciled before retry. Bulk flush or blind replay is not a release operation.
 - Queue backend changes require staging redelivery, crash, timeout, shutdown, and failover tests.
 
+ADR 0035 implements the four named pools as a boot-validated plan, a single `mapilio:queue-work` process entry point, and a source-controlled one-process-per-pool Supervisor staging baseline. The live staging exercise and concurrency decision remain operational evidence.
+
 ## Consequences
 
 Unsafe queue timing becomes a startup error instead of a production duplicate-processing risk. The larger retry window delays automatic recovery of a genuinely dead 600-second job, so worker health detection and failed-job alerting must be faster and separate from queue redelivery. Correctness takes priority over aggressive duplicate execution.

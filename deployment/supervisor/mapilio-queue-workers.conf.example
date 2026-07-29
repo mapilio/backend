@@ -1,0 +1,74 @@
+; Render the two placeholders into a restricted staging configuration before
+; installation. Keep secrets in the process environment, never in this file.
+
+[program:mapilio-queue-callbacks-results]
+command=/usr/bin/env php artisan mapilio:queue-work callbacks-results --no-interaction
+directory=__MAPILIO_RELEASE_DIR__
+user=__MAPILIO_APP_USER__
+numprocs=1
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+stopsignal=TERM
+stopwaitsecs=720
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+
+[program:mapilio-queue-projections-publication]
+command=/usr/bin/env php artisan mapilio:queue-work projections-publication --no-interaction
+directory=__MAPILIO_RELEASE_DIR__
+user=__MAPILIO_APP_USER__
+numprocs=1
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+stopsignal=TERM
+stopwaitsecs=720
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+
+[program:mapilio-queue-outbound-enrichment]
+command=/usr/bin/env php artisan mapilio:queue-work outbound-enrichment --no-interaction
+directory=__MAPILIO_RELEASE_DIR__
+user=__MAPILIO_APP_USER__
+numprocs=1
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+stopsignal=TERM
+stopwaitsecs=720
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+
+[program:mapilio-queue-ukm-scoring]
+command=/usr/bin/env php artisan mapilio:queue-work ukm-scoring --no-interaction
+directory=__MAPILIO_RELEASE_DIR__
+user=__MAPILIO_APP_USER__
+numprocs=1
+autostart=true
+autorestart=true
+startsecs=5
+startretries=3
+stopsignal=TERM
+stopwaitsecs=720
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+
+[group:mapilio-queue-workers]
+programs=mapilio-queue-callbacks-results,mapilio-queue-projections-publication,mapilio-queue-outbound-enrichment,mapilio-queue-ukm-scoring
+priority=999

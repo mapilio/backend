@@ -55,6 +55,7 @@
 - [0032: PostgreSQL target schema descriptor extraction](architecture/0032-postgresql-target-schema-descriptor-extraction.md)
 - [0033: Shared mobile authentication rate-limit boundary](architecture/0033-mobile-auth-rate-limit-boundary.md)
 - [0034: Protected main and required GitHub checks](architecture/0034-protected-main-required-checks.md)
+- [0035: Validated queue worker pools](architecture/0035-validated-queue-worker-pools.md)
 
 ## Database
 

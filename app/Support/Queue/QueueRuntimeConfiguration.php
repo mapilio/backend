@@ -12,6 +12,10 @@ final class QueueRuntimeConfiguration
 
     public const MINIMUM_RETRY_WINDOW_SECONDS = self::LONGEST_JOB_TIMEOUT_SECONDS + self::RETRY_MARGIN_SECONDS;
 
+    public const GRACEFUL_STOP_MARGIN_SECONDS = 120;
+
+    public const MINIMUM_GRACEFUL_STOP_SECONDS = self::LONGEST_JOB_TIMEOUT_SECONDS + self::GRACEFUL_STOP_MARGIN_SECONDS;
+
     public static function assertSafe(mixed $connectionName, mixed $connections): void
     {
         if (! is_string($connectionName) || trim($connectionName) === '') {

@@ -59,16 +59,20 @@ Do not reduce these values to make stuck jobs retry faster. Detect dead workers 
 
 ## Worker Pools
 
-Start with separate supervised pools so expensive spatial work cannot block callbacks or public workflow completion. These commands omit environment-specific process counts; set concurrency from measured queue arrival rate, service limits, database load, and p95 completion time.
+Start with separate supervised pools so expensive spatial work cannot block callbacks or public workflow completion. Pool membership and worker lifecycle limits are validated from `config/queue-workers.php`; process managers call only the named wrapper commands below.
 
 ```bash
-php artisan queue:work --queue=ai-callbacks,ai-results --sleep=1 --timeout=600 --max-time=3600 --memory=512
-php artisan queue:work --queue=ai-status-projections,geo-publications,geo-publication-preparation --sleep=1 --timeout=600 --max-time=3600 --memory=512
-php artisan queue:work --queue=prediction,find-address --sleep=1 --timeout=600 --max-time=3600 --memory=512
-php artisan queue:work --queue=ukm-scoring --sleep=1 --timeout=600 --max-time=3600 --memory=1024
+php artisan mapilio:queue-work callbacks-results
+php artisan mapilio:queue-work projections-publication
+php artisan mapilio:queue-work outbound-enrichment
+php artisan mapilio:queue-work ukm-scoring
 ```
 
-Job classes declare their own timeout, tries, backoff, and unique behavior. The CLI values are fallback safety limits, not permission to override reviewed job policy. Process definitions must:
+Run each command with `--dry-run` before installing or reloading the process-manager configuration. The dry run validates the complete plan and prints only the selected pool, queue/connection names, and numeric lifecycle limits. It does not access the queue or start a worker.
+
+The source-controlled Supervisor baseline is [deployment/supervisor/mapilio-queue-workers.conf.example](../../deployment/supervisor/mapilio-queue-workers.conf.example). Render `__MAPILIO_RELEASE_DIR__` and `__MAPILIO_APP_USER__` into a restricted staging configuration, validate it with the installed Supervisor version, and start with exactly one process per pool. Keep environment variables and secrets in the deployment boundary rather than adding an `environment=` block to the public template. Other process managers may be used only when they preserve the same commands, process-group signaling, automatic restart, lifecycle, and shutdown rules.
+
+The wrapper delegates to Laravel `queue:work` with a one-second sleep, 600-second timeout, 3,600-second maximum lifetime, and 1,000-job maximum. It uses 512 MiB for the first three pools and 1,024 MiB for UKM scoring. Job classes still declare their own timeout, tries, backoff, and unique behavior; worker values are fallback safety limits, not permission to override reviewed job policy. Process definitions must:
 
 - run as a dedicated non-login application user
 - start in the current immutable release directory
@@ -79,6 +83,8 @@ Job classes declare their own timeout, tries, backoff, and unique behavior. The 
 - replace workers after a bounded lifetime to release stale code/resources
 - never run two release revisions against incompatible schemas or feature flags
 
+Do not increase `numprocs` from the staging baseline until measured queue arrival rate, oldest age, p95 completion time, memory, PostgreSQL load, and external-service capacity show a need and a safe limit. Record the installed process-manager configuration and measurements in restricted staging evidence.
+
 After an atomic code/config switch, run:
 
 ```bash
@@ -86,6 +92,24 @@ php artisan queue:restart
 ```
 
 Wait until old workers finish active jobs and replacement workers report the new release revision. A successful command only writes the restart signal; it does not prove that a process manager replaced every worker.
+
+## Isolated Staging Worker Exercise
+
+Keep all unfinished side-effect feature flags disabled during initial process-manager validation. Use a staging queue backend, database, cache/lock store, and external-service endpoints that cannot reach production.
+
+Record restricted evidence for:
+
+1. successful `config:cache` and `mapilio:queue-work <pool> --dry-run` output for all four pools
+2. process-manager syntax validation, one running process per pool, and the exact release revision
+3. automatic replacement after a clean max-time/max-job exit and after an unexpected worker crash
+4. graceful `queue:restart` replacement without a forced kill before 720 seconds
+5. redelivery only after the configured retry/visibility window, with no overlapping duplicate side effect
+6. failed-job inspection and one reviewed idempotent retry
+7. shared unique-lock behavior across at least two worker processes before any concurrency increase
+8. queue failover behavior, when failover is configured, without falling into an in-process driver unexpectedly
+9. queue depth, oldest age, completion latency, memory, database load, restart count, timeout exits, and external-service limits
+
+Use synthetic records and an explicitly approved no-production-route staging boundary. Source-controlled tests validate configuration shape and command wiring; they do not satisfy this runtime exercise.
 
 ## Failed Jobs and Replay
 
