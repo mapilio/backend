@@ -103,6 +103,7 @@ function isSyntheticEmail(local, domain, suffix) {
         || normalizedDomain.endsWith('.test')
         || normalizedDomain.endsWith('.invalid')
         || /^\d+x\.(?:json|png|svg)$/.test(normalizedDomain)
+        || (local.toLowerCase() === 'support' && normalizedDomain === 'github.com')
         || (local.toLowerCase() === 'git' && normalizedDomain === 'github.com' && suffix === ':');
 }
 
