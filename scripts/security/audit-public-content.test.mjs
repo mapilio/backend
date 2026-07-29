@@ -38,7 +38,22 @@ test('accepts reserved examples, loopback, documentation networks, and approved 
         '198.51.100.20',
         '203.0.113.30',
         'https://end.mapilio.com',
+        'Signed-off-by: dependabot[bot] <support@github.com>',
     ].join('\n')), []);
+});
+
+test('allows only the exact GitHub automation mailbox', () => {
+    const githubDomain = ['github', 'com'].join('.');
+
+    assert.deepEqual(categories([
+        ['person', githubDomain].join('@'),
+        ['support+private', githubDomain].join('@'),
+        ['support', `subdomain.${githubDomain}`].join('@'),
+    ].join('\n')), [
+        'personal-email',
+        'personal-email',
+        'personal-email',
+    ]);
 });
 
 test('finds non-public network addresses without storing them as dotted literals in the test', () => {

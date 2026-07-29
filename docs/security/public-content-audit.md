@@ -25,7 +25,7 @@ The gate rejects:
 - RFC 1918, link-local, carrier-grade NAT, unique-local IPv6, and other non-public address ranges while allowing loopback and RFC documentation ranges;
 - hostnames ending in private-network suffixes and single-label service hosts embedded in common connection URLs;
 - developer-specific macOS, Linux, Windows, and legacy web-root absolute paths;
-- email-shaped values outside reserved example domains, except Git's public GitHub clone syntax;
+- email-shaped values outside reserved example domains, except Git's public GitHub clone syntax and GitHub's exact shared `support@github.com` automation mailbox used in Dependabot sign-offs;
 - Mapilio hostnames not explicitly approved in `scripts/security/public-content-policy.json`;
 - tracked environment variants, dumps, databases, logs, backups, private-key/certificate stores, archives, media, and office documents;
 - prohibited legacy organization identifiers represented only by one-way hashes in policy.
