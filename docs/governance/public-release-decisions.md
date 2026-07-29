@@ -23,6 +23,8 @@ GitHub private vulnerability reporting is enabled, and the public Security page 
 ### Repository controls
 
 - retain the four GitHub-Actions-bound Quality, PostGIS migration, and Secret Scan checks now required on protected `main`;
+- retain the enabled repository-level Dependabot alerts/security updates, secret scanning, and push protection; assign primary/backup alert owners and review live state before release;
+- decide an organization-owner rollout for new-repository security defaults and two-factor authentication enforcement after account, automation, recovery, and access-impact review;
 - decide whether to enforce protection for administrators, require pull-request review, and prevent every direct unreviewed change;
 - assign maintainers for API, database, imagery/privacy, AI, GeoServer, mobile compatibility, and operations;
 - approve and activate the drafted [issue triage labels, response expectations, and closure policy](../community/issue-triage.md);

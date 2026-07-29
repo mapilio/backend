@@ -53,6 +53,7 @@ Stop the release when any of the following is true:
 - [ ] **Automated:** the redacted public-content audit passes against the exact candidate tree and complete Git history.
 - [ ] **Automated:** `scripts/release/verify-local-readiness.sh` passes in a clean trusted environment using locked dependencies.
 - [ ] **Operator:** dependency lockfile changes and GitHub Action SHA changes are explicitly reviewed.
+- [ ] **Restricted/Operator:** GitHub reports Dependabot alerts, Dependabot security updates, secret scanning, and repository push protection enabled; security updates are not paused; primary/backup alert owners and notification paths are confirmed; and every alert, bypass, or security-update pull request is triaged.
 - [ ] **Operator:** the already-visible public security policy and reporting action have passed the documented non-maintainer submission, primary/backup notification, private reply, and non-public closure exercise.
 - [ ] **Operator:** release artifacts come from CI or another reproducible trusted builder; a developer working tree is not promoted directly.
 

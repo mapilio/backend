@@ -19,9 +19,11 @@ The workflow does not use a baseline or allowlist. A detected credential must be
 
 ## GitHub-Native Security Controls
 
-The July 29, 2026 live-settings audit confirmed that Dependabot vulnerability alerts are enabled. Dependabot security updates, GitHub native secret scanning, and secret-scanning push protection are disabled. The required Gitleaks history check and locked dependency audits remain active, but they do not replace provider-aware push protection before a secret enters repository history.
+The July 29, 2026 live-settings audit confirmed that Dependabot vulnerability alerts, Dependabot security updates, GitHub secret scanning, and repository push protection are enabled. Dependabot security updates are not paused. The initial fail-closed read-only review returned zero open Dependabot alerts, secret-scanning alerts, push-protection bypass alerts, and Dependabot pull requests.
 
-Owners must review and enable the applicable native controls, verify alert ownership and a clean initial scan, and record any unavailable feature or accepted limitation before a stable release. Native controls supplement rather than replace the pinned Gitleaks workflow, local full-history scan, dependency audits, rotation policy, and public-content gate.
+Non-provider patterns and secret validity checks remain disabled, as do organization-wide defaults for new repositories and organization-wide two-factor authentication enforcement. Those broader or data-sharing controls require separate plan, privacy, account-readiness, and owner decisions.
+
+Follow the [GitHub-native security controls runbook](github-native-security-controls.md) to verify live state, alert ownership, aggregate alert counts, and remaining organization decisions. Native controls supplement rather than replace the pinned Gitleaks workflow, local full-history scan, dependency audits, rotation policy, and public-content gate.
 
 ## Local Scan
 

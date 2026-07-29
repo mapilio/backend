@@ -83,6 +83,7 @@
 
 - [Security policy](../SECURITY.md)
 - [Private vulnerability reporting verification](security/private-vulnerability-reporting-verification.md)
+- [GitHub-native security controls](security/github-native-security-controls.md)
 - [Secret management](security/secret-management.md)
 - [Public-content audit](security/public-content-audit.md)
 - [Incident response](security/incident-response.md)
