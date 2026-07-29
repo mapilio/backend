@@ -20,6 +20,30 @@ The live `mapilio/backend` settings were verified on July 29, 2026:
 
 The zero-alert result is point-in-time evidence, not a permanent assurance. It does not prove that every secret format, private hostname, personal identifier, vulnerable runtime service, or future dependency is covered.
 
+## Source-Controlled Controls
+
+The repository source now records the following planned or implemented controls:
+
+- **Dependency Review:** `.github/workflows/dependency-review.yml` runs only for pull requests targeting `main`, with read-only contents access, a five-minute limit, PR-scoped concurrency, no checkout or code-execution step, and the pinned `actions/dependency-review-action` v5.0.0. It fails on high or critical severity and shows patched versions.
+- **Weekly version maintenance:** `.github/dependabot.yml` schedules distinct weekly UTC runs for Composer, npm, and GitHub Actions. Each ecosystem groups minor and patch updates, limits open version-update pull requests, and uses the conventional `deps` commit prefix. These version groups do not authorize merging. Dependabot security updates remain urgent and repository-setting-driven; owners must verify their enabled, unpaused live state.
+- **CodeQL default setup:** native default setup is enabled for Actions and JavaScript/TypeScript only, using the default query suite, `remote_and_local` threat model, standard runner, and weekly schedule. PHP is unsupported by CodeQL here; PHPStan, tests, Composer audit, and the existing PHP quality gates remain required.
+- **Workflow hardening:** repository policy requires full action SHAs, the default `GITHUB_TOKEN` is read-only, and workflows cannot approve pull requests.
+
+The Dependency Review workflow does not grant pull-request comment or other write permissions. No control in this section changes organization-wide settings.
+
+## Live Actions And CodeQL Settings
+
+The July 29, 2026 pre-change audit found read-only default workflow permissions, workflow pull-request approval enabled, full-SHA enforcement disabled, and CodeQL not configured. The repository-level changes then:
+
+- preserved read-only default workflow permissions
+- disabled workflow pull-request approval
+- enabled full-length action SHA enforcement
+- enabled CodeQL default setup for Actions and JavaScript/TypeScript
+
+Both initial CodeQL jobs completed successfully. The scan opened two high-severity findings: an incomplete hostname regular expression in a public-content regression test and an insufficiently bounded local fixture path in the GeoJSON validator. The source change that adds Dependency Review also corrects both findings without dismissal; closure requires a successful scan of the merged revision.
+
+Before release, owners must re-read these live settings, retain the source-controlled workflow and update policy, verify the exact CodeQL revision and alert dispositions, and record restricted notification ownership.
+
 ## Deliberately Separate Decisions
 
 GitHub reports non-provider secret patterns and secret validity checks as disabled. The current organization plan does not meet GitHub's documented availability requirements for non-provider patterns. Validity checks can send a detected credential and limited context to its issuing service, so enabling them also requires an explicit owner privacy and incident-response decision.
@@ -56,6 +80,33 @@ security_updates=$(
 )
 test "${security_updates}" = true
 
+actions_policy=$(
+  gh api repos/mapilio/backend/actions/permissions --jq '
+    .enabled == true
+    and .sha_pinning_required == true
+  '
+)
+test "${actions_policy}" = true
+
+workflow_policy=$(
+  gh api repos/mapilio/backend/actions/permissions/workflow --jq '
+    .default_workflow_permissions == "read"
+    and .can_approve_pull_request_reviews == false
+  '
+)
+test "${workflow_policy}" = true
+
+codeql_setup=$(
+  gh api repos/mapilio/backend/code-scanning/default-setup --jq '
+    .state == "configured"
+    and .query_suite == "default"
+    and .threat_model == "remote_and_local"
+    and .runner_type == "standard"
+    and .schedule == "weekly"
+  '
+)
+test "${codeql_setup}" = true
+
 dependabot_alerts=$(
   gh api --paginate \
     'repos/mapilio/backend/dependabot/alerts?state=open&per_page=100' \
@@ -83,13 +134,24 @@ dependabot_pull_requests=$(
     --jq '.total_count'
 )
 
+code_scanning_alerts=$(
+  gh api --paginate \
+    'repos/mapilio/backend/code-scanning/alerts?state=open&per_page=100' \
+    --jq 'length' |
+    awk '{ total += $1 } END { print total + 0 }'
+)
+
 printf '%s\n' \
   "repository_controls=PASS" \
   "security_updates=PASS" \
+  "actions_policy=PASS" \
+  "workflow_policy=PASS" \
+  "codeql_setup=PASS" \
   "open_dependabot_alerts=${dependabot_alerts}" \
   "open_secret_alerts=${secret_alerts}" \
   "open_push_protection_bypass_alerts=${open_bypass_alerts}" \
-  "open_dependabot_pull_requests=${dependabot_pull_requests}"
+  "open_dependabot_pull_requests=${dependabot_pull_requests}" \
+  "open_code_scanning_alerts=${code_scanning_alerts}"
 ```
 
 Never remove `hide_secret=true` from an operational secret-alert query. The command succeeds with non-zero counts so owners can triage them; a release requires every open item to have an approved disposition. Do not paste raw alert JSON, repository tokens, alert URLs, locations, commit details, or screenshots into public logs, issues, pull requests, or release evidence.

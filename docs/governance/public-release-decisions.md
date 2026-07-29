@@ -24,6 +24,9 @@ GitHub private vulnerability reporting is enabled, and the public Security page 
 
 - retain the four GitHub-Actions-bound Quality, PostGIS migration, and Secret Scan checks now required on protected `main`;
 - retain the enabled repository-level Dependabot alerts/security updates, secret scanning, and push protection; assign primary/backup alert owners and review live state before release;
+- retain and review the source-controlled Dependency Review workflow and weekly Composer/npm/GitHub Actions version maintenance; grouped version updates do not authorize merging, and security updates remain urgent and repository-setting-driven;
+- retain native CodeQL default setup for Actions and JavaScript/TypeScript only. PHP is unsupported by CodeQL and remains covered by PHPStan, tests, Composer audit, and existing PHP quality gates;
+- retain full-SHA policy, read-only default `GITHUB_TOKEN`, and disabled workflow approval;
 - decide an organization-owner rollout for new-repository security defaults and two-factor authentication enforcement after account, automation, recovery, and access-impact review;
 - decide whether to enforce protection for administrators, require pull-request review, and prevent every direct unreviewed change;
 - assign maintainers for API, database, imagery/privacy, AI, GeoServer, mobile compatibility, and operations;

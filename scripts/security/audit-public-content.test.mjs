@@ -27,6 +27,7 @@ const policy = {
 
 const categories = (text) => auditText(text, { path: 'fixture.txt' }, policy)
     .map((finding) => finding.category);
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test('accepts reserved examples, loopback, documentation networks, and approved public hosts', () => {
     assert.deepEqual(categories([
@@ -87,7 +88,7 @@ test('redacted output contains categories and locations but never matched conten
 
     assert.match(output, /personal-email: 1/);
     assert.match(output, /fixture\.txt:1/);
-    assert.doesNotMatch(output, new RegExp(sensitiveValue.replace('.', '\\.')));
+    assert.doesNotMatch(output, new RegExp(escapeRegExp(sensitiveValue)));
 });
 
 test('history scans introductions without assigning removed content to its deletion commit', () => {
