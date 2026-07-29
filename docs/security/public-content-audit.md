@@ -36,13 +36,15 @@ Composer/npm lockfiles are still scanned for every category except third-party a
 
 ## History Review
 
-Seven commit/path/fingerprint-bound exceptions cover old synthetic proxy/parser fixtures introduced in two known commits. They contain no credential or production evidence and were replaced in the current tree with RFC documentation addresses and reserved example domains. Raw values are absent from policy. An exception that no longer matches reachable history fails as stale, and a new occurrence in another commit or path is not accepted.
+Eight commit/path/fingerprint-bound exceptions cover old synthetic proxy/parser fixtures introduced in two known commits and one maintainer co-author trailer that GitHub added to the first merged Dependabot update. The fixtures contain no credential or production evidence and were replaced in the current tree with RFC documentation addresses and reserved example domains. The trailer is retained only in the immutable public commit; future bot merges use an explicit sanitized commit body. Raw values are absent from policy. An exception that no longer matches reachable history fails as stale, and a new occurrence in another commit or path is not accepted.
 
 History content is evaluated when it enters a commit: commit messages and added patch lines are scanned across every reachable revision. Removed lines are not attributed again to the later deletion commit. A file absent from the current tree remains covered by the commit that introduced its content.
 
 The current candidate tree, reachable patches, and commit messages pass the automated gate. This means no unreviewed pattern in the defined categories was found; it does not prove data provenance.
 
 Commit author/committer metadata remains a separate release decision because public contribution records contributor identities. The current history contains one distinct author/committer identity using a non-reserved email domain. Its value is not reproduced here. Owners must approve keeping that metadata or coordinate a history rewrite before a stable release.
+
+For Dependabot pull requests, use a squash merge with an explicit title and sanitized body. Do not accept GitHub's generated co-author trailers: updating a bot branch can associate the updater with the generated squash message even when every pull-request check passed. Run the public-content gate again on the resulting `main` revision before processing the next dependency update.
 
 ## Required Owner Review
 
