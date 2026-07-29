@@ -2,6 +2,8 @@
 
 Identity migration is dependency-first, but it is also PII-sensitive. The static validator checks a proposed v1 decision manifest without opening a database, importing data, writing files, or contacting a network. A passing result is not an approved Mapilio mapping or importer.
 
+The `source.schema_fingerprint` and `target.schema_fingerprint` fields use the deterministic [import schema fingerprint algorithm](import-schema-fingerprint.md). This does not change the mapping JSON shape. A typed CLI fingerprint is still restricted owner evidence; this static validator can compare supplied values but cannot prove their provenance. The `sqlite` engine is synthetic/local-only, and fingerprints are not promised comparable across engines.
+
 Run it only in local, testing, or staging with both actual schema fingerprints supplied:
 
 ```sh

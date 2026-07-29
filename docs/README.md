@@ -50,6 +50,7 @@
 - [0027: Pending license-state gate](architecture/0027-pending-license-state-gate.md)
 - [0028: Legacy import preflight evidence](architecture/0028-legacy-import-preflight.md)
 - [0029: Identity import mapping contract](architecture/0029-identity-import-mapping-contract.md)
+- [0030: Import schema fingerprint contract](architecture/0030-import-schema-fingerprint-contract.md)
 
 ## Database
 
@@ -59,6 +60,8 @@
 - [Legacy import preflight](database/legacy-import-preflight.md)
 - [Identity import mapping validation](database/identity-import-mapping.md)
 - [Identity import mapping schema](database/identity-import-mapping.schema.json)
+- [Import schema fingerprint](database/import-schema-fingerprint.md)
+- [Import schema fingerprint schema](database/import-schema-fingerprint.schema.json)
 
 ## Operations
 

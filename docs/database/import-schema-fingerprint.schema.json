@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mapilio.example.invalid/schemas/import-schema-fingerprint-v1.json",
+  "title": "Mapilio synthetic import schema fingerprint descriptor v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "fingerprint_algorithm", "engine", "schema", "table", "columns"],
+  "properties": {
+    "schema_version": {"type": "number", "const": 1},
+    "fingerprint_algorithm": {"type": "string", "const": "mapilio-schema-fingerprint-v1"},
+    "engine": {"type": "string", "enum": ["postgresql", "sqlite"]},
+    "schema": {"type": "string", "pattern": "^[a-z_][a-z0-9_]*$"},
+    "table": {"type": "string", "pattern": "^[a-z_][a-z0-9_]*$"},
+    "columns": {"type": "array", "minItems": 1, "maxItems": 1000, "items": {"$ref": "#/$defs/column"}}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "pattern": "^[a-z_][a-z0-9_]*$"},
+    "shape_parameter": {"type": ["integer", "null"], "minimum": 0, "maximum": 1000000},
+    "column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "name", "type_schema", "type_name", "nullable", "character_length", "numeric_precision", "numeric_scale", "datetime_precision"],
+      "properties": {
+        "position": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "name": {"$ref": "#/$defs/identifier"},
+        "type_schema": {"$ref": "#/$defs/identifier"},
+        "type_name": {"$ref": "#/$defs/identifier"},
+        "nullable": {"type": "boolean"},
+        "character_length": {"$ref": "#/$defs/shape_parameter"},
+        "numeric_precision": {"$ref": "#/$defs/shape_parameter"},
+        "numeric_scale": {"$ref": "#/$defs/shape_parameter"},
+        "datetime_precision": {"$ref": "#/$defs/shape_parameter"}
+      }
+    }
+  }
+}

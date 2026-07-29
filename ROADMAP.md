@@ -13,9 +13,9 @@ This public roadmap summarizes direction without exposing private infrastructure
 
 ## Now
 
-- use the implemented fail-closed legacy import preflight and identity mapping validator foundations while the real owner-approved mapping and write-capable import/backfill remain open; these do not complete the roadmap item;
+- use the implemented fail-closed legacy import preflight, deterministic schema fingerprint, and identity mapping validator foundations while database metadata extraction, the real owner-approved mapping, and write-capable import/backfill remain open; these do not complete the roadmap item;
 - complete the active legacy API compatibility inventory and contract coverage;
-- obtain owner decisions for identity keys, duplicate emails, password strategy, roles/status/profile retention, and approve a schema-fingerprinted identity mapping before importer design;
+- connect restricted PostgreSQL source/target metadata extraction to the deterministic fingerprint contract, then obtain owner decisions for identity keys, duplicate emails, password strategy, roles/status/profile retention, and approve the schema-fingerprinted identity mapping before importer design;
 - finish identity/session boundaries and route authorization review;
 - harden upload/privacy holdback across image server, TrueNAS cache, and anonymizer;
 - define only the operator dashboard workflows that Mapilio still uses;
