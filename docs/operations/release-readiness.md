@@ -50,10 +50,13 @@ Stop the release when any of the following is true:
 - [ ] **Automated:** `Quality / PHP style, analysis, audit, and tests` passes for the exact commit.
 - [ ] **Automated:** `Quality / OpenAPI contract, npm audit, and asset build` passes for the exact commit.
 - [ ] **Automated:** `Secret Scan / Gitleaks history` passes for the exact commit and complete Git history.
+- [ ] **Automated:** `Dependency Review / Dependency Review` passes for the exact pull request commit targeting `main`. The repository Dependency Graph is enabled and the first read-only workflow run passed; each later release candidate still needs its own result.
+- [ ] **Automated:** native CodeQL default setup for Actions and JavaScript/TypeScript passes for the exact commit and every open alert has an approved disposition; PHP remains covered by PHPStan, tests, Composer audit, and existing PHP quality gates.
 - [ ] **Automated:** the redacted public-content audit passes against the exact candidate tree and complete Git history.
 - [ ] **Automated:** `scripts/release/verify-local-readiness.sh` passes in a clean trusted environment using locked dependencies.
 - [ ] **Operator:** dependency lockfile changes and GitHub Action SHA changes are explicitly reviewed.
-- [ ] **Restricted/Operator:** GitHub reports Dependabot alerts, Dependabot security updates, secret scanning, and repository push protection enabled; security updates are not paused; primary/backup alert owners and notification paths are confirmed; and every alert, bypass, or security-update pull request is triaged.
+- [ ] **Restricted/Operator:** GitHub reports Dependabot alerts, urgent repository-setting-driven security updates, secret scanning, and repository push protection enabled; security updates are not paused; primary/backup alert owners and notification paths are confirmed; and every alert, bypass, or security-update pull request is triaged. Dependabot version groups do not authorize merging.
+- [ ] **Operator:** the active GitHub-native settings are re-read: default workflow permissions remain read-only, workflow approval is disabled, full-SHA policy is enabled, and CodeQL uses the approved default setup.
 - [ ] **Operator:** the already-visible public security policy and reporting action have passed the documented non-maintainer submission, primary/backup notification, private reply, and non-public closure exercise.
 - [ ] **Operator:** release artifacts come from CI or another reproducible trusted builder; a developer working tree is not promoted directly.
 

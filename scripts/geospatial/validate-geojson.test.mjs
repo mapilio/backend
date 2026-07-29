@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -16,6 +16,18 @@ const script = fileURLToPath(new URL('./validate-geojson.mjs', import.meta.url))
 
 const point = { type: 'Point', coordinates: [29, 41] };
 const feature = { type: 'Feature', properties: {}, geometry: point };
+const temporaryDirectories = [];
+const repositoryRelative = (path) => relative(process.cwd(), path);
+
+async function makeTemporaryDirectory(prefix) {
+    const directory = await mkdtemp(join(process.cwd(), prefix));
+    temporaryDirectories.push(directory);
+    return directory;
+}
+
+test.after(async () => {
+    await Promise.all(temporaryDirectories.map((directory) => rm(directory, { force: true, recursive: true })));
+});
 
 function runCli(...args) {
     return new Promise((resolve) => {
@@ -75,7 +87,7 @@ test('accepts root depth 32 and rejects root depth 33', () => {
 });
 
 test('file validation normalizes malformed JSON, overflow, UTF-8, and size failures', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'geojson-validator-'));
+    const directory = await makeTemporaryDirectory('.geojson-validator-');
     const malformed = join(directory, 'malformed.json');
     const overflow = join(directory, 'overflow.json');
     const invalidUtf8 = join(directory, 'invalid-utf8.json');
@@ -88,10 +100,10 @@ test('file validation normalizes malformed JSON, overflow, UTF-8, and size failu
     await writeFile(exactSize, `${validJson}${' '.repeat(MAX_INPUT_BYTES - Buffer.byteLength(validJson))}`);
     await writeFile(large, Buffer.alloc(MAX_INPUT_BYTES + 1, 0x20));
     assert.deepEqual(await validateGeoJsonFile(malformed), { ok: false, message: 'Malformed JSON.' });
-    assert.notEqual((await validateGeoJsonFile(overflow)).ok, true);
-    assert.deepEqual(await validateGeoJsonFile(invalidUtf8), { ok: false, message: 'Malformed JSON.' });
+    assert.notEqual((await validateGeoJsonFile(repositoryRelative(overflow))).ok, true);
+    assert.deepEqual(await validateGeoJsonFile(repositoryRelative(invalidUtf8)), { ok: false, message: 'Malformed JSON.' });
     assert.deepEqual(await validateGeoJsonFile(exactSize), { ok: true });
-    assert.deepEqual(await validateGeoJsonFile(large), { ok: false, message: 'Unable to read the input file.' });
+    assert.deepEqual(await validateGeoJsonFile(repositoryRelative(large)), { ok: false, message: 'Unable to read the input file.' });
 });
 
 test('CLI requires exactly one argument and never echoes paths or fixture contents', async () => {
@@ -99,24 +111,40 @@ test('CLI requires exactly one argument and never echoes paths or fixture conten
     const twoArgs = await runCli('one', 'two');
     assert.equal(noArgs.code, 2);
     assert.equal(twoArgs.code, 2);
-    const directory = await mkdtemp(join(tmpdir(), 'sentinel-'));
+    const directory = await makeTemporaryDirectory('.sentinel-');
     const sentinel = 'SECRET_SENTINEL_FIXTURE_CONTENT';
     const file = join(directory, 'sentinel.json');
     await writeFile(file, `${sentinel}{`);
-    const result = await runCli(file);
+    const result = await runCli(repositoryRelative(file));
     assert.equal(result.code, 1);
     assert.doesNotMatch(`${result.stdout}${result.stderr}`, new RegExp(sentinel));
     assert.doesNotMatch(`${result.stdout}${result.stderr}`, new RegExp(directory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 test('CLI rejects directories and symlinks', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'geojson-files-'));
+    const directory = await makeTemporaryDirectory('.geojson-files-');
     const childDirectory = join(directory, 'directory');
     const target = join(directory, 'target.json');
     const link = join(directory, 'link.json');
     await mkdir(childDirectory);
     await writeFile(target, JSON.stringify(point));
     await symlink(target, link);
-    assert.equal((await runCli(childDirectory)).code, 1);
-    assert.equal((await runCli(link)).code, 1);
+    assert.equal((await runCli(repositoryRelative(childDirectory))).code, 1);
+    assert.equal((await runCli(repositoryRelative(link))).code, 1);
+});
+
+test('rejects absolute and traversal paths outside the repository boundary', async () => {
+    const outsideDirectory = await mkdtemp(join(tmpdir(), 'geojson-outside-'));
+    const outsideFile = join(outsideDirectory, 'outside.json');
+    await writeFile(outsideFile, JSON.stringify(point));
+
+    assert.deepEqual(await validateGeoJsonFile(outsideFile), {
+        ok: false,
+        message: 'Unable to read the input file.',
+    });
+    assert.deepEqual(await validateGeoJsonFile(relative(process.cwd(), outsideFile)), {
+        ok: false,
+        message: 'Unable to read the input file.',
+    });
+    await rm(outsideDirectory, { force: true, recursive: true });
 });

@@ -1,6 +1,6 @@
-import { constants as fsConstants } from 'node:fs';
-import { open } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { constants as fsConstants, realpathSync } from 'node:fs';
+import { lstat, open, realpath } from 'node:fs/promises';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { TextDecoder } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
@@ -91,12 +91,54 @@ export function validateGeoJson(value) {
     return null;
 }
 
+function isWithinRoot(rootPath, candidatePath) {
+    const relativePath = relative(rootPath, candidatePath);
+    return relativePath !== ''
+        && relativePath !== '..'
+        && !relativePath.startsWith(`..${sep}`)
+        && !isAbsolute(relativePath);
+}
+
+async function resolveFixturePath(filePath) {
+    if (typeof filePath !== 'string' || filePath.length === 0) {
+        return null;
+    }
+
+    try {
+        const rootPath = await realpath(process.cwd());
+        const candidatePath = resolve(rootPath, filePath);
+        if (!isWithinRoot(rootPath, candidatePath)) {
+            return null;
+        }
+
+        const resolvedPath = realpathSync(candidatePath);
+        return resolvedPath === candidatePath && isWithinRoot(rootPath, resolvedPath)
+            ? candidatePath
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 async function readRegularFile(filePath) {
+    const safePath = await resolveFixturePath(filePath);
+    if (safePath === null) {
+        throw new Error('invalid fixture path');
+    }
+
     let handle;
     try {
-        handle = await open(filePath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+        handle = await open(safePath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
         const descriptor = await handle.stat();
-        if (!descriptor.isFile()) {
+        const pathDescriptor = await lstat(safePath);
+        const openedPath = await realpath(`/proc/self/fd/${handle.fd}`).catch(() => null);
+        const currentPath = await realpath(safePath).catch(() => null);
+        if (!descriptor.isFile()
+            || !pathDescriptor.isFile()
+            || descriptor.dev !== pathDescriptor.dev
+            || descriptor.ino !== pathDescriptor.ino
+            || openedPath !== null && openedPath !== safePath
+            || currentPath !== safePath) {
             throw new Error('not a regular file');
         }
         if (descriptor.size > MAX_INPUT_BYTES) {

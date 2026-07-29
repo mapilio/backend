@@ -12,7 +12,7 @@ A generated static-analysis baseline or broad ignore rules would make CI green w
 
 ## Decision
 
-The `Quality` workflow runs on pushes, pull requests, and manual dispatch with read-only repository permission and no persisted checkout credential.
+The `Quality` workflow runs once for pull requests targeting `main`, again for the merged `main` revision, and on manual dispatch, with read-only repository permission and no persisted checkout credential. Feature-branch pushes are intentionally covered by the pull-request run instead of creating duplicate jobs.
 
 The PHP 8.2 job runs:
 

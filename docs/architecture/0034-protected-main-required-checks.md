@@ -11,6 +11,7 @@ Protect `main` with strict required status checks tied to the GitHub Actions app
 - OpenAPI contract, npm audit, and asset build
 - PostgreSQL 14 and PostGIS migrations
 - Gitleaks history
+- Dependency Review
 
 A proposed head branch must be up to date with `main` before its required checks satisfy the merge gate. Force pushes and branch deletion are disabled.
 
@@ -18,7 +19,7 @@ Administrator enforcement and mandatory pull-request reviews are not enabled in 
 
 ## Verification
 
-GitHub's branch protection API reports `main` as protected, strict checking enabled, all four contexts bound to the GitHub Actions application, and force-push/deletion disabled.
+GitHub's branch protection API reports `main` as protected, strict checking enabled, all five contexts bound to the GitHub Actions application, and force-push/deletion disabled.
 
 ## Limitations
 
