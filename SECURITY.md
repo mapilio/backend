@@ -10,7 +10,7 @@ The modern backend has not reached its first stable public release. Until versio
 
 Use the repository's **Security** tab and select **Report a vulnerability**. This opens a private GitHub security advisory visible only to the reporter and repository maintainers.
 
-Do not report a vulnerability through a public issue, discussion, pull request, commit message, or social-media post. If **Report a vulnerability** is unavailable, stop and do not publish the details. Private vulnerability reporting is enabled; maintainers still verify the complete reporting and triage flow from a non-maintainer account as an operational release gate.
+Do not report a vulnerability through a public issue, discussion, pull request, commit message, or social-media post. If **Report a vulnerability** is unavailable, stop and do not publish the details. Private vulnerability reporting is enabled, and the public Security page renders this policy and the reporting action. Maintainers still verify the complete submission, notification, private reply, and closure flow from a non-maintainer account as an operational release gate.
 
 Include only the information needed to reproduce and assess the issue:
 
@@ -51,12 +51,11 @@ When appropriate, the project will publish a GitHub security advisory, request a
 
 ## Operational Release Gate
 
-The repository is public and private vulnerability reporting is enabled. Before a stable release or production cutover, its owners must:
+The repository is public, private vulnerability reporting is enabled, and the public Security page renders this policy and the reporting action. Before a stable release or production cutover, its owners must:
 
-1. verify the private report flow with a non-maintainer account
-2. confirm that this policy is visible from the repository Security page
-3. assign incident roles and complete a tabletop exercise using the incident response runbook
-4. retain the required secret-scanning, quality, and migration checks on the protected release branch
-5. complete the automated and owner-reviewed public-content audit for the exact release revision and full history
+1. verify private submission, primary/backup notification, private reply, and non-public closure with a non-maintainer account
+2. assign incident roles and complete a tabletop exercise using the incident response runbook
+3. retain the required secret-scanning, quality, and migration checks on the protected release branch
+4. complete the automated and owner-reviewed public-content audit for the exact release revision and full history
 
-Operational handling is documented in [docs/security/incident-response.md](docs/security/incident-response.md). Secret rotation and repository scanning are documented in [docs/security/secret-management.md](docs/security/secret-management.md).
+Use the sanitized [private reporting verification procedure](docs/security/private-vulnerability-reporting-verification.md) for the remaining human gate. Operational handling is documented in [docs/security/incident-response.md](docs/security/incident-response.md). Secret rotation and repository scanning are documented in [docs/security/secret-management.md](docs/security/secret-management.md).

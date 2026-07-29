@@ -53,7 +53,7 @@ Stop the release when any of the following is true:
 - [ ] **Automated:** the redacted public-content audit passes against the exact candidate tree and complete Git history.
 - [ ] **Automated:** `scripts/release/verify-local-readiness.sh` passes in a clean trusted environment using locked dependencies.
 - [ ] **Operator:** dependency lockfile changes and GitHub Action SHA changes are explicitly reviewed.
-- [ ] **Operator:** the public security policy is visible and GitHub private vulnerability reporting has been tested from a non-maintainer account.
+- [ ] **Operator:** the already-visible public security policy and reporting action have passed the documented non-maintainer submission, primary/backup notification, private reply, and non-public closure exercise.
 - [ ] **Operator:** release artifacts come from CI or another reproducible trusted builder; a developer working tree is not promoted directly.
 
 The local script is read-only with respect to production and does not run migrations or call external Mapilio services. It starts with the tested contributor doctor, then validates Composer metadata, dependency advisories, formatting, static analysis, Laravel config caching, tests, npm advisories, the pending project-license metadata state, OpenAPI, the asset build, secret scanning, and public-content policy. It does not replace owner provenance review, license selection, staging, or infrastructure evidence.

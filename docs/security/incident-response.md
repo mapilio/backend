@@ -140,4 +140,4 @@ Complete a blameless review after containment and recovery. It must include:
 - assigned corrective actions with owners, priorities, due dates, tests, and rollout evidence
 - updates required to threat models, architecture decisions, monitoring, backups, restore tests, dependency policy, and this runbook
 
-Run a tabletop exercise before public release and at least annually thereafter. Include one imagery-privacy scenario and one credential or service-to-service integrity scenario; record only sanitized lessons and corrective actions in the repository.
+Run a tabletop exercise before a stable release or production cutover and at least annually thereafter. Include one imagery-privacy scenario and one credential or service-to-service integrity scenario; record only sanitized lessons and corrective actions in the repository.

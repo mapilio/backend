@@ -17,6 +17,12 @@ Secrets must never be committed to this repository, placed in frontend configura
 
 The workflow does not use a baseline or allowlist. A detected credential must be investigated and remediated, not hidden to make CI pass. Repository settings should require the `Secret Scan / Gitleaks history` check before merging into protected branches.
 
+## GitHub-Native Security Controls
+
+The July 29, 2026 live-settings audit confirmed that Dependabot vulnerability alerts are enabled. Dependabot security updates, GitHub native secret scanning, and secret-scanning push protection are disabled. The required Gitleaks history check and locked dependency audits remain active, but they do not replace provider-aware push protection before a secret enters repository history.
+
+Owners must review and enable the applicable native controls, verify alert ownership and a clean initial scan, and record any unavailable feature or accepted limitation before a stable release. Native controls supplement rather than replace the pinned Gitleaks workflow, local full-history scan, dependency audits, rotation policy, and public-content gate.
+
 ## Local Scan
 
 Install Gitleaks `8.30.1`, then run:

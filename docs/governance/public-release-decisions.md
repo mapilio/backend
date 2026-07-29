@@ -18,7 +18,7 @@ The code of conduct defines behavior and enforcement principles, but accepting c
 
 ### Vulnerability reporting
 
-GitHub private vulnerability reporting is enabled. Verify it from a non-maintainer account and ensure the Security page renders `SECURITY.md`. Security reports must not be routed through public issue templates.
+GitHub private vulnerability reporting is enabled, and the public Security page renders `SECURITY.md` plus the reporting action. Complete the documented non-maintainer submission, primary/backup notification, private reply, and non-public closure exercise. Security reports must not be routed through public issue templates.
 
 ### Repository controls
 
