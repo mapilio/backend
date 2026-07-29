@@ -137,6 +137,7 @@ final class ImportSchemaDescriptorExtractorTest extends TestCase
             ['source' => ['driver' => 'pgsql', 'host' => '', 'port' => 5432, 'database' => 'source_db'], 'default' => 'sqlite'],
             ['source' => ['driver' => 'pgsql', 'url' => 'not-a-url'], 'default' => 'sqlite'],
             ['source' => ['driver' => 'pgsql', 'host' => 'source.example.test', 'port' => 5432, 'database' => 'source_db'], 'default' => 'application_alias', 'default_config' => ['driver' => 'pgsql', 'host' => '']],
+            ['source' => ['driver' => 'pgsql', 'host' => 'source.example.test', 'port' => 5432, 'database' => 'source_db'], 'default' => 'application_alias', 'default_config' => ['driver' => 'pgsql', 'url' => new \stdClass]],
         ] as $case) {
             $this->configure();
             Config::set('database.connections.source_pgsql', $case['source']);
@@ -194,7 +195,7 @@ final class ImportSchemaDescriptorExtractorTest extends TestCase
         putenv('PGCONNECT_TIMEOUT=prior-value');
         $database = $this->createMock(DatabaseManager::class);
         $events = [];
-        $connection = $this->mockConnection($events);
+        $connection = $this->mockConnection($events, expectedTimeout: 'prior-value');
         $database->expects($this->once())->method('connection')->willReturn($connection);
         $publisher = $this->createMock(JsonPublisher::class);
         $publisher->expects($this->once())->method('publish');
@@ -291,11 +292,17 @@ final class ImportSchemaDescriptorExtractorTest extends TestCase
     }
 
     /** @return Connection&MockObject */
-    private function mockConnection(array &$events, array $overrides = [], ?object $readOnly = null, ?object $tableRow = null, ?object $countRow = null, ?array $rows = null, bool $missingTable = false): Connection
+    private function mockConnection(array &$events, array $overrides = [], ?object $readOnly = null, ?object $tableRow = null, ?object $countRow = null, ?array $rows = null, bool $missingTable = false, ?string $expectedTimeout = null): Connection
     {
         $connection = $this->createMock(Connection::class);
         $connection->method('getPdo')->willReturn(new \PDO('sqlite::memory:'));
-        $connection->method('transaction')->willReturnCallback(fn (callable $callback): array => $callback($connection));
+        $connection->method('transaction')->willReturnCallback(function (callable $callback) use ($connection, $expectedTimeout): array {
+            if ($expectedTimeout !== null) {
+                $this->assertSame($expectedTimeout, getenv('PGCONNECT_TIMEOUT'));
+            }
+
+            return $callback($connection);
+        });
         $connection->method('statement')->willReturnCallback(function (string $sql) use (&$events): bool {
             $events[] = $sql;
 

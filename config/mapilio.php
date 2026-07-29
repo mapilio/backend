@@ -48,6 +48,20 @@ return [
         ],
     ],
 
+    'target_schema_extractor' => [
+        'enabled' => env('MAPILIO_TARGET_SCHEMA_EXTRACTOR_ENABLED', false),
+        'target_connection' => env('MAPILIO_TARGET_SCHEMA_CONNECTION', 'pgsql'),
+        'schema' => env('MAPILIO_TARGET_SCHEMA_SCHEMA'),
+        'table' => env('MAPILIO_TARGET_SCHEMA_TABLE'),
+        'output_directory' => (string) (env('MAPILIO_TARGET_SCHEMA_OUTPUT_DIRECTORY') ?: storage_path('app/private/target-schema-descriptors')),
+        'postgresql' => [
+            'connect_timeout_seconds' => max(1, min(30, (int) env('MAPILIO_TARGET_SCHEMA_CONNECT_TIMEOUT_SECONDS', 5))),
+            'statement_timeout_ms' => max(100, min(60000, (int) env('MAPILIO_TARGET_SCHEMA_STATEMENT_TIMEOUT_MS', 5000))),
+            'lock_timeout_ms' => max(100, min(10000, (int) env('MAPILIO_TARGET_SCHEMA_LOCK_TIMEOUT_MS', 1000))),
+            'max_runtime_ms' => max(1000, min(120000, (int) env('MAPILIO_TARGET_SCHEMA_MAX_RUNTIME_MS', 30000))),
+        ],
+    ],
+
     'local_demo_seeding' => [
         'enabled' => env('MAPILIO_DEMO_SEEDING_ENABLED', false),
     ],

@@ -52,6 +52,7 @@
 - [0029: Identity import mapping contract](architecture/0029-identity-import-mapping-contract.md)
 - [0030: Import schema fingerprint contract](architecture/0030-import-schema-fingerprint-contract.md)
 - [0031: PostgreSQL import schema descriptor extraction](architecture/0031-postgresql-import-schema-descriptor-extraction.md)
+- [0032: PostgreSQL target schema descriptor extraction](architecture/0032-postgresql-target-schema-descriptor-extraction.md)
 
 ## Database
 
@@ -63,6 +64,7 @@
 - [Identity import mapping schema](database/identity-import-mapping.schema.json)
 - [Import schema fingerprint](database/import-schema-fingerprint.md)
 - [PostgreSQL import schema descriptor extractor](database/import-schema-descriptor-extractor.md)
+- [PostgreSQL target schema descriptor extractor](database/target-schema-descriptor-extractor.md)
 - [Import schema fingerprint schema](database/import-schema-fingerprint.schema.json)
 
 ## Operations
