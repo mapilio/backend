@@ -68,6 +68,13 @@
             "path": "tests/Unit/TrustedProxyConfigurationTest.php",
             "fingerprint": "cb5f37b4762871e6bbeccee663cb332438340c469160c634566ecc7c7e01009f",
             "reason": "Synthetic parser fixture replaced in the current tree with RFC documentation addresses."
+        },
+        {
+            "category": "personal-email",
+            "commit": "fe1a074d7ea2854896b574fa5d690869884c7199",
+            "path": "<commit-message>",
+            "fingerprint": "4e309a05ee4c360d89ad4902f68002e0d3ebdce21f4b395b045907552ea984f4",
+            "reason": "GitHub added a maintainer co-author trailer while squash-merging the first reviewed Dependabot update; future bot merges use an explicit sanitized commit body."
         }
     ]
 }
