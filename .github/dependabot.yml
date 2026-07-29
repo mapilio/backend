@@ -31,6 +31,13 @@ updates:
         update-types:
           - minor
           - patch
+      vite-major:
+        patterns:
+          - vite
+          - laravel-vite-plugin
+          - '@tailwindcss/vite'
+        update-types:
+          - major
 
   - package-ecosystem: github-actions
     directory: /
