@@ -48,17 +48,12 @@ node_version_supported() {
     version=${version#*.}
     minor=${version%%.*}
 
-    if ((major == 20)); then
-        ((minor >= 19))
-        return
-    fi
-
     if ((major == 22)); then
         ((minor >= 12))
         return
     fi
 
-    ((major >= 24))
+    ((major == 24))
 }
 
 php_version_supported() {
@@ -165,7 +160,7 @@ doctor_main() {
         if node_version_supported "${version}"; then
             ok "Node.js ${version} is in a supported release lane"
         else
-            fail "Node.js ${version:-unknown} is unsupported; use 20.19+, 22.12+, or 24+"
+            fail "Node.js ${version:-unknown} is unsupported; use Node.js 22.12+ within major 22 or Node 24.x"
         fi
     fi
 
