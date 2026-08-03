@@ -227,6 +227,65 @@ class ImageryUploadCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_upload_alias_preserves_negative_contract_without_side_effects(): void
+    {
+        Queue::fake();
+
+        $beforeImagery = Schema::getConnection()->table('default_mapilio_imagery')->count();
+        $beforeSequences = Schema::getConnection()->table('default_mapilio_sequence_detail')->count();
+        $beforeRoads = Schema::getConnection()->table('default_mapilio_road')->count();
+        $assertNoSideEffects = function () use ($beforeImagery, $beforeSequences, $beforeRoads): void {
+            $this->assertSame($beforeImagery, Schema::getConnection()->table('default_mapilio_imagery')->count());
+            $this->assertSame($beforeSequences, Schema::getConnection()->table('default_mapilio_sequence_detail')->count());
+            $this->assertSame($beforeRoads, Schema::getConnection()->table('default_mapilio_road')->count());
+        };
+
+        $this->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+        $assertNoSideEffects();
+
+        $this->postJson('/api/v1/imagery/uploads', $this->mobilePayload())
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+        $assertNoSideEffects();
+
+        $login = $this->login();
+
+        $missingJsonData = ['options' => ['parameters' => []]];
+        foreach (['/api/function/mapilio/imagery/upload', '/api/v1/imagery/uploads'] as $path) {
+            $this->withToken($login->json('access_token'))
+                ->postJson($path, $missingJsonData)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'json_data' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+        $assertNoSideEffects();
+
+        $blankHash = $this->mobilePayload();
+        data_set($blankHash, 'options.parameters.summary.Information.hash', '');
+        foreach (['/api/function/mapilio/imagery/upload', '/api/v1/imagery/uploads'] as $path) {
+            $this->withToken($login->json('access_token'))
+                ->postJson($path, $blankHash)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'summary.Information.hash' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        $assertNoSideEffects();
+        Queue::assertNothingPushed();
+    }
+
     public function test_versioned_upload_alias_matches_legacy_write_contract(): void
     {
         $login = $this->login();
