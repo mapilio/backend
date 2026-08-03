@@ -28,7 +28,10 @@ GitHub private vulnerability reporting is enabled, and the public Security page 
 - retain native CodeQL default setup for Actions and JavaScript/TypeScript only. PHP is unsupported by CodeQL and remains covered by PHPStan, tests, Composer audit, and existing PHP quality gates;
 - retain full-SHA policy, read-only default `GITHUB_TOKEN`, and disabled workflow approval;
 - decide an organization-owner rollout for new-repository security defaults and two-factor authentication enforcement after account, automation, recovery, and access-impact review;
-- decide whether to enforce protection for administrators, require pull-request review, and prevent every direct unreviewed change;
+- after live API activation and verification, retain the reviewed-linear `main` policy in [ADR 0036](../architecture/0036-reviewed-linear-main.md): one CODEOWNERS approval, reapproval after pushes by someone other than the latest push author, resolved conversations, linear history, five strict checks, and no force-push/deletion;
+- after live API activation and verification, retain disabled merge commits, allowed squash/rebase and update-branch, automatic deletion of merged branches, and sanitized natural-language text when a squash body is needed;
+- keep administrator enforcement disabled while there is only one administrator and no signing/recovery drill; decide second-administrator assignment, signed commits, and enforcement after restricted role and recovery evidence exists;
+- treat administrator bypass as emergency-only, with a restricted incident/recovery record, exact revision, reason, and follow-up review; never use it for routine or dependency work;
 - assign maintainers for API, database, imagery/privacy, AI, GeoServer, mobile compatibility, and operations;
 - approve and activate the drafted [issue triage labels, response expectations, and closure policy](../community/issue-triage.md);
 - decide whether Discussions should be enabled and who moderates them;

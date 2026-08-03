@@ -16,6 +16,10 @@
 - [ ] Public behavior is versioned or an existing compatibility contract is preserved by tests.
 - [ ] OpenAPI and documentation are updated when behavior changes.
 - [ ] Validation, authorization, safe failures, idempotency, and retry behavior are covered where relevant.
+- [ ] A CODEOWNERS maintainer has approved this pull request, and any new push has been reapproved by someone other than the latest push author.
+- [ ] All review conversations are resolved, including conversations reopened by later pushes.
+- [ ] The merge will preserve linear history and uses sanitized natural-language title/body text; no generated or sensitive text is being carried into the public history.
+- [ ] Any emergency administrator bypass has its exact revision, reason, and follow-up review recorded in the restricted system; no restricted record or evidence is included in this public pull request.
 - [ ] No secret, personal data, production record, real imagery, private coordinate, log, or infrastructure detail is included.
 - [ ] External side effects remain disabled or have approved staging evidence and rollback.
 - [ ] `scripts/release/verify-local-readiness.sh` passes.
