@@ -34,6 +34,7 @@ class PersistPredictionResult implements ShouldQueue
         }
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return [

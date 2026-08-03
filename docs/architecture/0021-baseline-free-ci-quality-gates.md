@@ -8,6 +8,8 @@ Accepted and enforced by GitHub Actions for the modern backend.
 
 The repository previously ran a full-history secret scan but had no general pull-request gate for PHP formatting, static analysis, dependency advisories, tests, or OpenAPI validity. The first Larastan level 5 run found 56 issues, primarily from database connection interfaces and unguarded query result types. Pint found two existing formatting failures, and strict OpenAPI lint found four metadata warnings.
 
+An initial global Larastan level 6 probe found 137 findings. It was deliberately not bulk-suppressed: no baseline, ignore, or broad suppression was introduced.
+
 A generated static-analysis baseline or broad ignore rules would make CI green while preserving unclear type boundaries. Floating GitHub Action tags and unpinned command-line downloads would also weaken reproducibility.
 
 ## Decision
@@ -20,8 +22,11 @@ The PHP 8.2 job runs:
 2. locked dependency installation and advisory audit
 3. Laravel Pint in check mode
 4. Larastan/PHPStan level 5 over `app`, `bootstrap/app.php`, and `routes`
-5. Laravel configuration cache creation and clearing
-6. the complete Laravel test suite
+5. Larastan/PHPStan level 6 over the complete `app/Jobs` directory
+6. Laravel configuration cache creation and clearing
+7. the complete Laravel test suite
+
+The global analysis level remains 5. `app/Jobs` is a directory-wide level 6 island, so current and future job classes under that directory are automatically included. This milestone closes exactly nine level 6 job iterable-contract findings: six `tags()` return contracts and three `backoff()` return contracts. It does not claim that the whole application passes level 6.
 
 The API-contract job uses a locked npm tree and Redocly `recommended-strict` to run npm advisory audit, OpenAPI lint, and the Vite production asset build. PHPStan and OpenAPI tool versions are committed to Composer/npm lockfiles. GitHub setup actions are pinned to full commit SHAs.
 
