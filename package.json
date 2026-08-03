@@ -1,8 +1,13 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "mapilio-backend",
     "private": true,
     "license": "UNLICENSED",
     "type": "module",
+    "engines": {
+        "node": "^22.12.0 || ^24.0.0",
+        "npm": ">=10.0.0"
+    },
     "scripts": {
         "build": "vite build",
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",

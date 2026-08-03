@@ -71,7 +71,7 @@ The legacy database remains a migration source while compatibility routes are re
 
 ## Quick Start
 
-Requirements: PHP 8.2+, Composer 2.2+, Node.js 20.19+/22.12+/24+, npm 10+, and the documented PHP extensions. See the [platform matrix](docs/operations/contributor-platform-matrix.md), then run the read-only doctor before installing anything:
+Requirements: PHP 8.2+, Composer 2.2+, Node.js 22.12+ within major 22 or Node 24.x (the current LTS contributor option), npm 10+, and the documented PHP extensions. Other Node majors are unsupported until deliberately added. See the [platform matrix](docs/operations/contributor-platform-matrix.md), then run the read-only doctor before installing anything:
 
 ```bash
 scripts/development/doctor.sh

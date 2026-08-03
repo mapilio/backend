@@ -7,7 +7,7 @@ This matrix describes the public, synthetic development path. It does not author
 | Host | Support level | Installation baseline | Notes |
 | --- | --- | --- | --- |
 | Ubuntu 24.04 | CI reference | Git, Composer 2, PHP CLI and extensions, Node.js 22.12+, npm 10+ | Every push runs the application suite here with PHP 8.2 and Node.js 22.12.0. |
-| macOS with Homebrew | Contributor path | `git`, `php@8.2`, `composer`, `node@22` | Verified with the read-only doctor. Versioned PHP and Node formulae are keg-only, so ensure their `bin` directories precede older tools in `PATH`. |
+| macOS with Homebrew | Contributor path | `git`, `php@8.2`, `composer`, `node@24` | Verified with the read-only doctor. Versioned PHP and Node formulae are keg-only, so ensure their `bin` directories precede older tools in `PATH`. |
 | Windows 11 with WSL2 Ubuntu | Contributor path | Use the Ubuntu packages inside WSL2 | Run the repository, PHP, Composer, Node, and SQLite inside the same WSL filesystem. |
 | Native Windows | Not currently supported | None | Repository scripts require Bash and the path/permission behavior is not covered by CI. |
 
@@ -24,8 +24,8 @@ Install a supported Node.js release from a trusted vendor or version manager; do
 The Homebrew baseline is:
 
 ```bash
-brew install git php@8.2 composer node@22
-export PATH="$(brew --prefix php@8.2)/bin:$(brew --prefix node@22)/bin:${PATH}"
+brew install git php@8.2 composer node@24
+export PATH="$(brew --prefix php@8.2)/bin:$(brew --prefix node@24)/bin:${PATH}"
 ```
 
 Homebrew's versioned PHP and Node formulae are keg-only. The PHP formula includes or depends on the libraries used by the required extensions. Put the exports in the shell profile only after the one-session doctor succeeds. Package installation and shell-profile changes remain operator actions and are never performed by the repository doctor.
@@ -39,7 +39,7 @@ Homebrew's versioned PHP and Node formulae are keg-only. The PHP formula include
 | PHP | Laravel and tooling | 8.2+ and all constraints in `composer.lock` | CI uses 8.2; doctor runs Composer's real platform check. |
 | Composer | Locked PHP install | 2.2+ | Locked packages require Composer runtime API `^2.2`. |
 | PHP extensions | Tests and SQLite workflow | `bcmath`, `curl`, `dom`, `fileinfo`, `gd`, `intl`, `mbstring`, `openssl`, `pdo`, `pdo_sqlite`, `sqlite3`, `tokenizer`, `xml`, `xmlwriter`, `zip` | Doctor checks every extension without loading application configuration. |
-| Node.js | OpenAPI, docs, and assets | 20.19+, 22.12+, or 24+ release lanes; 21 and 23 are unsupported | CI uses 22.12.0. |
+| Node.js | OpenAPI, docs, and assets | 22.12+ within major 22 or Node 24.x; all other majors are unsupported until deliberately added | CI uses 22.12.0; Node 24 is the current LTS contributor option. |
 | npm | Locked JS install | 10+ | `npm ci` and advisory audit run in CI. |
 | SQLite | Safe contributor database | PHP PDO SQLite and SQLite3 extensions | Demo seed fails closed outside local/testing SQLite. |
 | PostgreSQL/PostGIS | Migration/staging proof only | PostgreSQL 14 and PostGIS 3.5 reference | Digest-pinned disposable CI service; not needed for quick start. |
