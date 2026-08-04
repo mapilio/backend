@@ -190,7 +190,25 @@ class MobileAuthCompatibilityTest extends TestCase
                 'message' => 'Unauthenticated.',
             ]);
 
+        $this->getJson('/api/v1/mobile/profile')
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+
         $this->postJson('/api/onesignal/identity-verification', [
+            'options' => [
+                'parameters' => [
+                    'email' => 'alice@example.test',
+                ],
+            ],
+        ])->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+
+        $this->postJson('/api/v1/mobile/onesignal/identity-verification', [
             'options' => [
                 'parameters' => [
                     'email' => 'alice@example.test',
@@ -215,6 +233,21 @@ class MobileAuthCompatibilityTest extends TestCase
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [
+                        'email' => 'alice@example.test',
+                    ],
+                ],
+            ])->assertOk()
+            ->assertExactJson([
+                'status' => true,
+                'response' => [
+                    'hash' => hash_hmac('sha256', 'alice@example.test', 'onesignal-key'),
+                ],
+            ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/onesignal/identity-verification', [
                 'options' => [
                     'parameters' => [
                         'email' => 'alice@example.test',

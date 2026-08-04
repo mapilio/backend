@@ -12,6 +12,7 @@ Implemented foundations include:
 - mobile/mapilio-kit imagery metadata compatibility and image URL generation;
 - signed AI callbacks, encrypted receipts, canonical result persistence, status projection, and publication outboxes;
 - versioned PostGIS AI projection and public AI feature detail;
+- a focused registered-v1-alias negative-contract parity milestone for mobile profile/email-modal/OneSignal, imagery upload, and image-report routes; exact legacy envelopes, validation messages, and negative side-effect boundaries are now covered locally, while this does not complete the full compatibility inventory or prove client/staging compatibility;
 - sequence quality, address enrichment, and UKM scoring boundaries;
 - request IDs, security headers, trusted proxies, bounded metadata-only request events, and rate limits;
 - a shared, grant-aware mobile authentication limiter across legacy and versioned aliases with bounded configuration and a stable legacy-shaped 429 response; independent security review approved the implementation, and the complete local release gate passed with 347 Laravel tests and 1,947 assertions, 69 clean Markdown files, 351 clean public-content candidates, zero dependency advisories, and an 83-commit secret scan. Staging/edge validation remains pending;

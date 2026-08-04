@@ -14,7 +14,8 @@ This public roadmap summarizes direction without exposing private infrastructure
 ## Now
 
 - use the implemented fail-closed legacy import preflight, deterministic schema fingerprint, and identity mapping validator foundations while database metadata extraction, the real owner-approved mapping, and write-capable import/backfill remain open; these do not complete the roadmap item;
-- complete the active legacy API compatibility inventory and contract coverage;
+- continue the active legacy API compatibility inventory and contract coverage; the registered-v1-alias negative-contract parity slice is covered for mobile profile/email-modal/OneSignal, imagery uploads, and image reports, but this is an incremental milestone rather than full client/staging compatibility or full inventory completion;
+- obtain an owner decision on the existing `/api/v2/leaderboard`, `/api/leaderboard-organization-v2`, and `/api/v2/leaderboard-winner` contracts: whether they should be formally owned/frozen, and whether the two distinct score variants need explicit clean versioned API paths; `/api/v2/leaderboard` and `/api/leaderboard-organization-v2` select image-score behavior through route defaults, while `/api/v2/leaderboard-winner` does not use `score_version`;
 - connect restricted PostgreSQL source/target metadata extraction to the deterministic fingerprint contract, then obtain owner decisions for identity keys, duplicate emails, password strategy, roles/status/profile retention, and approve the schema-fingerprinted identity mapping before importer design;
 - finish identity/session boundaries and route authorization review;
 - harden upload/privacy holdback across image server, TrueNAS cache, and anonymizer;

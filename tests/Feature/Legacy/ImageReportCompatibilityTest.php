@@ -86,6 +86,31 @@ class ImageReportCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_image_report_alias_preserves_negative_contract_without_writing_complaints(): void
+    {
+        foreach (['/api/image-report', '/api/v1/imagery/reports'] as $path) {
+            $this->postJson($path)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'imagery_id' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        foreach (['/api/image-report', '/api/v1/imagery/reports'] as $path) {
+            $this->postJson($path, ['imagery_id' => 123])
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'message' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        $this->assertSame(0, Schema::getConnection()->table('default_image_complaint_complaint')->count());
+    }
+
     public function test_versioned_image_report_alias_matches_legacy_write_contract(): void
     {
         $this->postJson('/api/v1/imagery/reports', [

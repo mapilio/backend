@@ -65,6 +65,12 @@ class MobileEmailModalCompatibilityTest extends TestCase
             ->assertExactJson([
                 'message' => 'Unauthenticated.',
             ]);
+
+        $this->postJson('/api/v1/mobile/profile/email-modal')
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     public function test_versioned_mobile_check_email_modal_alias_matches_legacy_contract(): void
