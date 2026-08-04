@@ -36,6 +36,7 @@ run_gate 'Run level 6 static analysis for queue jobs' composer analyse:jobs
 run_gate 'Run level 6 static analysis for AI job predictions' composer analyse:ai-predictions
 run_gate 'Run level 6 static analysis for GeoPublishing' composer analyse:geo-publishing
 run_gate 'Run level 6 static analysis for IdentityAccess' composer analyse:identity-access
+run_gate 'Run level 6 static analysis for ImageryReports' composer analyse:imagery-reports
 run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test
