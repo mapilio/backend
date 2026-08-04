@@ -56,6 +56,7 @@
 - [0033: Shared mobile authentication rate-limit boundary](architecture/0033-mobile-auth-rate-limit-boundary.md)
 - [0034: Protected main and required GitHub checks](architecture/0034-protected-main-required-checks.md)
 - [0035: Validated queue worker pools](architecture/0035-validated-queue-worker-pools.md)
+- [0036: Reviewed linear main](architecture/0036-reviewed-linear-main.md)
 
 ## Database
 
@@ -84,6 +85,7 @@
 - [Security policy](../SECURITY.md)
 - [Private vulnerability reporting verification](security/private-vulnerability-reporting-verification.md)
 - [GitHub-native security controls](security/github-native-security-controls.md)
+- [GitHub administrator and signed-commit readiness](security/github-administrator-signing-readiness.md)
 - [Secret management](security/secret-management.md)
 - [Public-content audit](security/public-content-audit.md)
 - [Incident response](security/incident-response.md)

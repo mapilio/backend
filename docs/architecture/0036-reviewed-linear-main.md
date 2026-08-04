@@ -71,6 +71,14 @@ An administrator bypass is emergency-only. Each bypass requires a restricted inc
 
 The second-administrator assignment, signed-commit policy, administrator enforcement, and restricted role/recovery evidence remain open owner decisions. They must be recorded outside this public repository without private contact details.
 
+## Administrator/signing readiness milestone
+
+The public [administrator/signing readiness runbook](../security/github-administrator-signing-readiness.md) includes a dependency-free live-state matcher for this gate. It reads each global CODEOWNER's permission and `main` protection through read-only GitHub APIs, emits only the aggregate global CODEOWNER administrator count and control booleans, and fails closed on malformed data or unsafe partial activation. Administrators outside the global CODEOWNERS rule deliberately do not satisfy the count; the selected second emergency administrator must remain in that rule for this gate.
+
+An exact `deferred`, `signing`, or `enforced` state match does not validate independent account control, 2FA/recovery, signing custody, drill/evidence, the bot alternative, owner approval, or target-revision signoff. The matcher does not grant permissions, mutate settings, or declare governance readiness.
+
+Required signatures and administrator enforcement stay disabled until a restricted owner decision, an independently controlled second administrator with tested recovery, signing/key-custody evidence, and the non-production drill pass. Administrator enforcement remains a separate owner decision after signing compatibility passes. GitHub's signed-commit limitation for UI squash merges means the current maintainer-squashed Dependabot workflow requires an approved alternative before activation.
+
 ## Relationship to ADR 0034
 
 This ADR supersedes and extends the review portion of [ADR 0034](0034-protected-main-required-checks.md) without rewriting its history. ADR 0034 remains the record of the original strict-check and no-force-push/deletion decision; this ADR adds reviewed, conversation, linear-history, merge-setting, and emergency-bypass governance.
