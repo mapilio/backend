@@ -41,6 +41,7 @@ class RegisterAiDetectionPublication implements ShouldBeUnique, ShouldQueue
         }
     }
 
+    /** @return list<int> */
     public function backoff(): array
     {
         return [30, 120, 300];
@@ -51,6 +52,7 @@ class RegisterAiDetectionPublication implements ShouldBeUnique, ShouldQueue
         return (string) $this->receiptId;
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return ['geo-publication-registration', "receipt:{$this->receiptId}"];

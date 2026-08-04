@@ -24,6 +24,7 @@ class DispatchSequencePrediction implements ShouldQueue
         $predictions->dispatch($this->sequenceUuid);
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return [

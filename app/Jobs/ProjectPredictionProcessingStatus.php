@@ -27,6 +27,7 @@ class ProjectPredictionProcessingStatus implements ShouldBeUnique, ShouldQueue
         $statuses->project($this->receiptId);
     }
 
+    /** @return list<int> */
     public function backoff(): array
     {
         return [30, 120, 300, 900];
@@ -37,6 +38,7 @@ class ProjectPredictionProcessingStatus implements ShouldBeUnique, ShouldQueue
         return (string) $this->receiptId;
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return ['ai-status-projection', "receipt:{$this->receiptId}"];

@@ -27,6 +27,7 @@ class PrepareAiDetectionPublication implements ShouldBeUnique, ShouldQueue
         $publications->prepare($this->publicationId);
     }
 
+    /** @return list<int> */
     public function backoff(): array
     {
         return [30, 120, 300, 900];
@@ -37,6 +38,7 @@ class PrepareAiDetectionPublication implements ShouldBeUnique, ShouldQueue
         return (string) $this->publicationId;
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return ['geo-publication-preparation', "publication:{$this->publicationId}"];

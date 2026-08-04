@@ -29,6 +29,7 @@ class ValidatePredictionCallbackReceipt implements ShouldQueue
         }
     }
 
+    /** @return list<string> */
     public function tags(): array
     {
         return [

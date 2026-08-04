@@ -63,6 +63,9 @@ jobs:
       - name: Run baseline-free static analysis
         run: composer analyse
 
+      - name: Run level 6 static analysis for queue jobs
+        run: composer analyse:jobs
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
