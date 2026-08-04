@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class CreateImageReport
 {
+    /**
+     * @return array{data: array{id: int, sort_order: null, created_at: string|null, created_by_id: int|null, updated_at: string|null, updated_by_id: int|null, deleted_at: null, imagery_id: int, description: string}}
+     */
     public function create(int $imageryId, string $message, ?object $user): array
     {
         $now = Carbon::now();
