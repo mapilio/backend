@@ -1,3 +1,3 @@
-# All repository changes require review from the live repository maintainers.
-# This file intentionally assigns no primary/backup role or private contact detail.
-* @ozcan-durak @fatihalp @gorkemgul
+# Temporary owner-approved solo-maintainer policy: the repository owner is the
+# only global CODEOWNER while independent review capacity is unavailable.
+* @ozcan-durak

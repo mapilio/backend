@@ -23,6 +23,7 @@ This public roadmap summarizes direction without exposing private infrastructure
 - expand privacy-bounded metrics, queue telemetry, and database performance evidence;
 - prepare representative staging without connecting public contributor workflows to production.
 - complete the GitHub administrator/signing readiness tooling and public runbook; keep the second administrator, restricted evidence, non-production drill, Dependabot/bot merge alternative, and signing/enforcement activation pending owner decisions.
+- operate under the temporary owner-approved solo-maintainer policy: `main` retains its required pull-request review object, but the live review requirements report zero approvals, no CODEOWNERS review, no stale-approval dismissal, and no last-push approval; this is not independent review or security/governance readiness. Strict up-to-date five-check protection, conversation resolution, linear history, no force-push/deletion, disabled administrator enforcement, and disabled required signatures remain in force.
 
 ## Next
 

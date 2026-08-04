@@ -6,7 +6,7 @@
 
 ## Decision
 
-The accepted branch-protection policy for `main` requires:
+The intended reviewed-linear branch-protection policy for `main` requires:
 
 - at least one approving review;
 - approval from a CODEOWNERS maintainer;
@@ -31,6 +31,21 @@ Under this policy, merge commits must be disabled; squash and rebase merges must
 
 This ADR and the repository's CODEOWNERS file define the source-controlled policy. They do not prove that GitHub enforces it. The live GitHub branch-protection and repository-settings APIs are the activation source of truth.
 
+## Live-state reconciliation
+
+On 2026-08-04, the owner approved a temporary solo-maintainer policy while independent review capacity is unavailable. The required pull-request review object remains present, but the live branch-protection API reports:
+
+- `required_pull_request_reviews.required_approving_review_count: 0`;
+- `required_pull_request_reviews.require_code_owner_reviews: false`;
+- `required_pull_request_reviews.dismiss_stale_reviews: false`; and
+- `required_pull_request_reviews.require_last_push_approval: false`.
+
+This temporary owner-approved exception is not equivalent to independent review and does not establish security readiness, governance readiness, or release readiness. The global CODEOWNERS rule is intentionally limited to `@ozcan-durak` so future pull requests do not automatically request `@fatihalp` or `@gorkemgul`.
+
+The remaining live protections stay enabled: strict up-to-date status checks with exactly the five required checks listed below, conversation resolution, linear history, and disabled force-pushes and branch deletion. Administrator enforcement and required signatures remain disabled.
+
+The reconciliation records PR #16 as merged at `eaa49eb`, PR #17 as merged at `2770479`, and PR #18 as merged at `d63bdf0`. These are historical merge records, not evidence of independent review or governance readiness.
+
 ## Verification
 
 Roll out and verify the policy in this order:
@@ -39,12 +54,8 @@ Roll out and verify the policy in this order:
 2. Apply the reviewed-linear branch protection and repository merge settings.
 3. Read the live GitHub APIs and verify the exact repository and `main` branch report all expected outcomes below. Source-controlled policy alone is insufficient evidence of activation.
 
-The merged default branch must contain the global CODEOWNERS rule for the three repository maintainers. The branch-protection API must report:
+The merged default branch must contain the temporary global CODEOWNERS rule for `@ozcan-durak` only. The branch-protection API must report the reconciled review object above, plus:
 
-- `required_pull_request_reviews.required_approving_review_count: 1`;
-- `required_pull_request_reviews.require_code_owner_reviews: true`;
-- `required_pull_request_reviews.dismiss_stale_reviews: true`;
-- `required_pull_request_reviews.require_last_push_approval: true`;
 - `required_conversation_resolution.enabled: true`;
 - `required_linear_history.enabled: true`;
 - `required_status_checks.strict: true`, with exactly `PHP style, analysis, audit, and tests`, `OpenAPI contract, npm audit, and asset build`, `PostgreSQL 14 and PostGIS migrations`, `Gitleaks history`, and `Dependency Review`, each bound to the GitHub Actions application;
