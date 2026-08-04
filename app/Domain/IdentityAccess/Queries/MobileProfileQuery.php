@@ -8,6 +8,26 @@ use Illuminate\Support\Facades\Schema;
 
 class MobileProfileQuery
 {
+    /**
+     * @return array{
+     *     id: mixed,
+     *     username: mixed,
+     *     email: mixed,
+     *     user_profile_photo: mixed,
+     *     display_name: mixed,
+     *     str_id: mixed,
+     *     hidden_profile: mixed,
+     *     user_bio: mixed,
+     *     created_at: mixed,
+     *     updated_at: mixed,
+     *     shape_limit: mixed,
+     *     isAdmin: bool,
+     *     sequences: int,
+     *     photos: int,
+     *     meters: string,
+     *     score: string
+     * }|null
+     */
     public function get(int $userId): ?array
     {
         $connection = LegacyDatabase::connection();

@@ -7,6 +7,9 @@ use Throwable;
 
 class LegacyMobileAuthException extends RuntimeException
 {
+    /**
+     * @param  string|list<string>|array<string, list<string>>  $legacyMessage
+     */
     public function __construct(
         private readonly array|string $legacyMessage,
         int $code = 400,
@@ -15,6 +18,9 @@ class LegacyMobileAuthException extends RuntimeException
         parent::__construct('Legacy mobile authentication failed.', $code, $previous);
     }
 
+    /**
+     * @param  array<string, list<string>>  $errors
+     */
     public static function validation(array $errors): self
     {
         return new self($errors, 400);
@@ -30,6 +36,9 @@ class LegacyMobileAuthException extends RuntimeException
         return new self('This account is inactive.', 400);
     }
 
+    /**
+     * @return string|list<string>|array<string, list<string>>
+     */
     public function legacyMessage(): array|string
     {
         return $this->legacyMessage;

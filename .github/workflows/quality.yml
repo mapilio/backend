@@ -72,6 +72,9 @@ jobs:
       - name: Run level 6 static analysis for GeoPublishing
         run: composer analyse:geo-publishing
 
+      - name: Run level 6 static analysis for IdentityAccess
+        run: composer analyse:identity-access
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache

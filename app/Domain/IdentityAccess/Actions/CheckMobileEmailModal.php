@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class CheckMobileEmailModal
 {
+    /**
+     * @return array{status: bool}
+     */
     public function check(object $user): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
