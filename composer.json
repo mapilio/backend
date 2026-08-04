@@ -54,6 +54,7 @@
         ],
         "analyse": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=1G",
         "analyse:jobs": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Jobs --no-progress --memory-limit=1G",
+        "analyse:ai-predictions": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/AiJobsPredictions --no-progress --memory-limit=1G",
         "format:test": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

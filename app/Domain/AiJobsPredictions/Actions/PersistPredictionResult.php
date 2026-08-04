@@ -250,6 +250,9 @@ class PersistPredictionResult
         return LegacyDatabase::connection();
     }
 
+    /**
+     * @param  array<array-key, mixed>  $value
+     */
     private function json(array $value): string
     {
         try {
