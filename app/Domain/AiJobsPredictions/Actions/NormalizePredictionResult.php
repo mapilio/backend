@@ -303,6 +303,9 @@ class NormalizePredictionResult
         return DB::connection(config('mapilio.legacy_database_connection'));
     }
 
+    /**
+     * @param  array<array-key, mixed>  $value
+     */
     private function json(array $value): string
     {
         try {

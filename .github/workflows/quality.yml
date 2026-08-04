@@ -66,6 +66,9 @@ jobs:
       - name: Run level 6 static analysis for queue jobs
         run: composer analyse:jobs
 
+      - name: Run level 6 static analysis for AI job predictions
+        run: composer analyse:ai-predictions
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
