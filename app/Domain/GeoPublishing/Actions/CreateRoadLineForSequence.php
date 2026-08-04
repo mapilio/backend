@@ -160,6 +160,9 @@ class CreateRoadLineForSequence
         return null;
     }
 
+    /**
+     * @param  array<int, object>  $group
+     */
     private function insertRoad(string $sequenceUuid, object $detail, array $group): void
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));

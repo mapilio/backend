@@ -24,10 +24,11 @@ The PHP 8.2 job runs:
 4. Larastan/PHPStan level 5 over `app`, `bootstrap/app.php`, and `routes`
 5. Larastan/PHPStan level 6 over the complete `app/Jobs` directory
 6. Larastan/PHPStan level 6 over the complete `app/Domain/AiJobsPredictions` directory
-7. Laravel configuration cache creation and clearing
-8. the complete Laravel test suite
+7. Larastan/PHPStan level 6 over the complete `app/Domain/GeoPublishing` directory
+8. Laravel configuration cache creation and clearing
+9. the complete Laravel test suite
 
-The global analysis level remains 5. `app/Jobs` and `app/Domain/AiJobsPredictions` are directory-wide level 6 islands, so current and future classes under those directories are automatically included. This milestone closes exactly two level 6 iterable-contract findings in `app/Domain/AiJobsPredictions`: the `json(array $value)` helpers in `NormalizePredictionResult` and `PersistPredictionResult`. It does not claim that the whole application passes level 6.
+The global analysis level remains 5. `app/Jobs`, `app/Domain/AiJobsPredictions`, and `app/Domain/GeoPublishing` are directory-wide level 6 islands, so current and future classes under those directories are automatically included. The GeoPublishing island closes exactly two level 6 iterable-contract findings: the grouped road parameter in `CreateRoadLineForSequence::insertRoad()` and the row-shape return from `UploadedRoadsByGroupQuery::get()`. It does not claim that the whole application passes level 6.
 
 The API-contract job uses a locked npm tree and Redocly `recommended-strict` to run npm advisory audit, OpenAPI lint, and the Vite production asset build. PHPStan and OpenAPI tool versions are committed to Composer/npm lockfiles. GitHub setup actions are pinned to full commit SHAs.
 

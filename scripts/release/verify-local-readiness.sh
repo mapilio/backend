@@ -34,6 +34,7 @@ run_gate 'Check PHP formatting' composer format:test
 run_gate 'Run baseline-free PHP static analysis' composer analyse
 run_gate 'Run level 6 static analysis for queue jobs' composer analyse:jobs
 run_gate 'Run level 6 static analysis for AI job predictions' composer analyse:ai-predictions
+run_gate 'Run level 6 static analysis for GeoPublishing' composer analyse:geo-publishing
 run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test

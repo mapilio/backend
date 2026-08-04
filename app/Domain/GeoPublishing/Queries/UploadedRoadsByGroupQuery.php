@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class UploadedRoadsByGroupQuery
 {
+    /**
+     * @return array<int, array{sequence_uuid: string|null, linefeature: string|null}>
+     */
     public function get(string $groupKey): array
     {
         $connection = LegacyDatabase::connection();
