@@ -22,6 +22,7 @@ This public roadmap summarizes direction without exposing private infrastructure
 - define only the operator dashboard workflows that Mapilio still uses;
 - expand privacy-bounded metrics, queue telemetry, and database performance evidence;
 - prepare representative staging without connecting public contributor workflows to production.
+- complete the GitHub administrator/signing readiness tooling and public runbook; keep the second administrator, restricted evidence, non-production drill, Dependabot/bot merge alternative, and signing/enforcement activation pending owner decisions.
 
 ## Next
 

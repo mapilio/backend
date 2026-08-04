@@ -94,6 +94,9 @@ jobs:
       - name: Test the local GeoJSON validator
         run: npm run test:geojson-validator
 
+      - name: Test GitHub administrator/signing live-state verifier
+        run: npm run test:github-administrator-signing-readiness
+
       - name: Audit locked npm dependencies
         run: npm audit --audit-level=high
 
