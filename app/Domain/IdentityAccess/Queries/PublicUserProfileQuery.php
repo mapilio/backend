@@ -6,10 +6,40 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type Profile array{
+ *     id: mixed,
+ *     username: mixed,
+ *     user_profile_photo: mixed,
+ *     user_bio: mixed,
+ *     created_at: ?string,
+ *     updated_at: ?string,
+ *     km: string,
+ *     photos: int
+ * }
+ * @phpstan-type PaginationLink array{url: ?string, label: string, active: bool}
+ * @phpstan-type Pagination array{
+ *     current_page: int,
+ *     first_page_url: string,
+ *     from: int,
+ *     last_page: int,
+ *     last_page_url: string,
+ *     links: list<PaginationLink>,
+ *     next_page_url: ?string,
+ *     path: string,
+ *     per_page: int,
+ *     prev_page_url: ?string,
+ *     to: int,
+ *     total: int
+ * }
+ */
 class PublicUserProfileQuery
 {
     private const LEGACY_PAGINATION_SIZE = 15;
 
+    /**
+     * @return array{data: null}|array{data: non-empty-list<Profile>, pagination: Pagination}
+     */
     public function byId(int $userId, Request $request): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
@@ -87,6 +117,9 @@ class PublicUserProfileQuery
         return $formatted === '-0' ? '0' : $formatted;
     }
 
+    /**
+     * @return Pagination
+     */
     private function pagination(Request $request, string $path): array
     {
         $page = max(1, (int) $request->query('page', 1));

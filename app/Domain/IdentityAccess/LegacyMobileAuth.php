@@ -14,6 +14,7 @@ class LegacyMobileAuth
     private const REFRESH_TOKEN_TYPE = 'refresh';
 
     /**
+     * @param  array<string, mixed>  $parameters
      * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
      */
     public function login(array $parameters): array
@@ -26,6 +27,7 @@ class LegacyMobileAuth
     /**
      * Issue a token to a first-party public client that cannot keep a client secret.
      *
+     * @param  array<string, mixed>  $parameters
      * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
      */
     public function issueFirstPartyToken(array $parameters): array
@@ -104,6 +106,9 @@ class LegacyMobileAuth
         return $this->tokenPair((int) $payload['sub']);
     }
 
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
     private function assertClient(array $parameters): void
     {
         $errors = [];
