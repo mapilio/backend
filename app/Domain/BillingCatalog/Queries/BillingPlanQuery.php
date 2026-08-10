@@ -7,12 +7,62 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 
+/**
+ * @phpstan-type PackageRow array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     km_price: string|null,
+ *     currency: string|null,
+ *     interval_period: string|null,
+ *     image_id: int|null,
+ *     hover_image_id: int|null,
+ *     image_url: string|null,
+ *     hover_image_url: string|null,
+ *     name: string|null
+ * }
+ * @phpstan-type HostingRow array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     price: string|null,
+ *     currency: string|null,
+ *     image_count: int|null,
+ *     name: string|null
+ * }
+ * @phpstan-type PaginationLink array{url: string|null, label: string, active: bool}
+ * @phpstan-type Pagination array{
+ *     current_page: int,
+ *     first_page_url: string,
+ *     from: int,
+ *     last_page: int,
+ *     last_page_url: string,
+ *     links: list<PaginationLink>,
+ *     next_page_url: string|null,
+ *     path: string,
+ *     per_page: int,
+ *     prev_page_url: string|null,
+ *     to: int,
+ *     total: int
+ * }
+ */
 class BillingPlanQuery
 {
     private const DATA_PAGE_SIZE = 100;
 
     private const LEGACY_PAGINATION_SIZE = 15;
 
+    /**
+     * @return array{data: null}|array{data: list<PackageRow>, pagination: Pagination}
+     */
     public function packages(Request $request): array
     {
         return $this->paginated(
@@ -31,6 +81,9 @@ class BillingPlanQuery
         );
     }
 
+    /**
+     * @return array{data: null}|array{data: list<HostingRow>, pagination: Pagination}
+     */
     public function hosting(Request $request): array
     {
         return $this->paginated(
@@ -48,8 +101,11 @@ class BillingPlanQuery
     }
 
     /**
-     * @param  callable(object): array<string, mixed>  $mapper
+     * @template TRow of array<string, mixed>
+     *
+     * @param  callable(object): TRow  $mapper
      * @param  list<string>  $columns
+     * @return array{data: null}|array{data: list<TRow>, pagination: Pagination}
      */
     private function paginated(
         Request $request,
@@ -107,6 +163,9 @@ class BillingPlanQuery
         return $connection instanceof Connection && $connection->getDriverName() === 'sqlite';
     }
 
+    /**
+     * @return PackageRow
+     */
     private function mapPackage(object $row, string $assetRoot): array
     {
         return [
@@ -128,6 +187,9 @@ class BillingPlanQuery
         ];
     }
 
+    /**
+     * @return HostingRow
+     */
     private function mapHosting(object $row): array
     {
         return [
@@ -172,6 +234,9 @@ class BillingPlanQuery
         return $formatted === '-0' ? '0' : $formatted;
     }
 
+    /**
+     * @return Pagination
+     */
     private function pagination(Request $request, string $path, int $page, int $total, int $rowCount): array
     {
         $lastPage = (int) ceil($total / self::LEGACY_PAGINATION_SIZE);
