@@ -41,6 +41,7 @@ run_gate 'Run level 6 static analysis for Organizations' composer analyse:organi
 run_gate 'Run level 6 static analysis for Projects' composer analyse:projects
 run_gate 'Run level 6 static analysis for BillingCatalog' composer analyse:billing-catalog
 run_gate 'Run level 6 static analysis for PublicContent' composer analyse:public-content
+run_gate 'Run level 6 static analysis for Gamification' composer analyse:gamification
 run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test

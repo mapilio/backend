@@ -62,6 +62,7 @@
         "analyse:projects": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/Projects --no-progress --memory-limit=1G",
         "analyse:billing-catalog": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/BillingCatalog --no-progress --memory-limit=1G",
         "analyse:public-content": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/PublicContent --no-progress --memory-limit=1G",
+        "analyse:gamification": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/Gamification --no-progress --memory-limit=1G",
         "format:test": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
