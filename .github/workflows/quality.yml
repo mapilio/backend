@@ -78,6 +78,9 @@ jobs:
       - name: Run level 6 static analysis for ImageryReports
         run: composer analyse:imagery-reports
 
+      - name: Run level 6 static analysis for Organizations
+        run: composer analyse:organizations
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache

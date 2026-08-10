@@ -12,6 +12,15 @@ class OrganizationLeaderboardQuery
 
     public const SCORE_VERSION_UKM = 2;
 
+    /**
+     * @return list<array{
+     *     organization_key: string|null,
+     *     organization_name: string|null,
+     *     point: string|null,
+     *     total_length: string|null,
+     *     total_images: int
+     * }>
+     */
     public function get(int $scoreVersion = self::SCORE_VERSION_SEQUENCE): array
     {
         $connection = LegacyDatabase::connection();
@@ -163,6 +172,15 @@ SQL,
         );
     }
 
+    /**
+     * @return array{
+     *     organization_key: string|null,
+     *     organization_name: string|null,
+     *     point: string|null,
+     *     total_length: string|null,
+     *     total_images: int
+     * }
+     */
     private function mapRow(object $row): array
     {
         return [
