@@ -84,6 +84,9 @@ jobs:
       - name: Run level 6 static analysis for Projects
         run: composer analyse:projects
 
+      - name: Run level 6 static analysis for BillingCatalog
+        run: composer analyse:billing-catalog
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
