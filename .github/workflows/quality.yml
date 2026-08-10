@@ -99,6 +99,9 @@ jobs:
       - name: Run level 6 static analysis for OperationsDashboard
         run: composer analyse:operations-dashboard
 
+      - name: Run level 6 static analysis for DataMigration
+        run: composer analyse:data-migration
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache

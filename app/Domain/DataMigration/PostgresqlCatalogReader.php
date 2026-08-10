@@ -5,7 +5,12 @@ namespace App\Domain\DataMigration;
 use Illuminate\Database\Connection;
 use Throwable;
 
-/** Policy-neutral, metadata-only PostgreSQL descriptor reader. */
+/**
+ * Policy-neutral, metadata-only PostgreSQL descriptor reader.
+ *
+ * @phpstan-type SchemaColumn array{position: int, name: string, type_schema: string, type_name: string, nullable: bool, character_length: int|null, numeric_precision: int|null, numeric_scale: int|null, datetime_precision: int|null}
+ * @phpstan-type SchemaDescriptor array{schema_version: int, fingerprint_algorithm: string, engine: string, schema: string, table: string, columns: list<SchemaColumn>}
+ */
 final class PostgresqlCatalogReader
 {
     private const IDENTIFIER = '/^[a-z_][a-z0-9_]*$/D';
@@ -14,11 +19,13 @@ final class PostgresqlCatalogReader
 
     private const SUPPORTED_TYPES = ['bigint', 'bigserial', 'bit', 'boolean', 'box', 'bpchar', 'bytea', 'char', 'cidr', 'date', 'decimal', 'float4', 'float8', 'inet', 'int', 'int2', 'int4', 'int8', 'interval', 'json', 'jsonb', 'line', 'lseg', 'macaddr', 'money', 'numeric', 'path', 'pg_lsn', 'point', 'polygon', 'real', 'serial', 'smallint', 'text', 'time', 'timestamp', 'timestamptz', 'uuid', 'varbit', 'varchar'];
 
+    /** @return SchemaDescriptor */
     public function read(Connection $connection, string $schema, string $table, PostgresqlCatalogReadOptions $options): array
     {
         return $connection->transaction(fn (Connection $db): array => $this->extract($db, $schema, $table, $options));
     }
 
+    /** @return SchemaDescriptor */
     private function extract(Connection $db, string $schema, string $table, PostgresqlCatalogReadOptions $options): array
     {
         $started = hrtime(true);
