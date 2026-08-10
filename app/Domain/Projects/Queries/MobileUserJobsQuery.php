@@ -5,8 +5,37 @@ namespace App\Domain\Projects\Queries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type MobileUserJobsRow array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     project_id: int|null,
+ *     project_key: string|null,
+ *     assign_id: int|null,
+ *     user_detail: array{array{
+ *         id: int,
+ *         username: string|null,
+ *         email: string|null,
+ *         display_name: string|null
+ *     }},
+ *     project_detail: array{
+ *         marketplace_name: string|null,
+ *         marketplace_description: string|null,
+ *         project_organization_key: string|null,
+ *         project_key: string|null
+ *     }
+ * }
+ */
 class MobileUserJobsQuery
 {
+    /**
+     * @return array{data: list<MobileUserJobsRow>}
+     */
     public function get(object $user): array
     {
         $rows = DB::connection(config('mapilio.legacy_database_connection'))
@@ -40,6 +69,9 @@ class MobileUserJobsQuery
         return ['data' => $rows];
     }
 
+    /**
+     * @return MobileUserJobsRow
+     */
     private function row(object $row, object $user): array
     {
         return [

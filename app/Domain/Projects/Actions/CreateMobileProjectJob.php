@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class CreateMobileProjectJob
 {
+    /**
+     * @return array{data: true}
+     */
     public function create(int $projectId, object $user): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
