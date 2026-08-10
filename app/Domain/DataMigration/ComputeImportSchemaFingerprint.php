@@ -5,6 +5,10 @@ namespace App\Domain\DataMigration;
 use JsonException;
 use stdClass;
 
+/**
+ * @phpstan-type JsonValue null|bool|int|float|string|list<mixed>|array<string, mixed>
+ * @phpstan-type FileStat array<int|string, int>
+ */
 final class ComputeImportSchemaFingerprint
 {
     public const MAX_BYTES = 262144;
@@ -177,6 +181,7 @@ final class ComputeImportSchemaFingerprint
         return json_encode($canonical, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
+    /** @return JsonValue */
     private function normalize(mixed $value): mixed
     {
         if ($value instanceof stdClass) {
@@ -194,6 +199,10 @@ final class ComputeImportSchemaFingerprint
         return $value;
     }
 
+    /**
+     * @param  array<string, mixed>  $value
+     * @param  list<string>  $expected
+     */
     private function keys(array $value, array $expected): void
     {
         $keys = array_keys($value);
@@ -232,6 +241,10 @@ final class ComputeImportSchemaFingerprint
         return is_int($mode) && ($mode & 0170000) === 0100000;
     }
 
+    /**
+     * @param  FileStat  $left
+     * @param  FileStat  $right
+     */
     private function sameFile(array $left, array $right): bool
     {
         return isset($left['dev'], $left['ino'], $right['dev'], $right['ino']) && $left['dev'] === $right['dev'] && $left['ino'] === $right['ino'];
@@ -249,6 +262,7 @@ final class ComputeImportSchemaFingerprint
         return 0;
     }
 
+    /** @param array<int|string, mixed> $values */
     private function childrenDepth(array $values): int
     {
         $maximum = 0;

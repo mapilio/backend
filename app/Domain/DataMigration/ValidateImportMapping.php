@@ -101,7 +101,10 @@ final class ValidateImportMapping
         return is_int($mode) && ($mode & 0170000) === 0100000;
     }
 
-    /** @param array<int|string,int> $left @param array<int|string,int> $right */
+    /**
+     * @param  array<int|string, int>  $left
+     * @param  array<int|string, int>  $right
+     */
     private function sameFile(array $left, array $right): bool
     {
         return isset($left['dev'], $left['ino'], $right['dev'], $right['ino'])
@@ -291,7 +294,10 @@ final class ValidateImportMapping
         }
     }
 
-    /** @param array<string,mixed> $value */
+    /**
+     * @param  array<string, mixed>  $value
+     * @param  list<string>  $expected
+     */
     private function keys(array $value, array $expected): void
     {
         if (array_diff(array_keys($value), $expected) !== [] || array_diff($expected, array_keys($value)) !== []) {

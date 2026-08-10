@@ -4,7 +4,11 @@ namespace App\Domain\DataMigration;
 
 use Throwable;
 
-/** Publishes owner-private JSON atomically, without replacing an existing path. */
+/**
+ * Publishes owner-private JSON atomically, without replacing an existing path.
+ *
+ * @phpstan-type FileIdentity array{device: int, inode: int}
+ */
 final class PrivateJsonPublisher implements JsonPublisher
 {
     public function publish(string $directory, string $filename, string $json): void
@@ -68,6 +72,7 @@ final class PrivateJsonPublisher implements JsonPublisher
         $this->cleanup($temporary, $temporaryIdentity);
     }
 
+    /** @return FileIdentity|null */
     private function identity(string $path): ?array
     {
         $stat = @stat($path);
@@ -75,11 +80,16 @@ final class PrivateJsonPublisher implements JsonPublisher
         return $stat === false ? null : ['device' => (int) $stat[0], 'inode' => (int) $stat[1]];
     }
 
+    /**
+     * @param  FileIdentity|null  $left
+     * @param  FileIdentity|null  $right
+     */
     private function same(?array $left, ?array $right): bool
     {
         return $left !== null && $left === $right;
     }
 
+    /** @param FileIdentity|null $identity */
     private function cleanup(string $path, ?array $identity): void
     {
         if (! is_link($path) && is_file($path) && $this->same($identity, $this->identity($path))) {

@@ -5,6 +5,7 @@ namespace App\Domain\DataMigration;
 use Illuminate\Database\DatabaseManager;
 use Throwable;
 
+/** @phpstan-import-type SchemaDescriptor from PostgresqlCatalogReader */
 final class ExtractImportSchemaDescriptor
 {
     private const ALLOWED_ENVIRONMENTS = ['local', 'testing', 'staging'];
@@ -92,6 +93,7 @@ final class ExtractImportSchemaDescriptor
         return (object) ['checks' => ['SOURCE_READ_ONLY', 'TABLE_METADATA', 'DESCRIPTOR_WRITTEN']];
     }
 
+    /** @return SchemaDescriptor */
     private function connectAndExtract(string $name, string $schema, string $table, string $configKey): array
     {
         $previous = getenv('PGCONNECT_TIMEOUT');

@@ -7,6 +7,11 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * @phpstan-type TableInspectionResult array{table: string, exists: bool, column_count: int|null, row_count: int|null, status: 'PASS'|'FAIL', reason_code: string, passed: bool}
+ * @phpstan-type ManifestTable array{table: string, exists: bool, column_count: int|null, row_count: int|null, status: 'PASS'|'FAIL', reason_code: string}
+ * @phpstan-type PreflightManifest array{schema_version: int, generated_at: string, run_id: string, environment_class: string, driver: string, connection_name: string, tables: list<ManifestTable>}
+ */
 final class RunLegacyImportPreflight
 {
     private const MAX_TABLES = 50;
@@ -125,7 +130,10 @@ final class RunLegacyImportPreflight
         return array_values($tables);
     }
 
-    /** @param list<string> $tables */
+    /**
+     * @param  list<string>  $tables
+     * @return list<TableInspectionResult>
+     */
     private function inspectSqlite(Connection $connection, array $tables): array
     {
         $results = [];
@@ -157,7 +165,10 @@ final class RunLegacyImportPreflight
         return $results;
     }
 
-    /** @param list<string> $tables */
+    /**
+     * @param  list<string>  $tables
+     * @return list<TableInspectionResult>
+     */
     private function connectAndInspectPostgres(string $connectionName, array $tables): array
     {
         $previousTimeout = getenv('PGCONNECT_TIMEOUT');
@@ -177,7 +188,10 @@ final class RunLegacyImportPreflight
         return $connection->transaction(fn (Connection $db): array => $this->inspectPostgres($db, $tables));
     }
 
-    /** @param list<string> $tables */
+    /**
+     * @param  list<string>  $tables
+     * @return list<TableInspectionResult>
+     */
     private function inspectPostgres(Connection $connection, array $tables): array
     {
         $startedAt = hrtime(true);
@@ -235,6 +249,7 @@ final class RunLegacyImportPreflight
         return $results;
     }
 
+    /** @return TableInspectionResult */
     private function tableResult(string $table, bool $exists, ?int $columns, ?int $rows, string $reason): array
     {
         return [
@@ -278,7 +293,10 @@ final class RunLegacyImportPreflight
         $connection->statement("set local statement_timeout = '".min($statementTimeout, $remaining)."ms'");
     }
 
-    /** @param list<array<string, mixed>> $tableResults */
+    /**
+     * @param  list<TableInspectionResult>  $tableResults
+     * @return PreflightManifest
+     */
     private function manifest(string $environment, string $driver, string $connectionName, array $tableResults): array
     {
         $tables = $tableResults;
@@ -325,7 +343,10 @@ final class RunLegacyImportPreflight
         return ['directory' => $directory, 'path' => $path, 'identity' => $identity];
     }
 
-    /** @param array{directory: string, path: string, identity: array{device: int, inode: int}} $output */
+    /**
+     * @param  array{directory: string, path: string, identity: array{device: int, inode: int}}  $output
+     * @param  PreflightManifest  $manifest
+     */
     private function publishManifest(array $output, array $manifest): void
     {
         $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES).PHP_EOL;
@@ -406,7 +427,10 @@ final class RunLegacyImportPreflight
         return ['device' => (int) $stat[0], 'inode' => (int) $stat[1]];
     }
 
-    /** @param array{device: int, inode: int}|null $expected @param array{device: int, inode: int}|null $actual */
+    /**
+     * @param  array{device: int, inode: int}|null  $expected
+     * @param  array{device: int, inode: int}|null  $actual
+     */
     private function identitiesMatch(?array $expected, ?array $actual): bool
     {
         return $expected !== null && $actual !== null && $expected === $actual;
