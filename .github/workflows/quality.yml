@@ -81,6 +81,9 @@ jobs:
       - name: Run level 6 static analysis for Organizations
         run: composer analyse:organizations
 
+      - name: Run level 6 static analysis for Projects
+        run: composer analyse:projects
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
