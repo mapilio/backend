@@ -58,6 +58,7 @@
         "analyse:geo-publishing": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/GeoPublishing --no-progress --memory-limit=1G",
         "analyse:identity-access": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/IdentityAccess --no-progress --memory-limit=1G",
         "analyse:imagery-reports": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/ImageryReports --no-progress --memory-limit=1G",
+        "analyse:organizations": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/Organizations --no-progress --memory-limit=1G",
         "format:test": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
