@@ -5,8 +5,13 @@ namespace App\Domain\PublicContent\Queries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type CatalogEntry array{properties: array{name: string|null, year: string|null}, thumbnails: non-empty-list<string|null>, images: non-empty-list<string|null>}
+ * @phpstan-type CatalogResponse array{status: true, data: array<int, CatalogEntry>}
+ */
 class CatalogQuery
 {
+    /** @return CatalogResponse */
     public function get(Request $request): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
@@ -34,6 +39,7 @@ class CatalogQuery
             ->groupBy('entry_id')
             ->pluck('total', 'entry_id');
 
+        /** @var array<int, CatalogEntry> $data */
         $data = [];
 
         foreach ($entries as $entry) {

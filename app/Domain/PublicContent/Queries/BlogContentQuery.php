@@ -7,12 +7,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type AuthorDetail array{id: int, username: string|null, email: string|null, user_profile_photo: string|null, user_bio: string|null, created_at: string|null, updated_at: string|null}
+ * @phpstan-type AuthorDetails array{0?: AuthorDetail}
+ * @phpstan-type CategoryRow array{id: int, sort_order: int|null, created_at: string|null, created_by_id: int|null, updated_at: string|null, updated_by_id: int|null, deleted_at: string|null, slug: string|null, name: string|null, description: string|null, meta_title: string|null, meta_description: string|null}
+ * @phpstan-type BlogListRow array{id: int, sort_order: int|null, created_at: string|null, created_by_id: int|null, updated_at: string|null, updated_by_id: int|null, deleted_at: string|null, str_id: string|null, type_id: int|null, publish_at: string|null, author_id: int|null, entry_id: int|null, entry_type: string|null, category_id: int|null, featured: bool, enabled: bool, tags: string|null, blog_cover_photo: string|null, category_name: string|null, other_authors: string|null, author_detail: AuthorDetails, title: string|null, summary: string|null, slug: string|null, meta_title: string|null, meta_description: string|null}
+ * @phpstan-type BlogDetailRow array{id: int|null, sort_order: int|null, created_at: string|null, created_by_id: int|null, updated_at: string|null, updated_by_id: int|null, deleted_at: string|null, str_id: string|null, type_id: int|null, publish_at: string|null, author_id: int|null, entry_id: int|null, entry_type: string|null, category_id: int|null, featured: bool, enabled: bool, tags: string|null, blog_cover_photo: string|null, locale: string|null, title: string|null, summary: string|null, meta_title: string|null, meta_description: string|null, slug: string|null, category_name: string|null, content: string|null, other_authors: string|null, author_detail: AuthorDetails}
+ * @phpstan-type PaginationLink array{url: string|null, label: string, active: bool}
+ * @phpstan-type Pagination array{current_page: int, first_page_url: string, from: int, last_page: int, last_page_url: string, links: list<PaginationLink>, next_page_url: string|null, path: string, per_page: int, prev_page_url: string|null, to: int, total: int}
+ */
 class BlogContentQuery
 {
     private const DATA_PAGE_SIZE = 100;
 
     private const LEGACY_PAGINATION_SIZE = 15;
 
+    /** @return array{data: null}|array{data: list<CategoryRow>, pagination: Pagination} */
     public function categories(Request $request): array
     {
         $connection = $this->connection();
@@ -63,6 +73,7 @@ class BlogContentQuery
         ];
     }
 
+    /** @return array{data: null}|array{data: list<BlogListRow>, pagination: Pagination} */
     public function blogs(Request $request): array
     {
         $connection = $this->connection();
@@ -113,6 +124,7 @@ class BlogContentQuery
         ];
     }
 
+    /** @return array{data: null}|array{data: array{0: BlogDetailRow}, pagination: Pagination} */
     public function detail(Request $request, string $slug): array
     {
         $connection = $this->connection();
@@ -230,7 +242,7 @@ class BlogContentQuery
 
     /**
      * @param  Collection<int, mixed>  $authorIds
-     * @return array<int, list<array<string, mixed>>>
+     * @return array<int, AuthorDetails>
      */
     private function authorDetails(ConnectionInterface $connection, Collection $authorIds): array
     {
@@ -305,8 +317,9 @@ class BlogContentQuery
     }
 
     /**
-     * @param  array<int, list<array<string, mixed>>>  $authors
+     * @param  array<int, AuthorDetails>  $authors
      * @param  array<int, string>  $otherAuthors
+     * @return BlogListRow
      */
     private function mapBlogListRow(object $row, array $authors, array $otherAuthors): array
     {
@@ -341,8 +354,9 @@ class BlogContentQuery
     }
 
     /**
-     * @param  array<int, list<array<string, mixed>>>  $authors
+     * @param  array<int, AuthorDetails>  $authors
      * @param  array<int, string>  $otherAuthors
+     * @return BlogDetailRow
      */
     private function mapBlogDetailRow(object $row, array $authors, array $otherAuthors): array
     {
@@ -378,6 +392,7 @@ class BlogContentQuery
         ];
     }
 
+    /** @return CategoryRow */
     private function mapCategory(object $row): array
     {
         return [
@@ -441,6 +456,7 @@ class BlogContentQuery
         return date('Y-m-d H:i:s', strtotime((string) $value));
     }
 
+    /** @return Pagination */
     private function pagination(Request $request, string $path, int $page, int $total, int $rowCount): array
     {
         $lastPage = (int) ceil($total / self::LEGACY_PAGINATION_SIZE);
@@ -462,6 +478,7 @@ class BlogContentQuery
         ];
     }
 
+    /** @return Pagination */
     private function detailPagination(Request $request, string $path): array
     {
         return [
