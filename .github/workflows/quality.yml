@@ -93,6 +93,9 @@ jobs:
       - name: Run level 6 static analysis for Gamification
         run: composer analyse:gamification
 
+      - name: Run level 6 static analysis for ImageryUploads
+        run: composer analyse:imagery-uploads
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
