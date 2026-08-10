@@ -6,9 +6,129 @@ use App\Domain\ImagerySequences\Queries\LeaderboardQuery;
 use App\Support\Database\LegacyDatabase;
 use Illuminate\Database\Connection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
+/**
+ * @phpstan-type BadgeCollection Collection<int, \stdClass>
+ * @phpstan-type BaseBadgePayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     slug: mixed,
+ *     image_id: int|null,
+ *     available_level: int|null,
+ *     is_custom: bool,
+ *     color_code: mixed,
+ *     disabled_image_id: int|null
+ * }
+ * @phpstan-type DiskPayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     slug: mixed,
+ *     adapter: mixed,
+ *     name: mixed,
+ *     description: mixed
+ * }
+ * @phpstan-type FolderPayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     disk_id: int|null,
+ *     slug: mixed,
+ *     allowed_types: mixed,
+ *     str_id: mixed,
+ *     name: mixed,
+ *     description: mixed
+ * }
+ * @phpstan-type FilePayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: string|null,
+ *     name: mixed,
+ *     disk_id: int|null,
+ *     folder_id: int|null,
+ *     extension: mixed,
+ *     size: int|null,
+ *     mime_type: mixed,
+ *     entry_id: int|null,
+ *     entry_type: mixed,
+ *     keywords: mixed,
+ *     height: mixed,
+ *     width: mixed,
+ *     alt_text: mixed,
+ *     title: mixed,
+ *     caption: mixed,
+ *     description: mixed,
+ *     str_id: mixed,
+ *     disk: DiskPayload|null,
+ *     folder: FolderPayload|null,
+ *     entry: null,
+ *     path: string,
+ *     location: string
+ * }
+ * @phpstan-type BadgePayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     slug: mixed,
+ *     image_id: int|null,
+ *     available_level: int|null,
+ *     is_custom: bool,
+ *     color_code: mixed,
+ *     disabled_image_id: int|null,
+ *     enable: bool,
+ *     icon: string,
+ *     point: int,
+ *     title: mixed,
+ *     info: mixed,
+ *     disabled_image?: FilePayload|null
+ * }
+ * @phpstan-type NextBadgePayload array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     slug: mixed,
+ *     image_id: int|null,
+ *     available_level: int|null,
+ *     is_custom: bool,
+ *     color_code: mixed,
+ *     disabled_image_id: int|null,
+ *     icon: string,
+ *     title: mixed,
+ *     info: mixed
+ * }
+ */
 class GamificationBadgesQuery
 {
+    /**
+     * @return array{}|array{
+     *     badges: array<int, BadgePayload>,
+     *     point: int|string,
+     *     next: array{badge: NextBadgePayload|null, percentage: string|int}
+     * }
+     */
     public function get(Request $request, int $userId, LeaderboardQuery $leaderboardQuery): array
     {
         $connection = LegacyDatabase::connection();
@@ -94,7 +214,10 @@ class GamificationBadgesQuery
         return $leaderboard[0]['point'] ?? 0;
     }
 
-    private function badges(Connection $connection, string $locale)
+    /**
+     * @return BadgeCollection
+     */
+    private function badges(Connection $connection, string $locale): Collection
     {
         $query = $connection
             ->table('default_gamification_badge as badge')
@@ -129,6 +252,8 @@ class GamificationBadgesQuery
     /**
      * @param  array<int, bool>  $ownedBadgeIds
      * @param  array<int, int>  $levels
+     * @param  array<int, FilePayload>  $disabledImages
+     * @return BadgePayload
      */
     private function badgePayload(
         object $badge,
@@ -154,7 +279,11 @@ class GamificationBadgesQuery
         return $payload;
     }
 
-    private function nextBadge($badges, int $currentLevelId, string $assetRoot): ?array
+    /**
+     * @param  BadgeCollection  $badges
+     * @return NextBadgePayload|null
+     */
+    private function nextBadge(Collection $badges, int $currentLevelId, string $assetRoot): ?array
     {
         $badge = $badges
             ->filter(fn (object $badge): bool => (int) $badge->available_level >= $currentLevelId)
@@ -173,7 +302,10 @@ class GamificationBadgesQuery
         return $payload;
     }
 
-    private function legacyPercentage(int|string $point, $badges, int $currentLevelId): string|int
+    /**
+     * @param  BadgeCollection  $badges
+     */
+    private function legacyPercentage(int|string $point, Collection $badges, int $currentLevelId): string|int
     {
         $badge = $badges
             ->filter(fn (object $badge): bool => (int) $badge->available_level >= $currentLevelId)
@@ -187,6 +319,9 @@ class GamificationBadgesQuery
         return number_format(((float) $point) / (int) $badge->available_level, 0);
     }
 
+    /**
+     * @return BaseBadgePayload
+     */
     private function baseBadgePayload(object $badge): array
     {
         return [
@@ -205,7 +340,11 @@ class GamificationBadgesQuery
         ];
     }
 
-    private function disabledImagePayloads(Connection $connection, $badges, string $locale): array
+    /**
+     * @param  BadgeCollection  $badges
+     * @return array<int, FilePayload>
+     */
+    private function disabledImagePayloads(Connection $connection, Collection $badges, string $locale): array
     {
         $fileIds = $badges
             ->pluck('disabled_image_id')
@@ -250,6 +389,11 @@ class GamificationBadgesQuery
             ->all();
     }
 
+    /**
+     * @param  array<int, FolderPayload>  $folders
+     * @param  array<int, DiskPayload>  $disks
+     * @return FilePayload
+     */
     private function filePayload(object $file, array $folders, array $disks): array
     {
         $folderId = $this->nullableInt($file->folder_id);
@@ -290,6 +434,10 @@ class GamificationBadgesQuery
         ];
     }
 
+    /**
+     * @param  array<int, int>  $diskIds
+     * @return array<int, DiskPayload>
+     */
     private function diskPayloads(Connection $connection, array $diskIds, string $locale): array
     {
         if ($diskIds === []) {
@@ -335,6 +483,10 @@ class GamificationBadgesQuery
             ->all();
     }
 
+    /**
+     * @param  array<int, int>  $folderIds
+     * @return array<int, FolderPayload>
+     */
     private function folderPayloads(Connection $connection, array $folderIds, string $locale): array
     {
         if ($folderIds === []) {

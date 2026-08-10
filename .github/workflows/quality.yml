@@ -90,6 +90,9 @@ jobs:
       - name: Run level 6 static analysis for PublicContent
         run: composer analyse:public-content
 
+      - name: Run level 6 static analysis for Gamification
+        run: composer analyse:gamification
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
