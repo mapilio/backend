@@ -53,7 +53,7 @@
             "@php artisan test"
         ],
         "analyse": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=1G",
-        "analyse:level-7": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=7 --no-progress --memory-limit=1G app/Domain/ImagerySequences/Queries/LeaderboardWinnerQuery.php app/Domain/ImagerySequences/Actions/CalculateSequenceUkmScores.php app/Domain/ImagerySequences/Actions/UkmDistanceRow.php",
+        "analyse:level-7": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=7 --no-progress --memory-limit=1G app/Domain/ImagerySequences/Queries/LeaderboardWinnerQuery.php app/Domain/ImagerySequences/Actions/CalculateSequenceUkmScores.php app/Domain/ImagerySequences/Actions/UkmDistanceRow.php app/Domain/GeoPublishing/Actions/RegisterAiDetectionPublication.php app/Domain/GeoPublishing/Actions/AiPublicationReceiptRow.php app/Domain/GeoPublishing/Actions/AiPublicationFeatureSummaryRow.php",
         "format:test": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
