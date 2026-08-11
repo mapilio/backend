@@ -60,53 +60,8 @@ jobs:
       - name: Check PHP formatting
         run: composer format:test
 
-      - name: Run baseline-free static analysis
+      - name: Run baseline-free level 6 static analysis
         run: composer analyse
-
-      - name: Run level 6 static analysis for queue jobs
-        run: composer analyse:jobs
-
-      - name: Run level 6 static analysis for AI job predictions
-        run: composer analyse:ai-predictions
-
-      - name: Run level 6 static analysis for GeoPublishing
-        run: composer analyse:geo-publishing
-
-      - name: Run level 6 static analysis for IdentityAccess
-        run: composer analyse:identity-access
-
-      - name: Run level 6 static analysis for ImageryReports
-        run: composer analyse:imagery-reports
-
-      - name: Run level 6 static analysis for Organizations
-        run: composer analyse:organizations
-
-      - name: Run level 6 static analysis for Projects
-        run: composer analyse:projects
-
-      - name: Run level 6 static analysis for BillingCatalog
-        run: composer analyse:billing-catalog
-
-      - name: Run level 6 static analysis for PublicContent
-        run: composer analyse:public-content
-
-      - name: Run level 6 static analysis for Gamification
-        run: composer analyse:gamification
-
-      - name: Run level 6 static analysis for ImageryUploads
-        run: composer analyse:imagery-uploads
-
-      - name: Run level 6 static analysis for OperationsDashboard
-        run: composer analyse:operations-dashboard
-
-      - name: Run level 6 static analysis for DataMigration
-        run: composer analyse:data-migration
-
-      - name: Run level 6 static analysis for InventoryFeatures
-        run: composer analyse:inventory-features
-
-      - name: Run level 6 static analysis for ImagerySequences
-        run: composer analyse:imagery-sequences
 
       - name: Verify Laravel configuration caching
         run: |

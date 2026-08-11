@@ -31,6 +31,9 @@ class GetPointByUserController extends Controller
         ]);
     }
 
+    /**
+     * @return array<string, int|string|array<int, array{url: string|null, label: string, active: bool}>|null>
+     */
     private function pagination(Request $request): array
     {
         $path = '/'.$request->path();
