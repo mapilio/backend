@@ -5,12 +5,19 @@ namespace App\Domain\InventoryFeatures\Queries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type MetadataRow array<string, int|string|null>
+ * @phpstan-type PaginationLink array{url: string|null, label: string, active: bool}
+ * @phpstan-type Pagination array{current_page: int, first_page_url: string, from: int, last_page: int, last_page_url: string, links: list<PaginationLink>, next_page_url: string|null, path: string, per_page: int, prev_page_url: string|null, to: int, total: int}
+ * @phpstan-type MetadataEnvelope array{data: list<MetadataRow>|null, pagination?: Pagination}
+ */
 class TypeMetadataQuery
 {
     private const DATA_PAGE_SIZE = 100;
 
     private const LEGACY_PAGINATION_SIZE = 15;
 
+    /** @return MetadataEnvelope */
     public function types(Request $request): array
     {
         return $this->paginated(
@@ -23,6 +30,7 @@ class TypeMetadataQuery
         );
     }
 
+    /** @return MetadataEnvelope */
     public function groups(Request $request): array
     {
         return $this->paginated(
@@ -36,6 +44,7 @@ class TypeMetadataQuery
 
     /**
      * @param  list<string>  $extraColumns
+     * @return MetadataEnvelope
      */
     private function paginated(
         Request $request,
@@ -107,6 +116,7 @@ class TypeMetadataQuery
 
     /**
      * @param  list<string>  $extraColumns
+     * @return MetadataRow
      */
     private function mapRow(object $row, array $extraColumns): array
     {
@@ -140,6 +150,7 @@ class TypeMetadataQuery
         return date('Y-m-d\TH:i:s.000000\Z', strtotime((string) $value));
     }
 
+    /** @return Pagination */
     private function pagination(Request $request, string $path, int $page, int $total, int $rowCount): array
     {
         $lastPage = (int) ceil($total / self::LEGACY_PAGINATION_SIZE);
