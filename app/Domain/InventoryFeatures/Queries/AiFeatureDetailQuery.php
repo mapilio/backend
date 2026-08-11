@@ -6,10 +6,22 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use JsonException;
+use stdClass;
 use Throwable;
 
+/**
+ * @phpstan-type JsonObject array<int|string, mixed>
+ * @phpstan-type PointGeometry array{type: 'Point', coordinates: array{float, float}}
+ * @phpstan-type ImageUrls array{original: string, preview_480: string}
+ * @phpstan-type FeatureImage array{id: int, sequence_uuid: string, uploaded_hash: string|null, filename: string|null, resolution: string|null, heading: float|null, capture_time: string|null, created_by_id: int|null, geometry: PointGeometry|null, urls: ImageUrls|null}
+ * @phpstan-type FeatureObservation array{id: int, object_key: string, imagery_id: int, bbox: array{float, float, float, float}, score: float, segmentation: JsonObject|null, image: FeatureImage|null}
+ * @phpstan-type FeatureMatch array{id: int, source_index: int, score: float, geometry: PointGeometry, observation_1: FeatureObservation, observation_2: FeatureObservation}
+ * @phpstan-type FeatureProperties array{class_code: string, confidence: float, verified: bool, dimensions: array{width: float, height: float, area: float}, attributes: JsonObject|null, sequence_uuid: string, project_key: string|null, organization_key: string|null, created_by_id: int|null, created_at: string|null, updated_at: string|null}
+ * @phpstan-type FeatureDetail array{type: 'Feature', id: int, geometry: PointGeometry, properties: FeatureProperties, matches: list<FeatureMatch>}
+ */
 class AiFeatureDetailQuery
 {
+    /** @return FeatureDetail|null */
     public function find(int $featureId): ?array
     {
         try {
@@ -52,6 +64,7 @@ class AiFeatureDetailQuery
         }
     }
 
+    /** @return Collection<int, stdClass> */
     private function matchesFor(int $featureId): Collection
     {
         $maximum = max(1, (int) config('mapilio.ai_result_persistence.max_matches_per_feature', 1000));
@@ -78,6 +91,10 @@ class AiFeatureDetailQuery
         return $matches;
     }
 
+    /**
+     * @param  Collection<int, stdClass>  $matches
+     * @return Collection<int, stdClass>
+     */
     private function observationsFor(Collection $matches): Collection
     {
         $ids = $matches
@@ -116,6 +133,10 @@ class AiFeatureDetailQuery
         return $observations;
     }
 
+    /**
+     * @param  Collection<int, stdClass>  $observations
+     * @return Collection<int, stdClass>
+     */
     private function imagesFor(Collection $observations): Collection
     {
         $ids = $observations
@@ -149,6 +170,12 @@ class AiFeatureDetailQuery
             ->keyBy(fn (object $image): int => (int) $image->id);
     }
 
+    /**
+     * @param  Collection<int, stdClass>  $matches
+     * @param  Collection<int, stdClass>  $observations
+     * @param  Collection<int, stdClass>  $images
+     * @return FeatureDetail
+     */
     private function mapFeature(object $feature, Collection $matches, Collection $observations, Collection $images): array
     {
         return [
@@ -181,6 +208,11 @@ class AiFeatureDetailQuery
         ];
     }
 
+    /**
+     * @param  Collection<int, stdClass>  $observations
+     * @param  Collection<int, stdClass>  $images
+     * @return FeatureMatch
+     */
     private function mapMatch(object $match, Collection $observations, Collection $images): array
     {
         return [
@@ -199,6 +231,10 @@ class AiFeatureDetailQuery
         ];
     }
 
+    /**
+     * @param  Collection<int, stdClass>  $images
+     * @return FeatureObservation
+     */
     private function mapObservation(?object $observation, Collection $images): array
     {
         if ($observation === null) {
@@ -229,6 +265,7 @@ class AiFeatureDetailQuery
         ];
     }
 
+    /** @return FeatureImage */
     private function mapImage(object $image): array
     {
         $uploadedHash = $this->nullableString($image->uploaded_hash);
@@ -255,6 +292,7 @@ class AiFeatureDetailQuery
         ];
     }
 
+    /** @return ImageUrls */
     private function imageUrls(string $uploadedHash, string $filename): array
     {
         $segments = array_filter([
@@ -272,6 +310,7 @@ class AiFeatureDetailQuery
         ];
     }
 
+    /** @return JsonObject */
     private function decodeJsonObject(mixed $value, string $field): array
     {
         if (is_array($value)) {
@@ -295,6 +334,7 @@ class AiFeatureDetailQuery
         return $decoded;
     }
 
+    /** @return PointGeometry */
     private function decodePointGeometry(mixed $value, string $field): array
     {
         $geometry = $this->decodeJsonObject($value, $field);

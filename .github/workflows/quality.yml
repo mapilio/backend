@@ -102,6 +102,9 @@ jobs:
       - name: Run level 6 static analysis for DataMigration
         run: composer analyse:data-migration
 
+      - name: Run level 6 static analysis for InventoryFeatures
+        run: composer analyse:inventory-features
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache
