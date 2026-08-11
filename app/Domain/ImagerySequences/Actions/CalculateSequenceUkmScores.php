@@ -65,15 +65,15 @@ class CalculateSequenceUkmScores
 
             $now = Carbon::now();
             $maximumDistance = $this->maximumDistance();
-            $updates = $rows->map(function (object $row) use ($maximumDistance, $now): array {
+            $updates = $rows->map(function (UkmDistanceRow $row) use ($maximumDistance, $now): array {
                 $distance = $row->distance === null
                     ? $maximumDistance
-                    : min($maximumDistance, max(0.0, (float) $row->distance));
+                    : min($maximumDistance, max(0.0, $row->distance));
 
                 return [
-                    'id' => (int) $row->id,
+                    'id' => $row->imageryId,
                     'distance' => $distance,
-                    'score' => $this->score($distance, Carbon::parse((string) $row->capture_time), $now),
+                    'score' => $this->score($distance, $row->captureTime, $now),
                 ];
             });
 
@@ -189,7 +189,7 @@ class CalculateSequenceUkmScores
     }
 
     /**
-     * @return Collection<int, object>
+     * @return Collection<int, UkmDistanceRow>
      */
     private function postgresDistances(Connection $connection, string $sequenceUuid): Collection
     {
@@ -236,11 +236,13 @@ class CalculateSequenceUkmScores
             $sequenceUuid,
         ]);
 
-        return collect($rows);
+        return collect($rows)->map(
+            fn (object $row): UkmDistanceRow => UkmDistanceRow::fromDatabaseRow($row),
+        );
     }
 
     /**
-     * @return Collection<int, covariant object>
+     * @return Collection<int, UkmDistanceRow>
      */
     private function portableDistances(Connection $connection, string $sequenceUuid): Collection
     {
@@ -295,11 +297,7 @@ class CalculateSequenceUkmScores
                 }
             }
 
-            return (object) [
-                'id' => $source->id,
-                'capture_time' => $source->capture_time,
-                'distance' => $nearest,
-            ];
+            return new UkmDistanceRow((int) $source->id, $captureTime, $nearest);
         });
     }
 
