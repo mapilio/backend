@@ -18,6 +18,9 @@ class SpriteController extends Controller
         return response()->json($this->sprites('sprites@2x.json'));
     }
 
+    /**
+     * @return array<string, array{x: int, y: int, height: int, width: int, visible: bool, pixelRatio: int}>
+     */
     private function sprites(string $file): array
     {
         $path = public_path('sprites/'.$file);
