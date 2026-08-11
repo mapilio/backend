@@ -14,21 +14,26 @@ class RegisterAiDetectionPublication
             return false;
         }
 
-        $receipt = DB::table('ai_prediction_callback_receipts')->find($receiptId);
+        $receiptRow = DB::table('ai_prediction_callback_receipts')
+            ->where('id', $receiptId)
+            ->first([
+                'processing_status',
+                'response_status',
+                'result_feature_count',
+                'response_id',
+            ]);
 
-        if ($receipt === null) {
+        if ($receiptRow === null) {
             throw new GeoPublicationException("Callback receipt {$receiptId} was not found.");
         }
 
-        if (! is_object($receipt)) {
-            throw new GeoPublicationException('Callback receipt has an invalid database representation.');
-        }
+        $receipt = AiPublicationReceiptRow::fromDatabaseRow($receiptRow);
 
-        if ($receipt->processing_status !== 'processed') {
+        if ($receipt->processingStatus !== 'processed') {
             throw new GeoPublicationException("Callback receipt {$receiptId} has not been processed.");
         }
 
-        if ($receipt->response_status !== 'SUCCESS') {
+        if ($receipt->responseStatus !== 'SUCCESS') {
             return false;
         }
 
@@ -37,11 +42,17 @@ class RegisterAiDetectionPublication
             ->selectRaw('sequence_uuid, count(*) as feature_count')
             ->groupBy('sequence_uuid')
             ->limit(2)
-            ->get();
+            ->get()
+            ->map(
+                fn (object $row): AiPublicationFeatureSummaryRow => AiPublicationFeatureSummaryRow::fromDatabaseRow($row),
+            );
 
-        $actualFeatureCount = (int) $features->sum('feature_count');
+        $actualFeatureCount = $features->reduce(
+            fn (int $total, AiPublicationFeatureSummaryRow $feature): int => $total + $feature->featureCount,
+            0,
+        );
 
-        if ($features->count() > 1 || $actualFeatureCount !== (int) $receipt->result_feature_count) {
+        if ($features->count() > 1 || $actualFeatureCount !== $receipt->resultFeatureCount) {
             throw new GeoPublicationException('Canonical detection features do not match their processed AI receipt.');
         }
 
@@ -66,25 +77,27 @@ class RegisterAiDetectionPublication
         return $inserted === 1;
     }
 
-    private function sequenceUuid(object $receipt, ?object $feature): string
-    {
-        if (is_string($feature?->sequence_uuid) && $feature->sequence_uuid !== '') {
-            return $feature->sequence_uuid;
+    private function sequenceUuid(
+        AiPublicationReceiptRow $receipt,
+        ?AiPublicationFeatureSummaryRow $feature,
+    ): string {
+        if ($feature !== null) {
+            return $feature->sequenceUuid;
         }
 
-        $processing = $this->legacyConnection()->table('default_mapilio_processing')
-            ->where('response_id', $receipt->response_id)
+        $sequenceUuids = $this->legacyConnection()->table('default_mapilio_processing')
+            ->where('response_id', $receipt->responseId)
             ->whereNull('deleted_at')
             ->limit(2)
-            ->get(['sequence_uuid']);
+            ->pluck('sequence_uuid');
 
-        $processingRow = $processing->first();
+        $sequenceUuid = $sequenceUuids->first();
 
-        if ($processing->count() !== 1 || ! is_object($processingRow) || ! is_string($processingRow->sequence_uuid)) {
+        if ($sequenceUuids->count() !== 1 || ! is_string($sequenceUuid) || trim($sequenceUuid) === '') {
             throw new GeoPublicationException('AI publication sequence ownership could not be resolved.');
         }
 
-        return $processingRow->sequence_uuid;
+        return $sequenceUuid;
     }
 
     private function legacyConnection(): Connection

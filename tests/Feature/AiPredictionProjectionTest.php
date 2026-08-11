@@ -125,6 +125,24 @@ class AiPredictionProjectionTest extends TestCase
         ]);
     }
 
+    public function test_missing_receipt_cannot_register_geo_publication(): void
+    {
+        $this->expectException(GeoPublicationException::class);
+        $this->expectExceptionMessage('Callback receipt 999 was not found.');
+
+        app(RegisterAiDetectionPublication::class)->register(999);
+    }
+
+    public function test_unprocessed_receipt_cannot_register_geo_publication(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS', 'validated');
+
+        $this->expectException(GeoPublicationException::class);
+        $this->expectExceptionMessage("Callback receipt {$receiptId} has not been processed.");
+
+        app(RegisterAiDetectionPublication::class)->register($receiptId);
+    }
+
     public function test_geo_publication_registration_is_idempotent(): void
     {
         $receiptId = $this->seedReceipt('SUCCESS', featureCount: 1);
@@ -158,6 +176,36 @@ class AiPredictionProjectionTest extends TestCase
 
         $this->expectException(GeoPublicationException::class);
         $this->expectExceptionMessage('Canonical detection features do not match their processed AI receipt.');
+
+        app(RegisterAiDetectionPublication::class)->register($receiptId);
+    }
+
+    public function test_zero_feature_result_uses_unique_legacy_sequence_ownership(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS');
+
+        $this->assertTrue(app(RegisterAiDetectionPublication::class)->register($receiptId));
+        $this->assertDatabaseHas('geospatial_publications', [
+            'callback_receipt_id' => $receiptId,
+            'sequence_uuid' => 'sequence-ai-1',
+            'feature_count' => 0,
+        ]);
+    }
+
+    public function test_ambiguous_legacy_sequence_ownership_fails_closed(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS');
+        Schema::getConnection()->table('default_mapilio_processing')->insert([
+            'response_id' => 'prediction-result-1',
+            'sequence_uuid' => 'sequence-ai-2',
+            'process_status' => 'pending',
+            'deleted_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectException(GeoPublicationException::class);
+        $this->expectExceptionMessage('AI publication sequence ownership could not be resolved.');
 
         app(RegisterAiDetectionPublication::class)->register($receiptId);
     }
