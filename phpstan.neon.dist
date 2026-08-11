@@ -9,5 +9,6 @@ parameters:
         - bootstrap/app.php
         - database
         - routes
+        - tests
 
     tmpDir: storage/framework/cache/phpstan

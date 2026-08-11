@@ -5,6 +5,8 @@ namespace Tests\Feature\Legacy;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class MobileAuthCompatibilityTest extends TestCase
@@ -437,12 +439,16 @@ class MobileAuthCompatibilityTest extends TestCase
             ->assertTooManyRequests();
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return TestResponse<Response>
+     */
     private function mobileAuthRequest(
         string $path,
         string $remoteAddress,
         array $overrides = [],
         ?string $forwardedFor = null,
-    ) {
+    ): TestResponse {
         $payload = array_merge([
             'grant_type' => 'password',
             'client_id' => 'mobile-client',

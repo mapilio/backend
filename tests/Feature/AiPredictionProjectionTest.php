@@ -167,11 +167,24 @@ class AiPredictionProjectionTest extends TestCase
         Queue::fake();
         Config::set('mapilio.ai_status_projection.queue', 'status-test');
         Config::set('mapilio.geo_publication.queue', 'geo-test');
-        $action = $this->mock(PersistPredictionResult::class);
-        $action->expects('persist')->once()->with(41)->andReturn(false);
+        $action = new class(false) extends PersistPredictionResult
+        {
+            /** @var list<int> */
+            public array $receiptIds = [];
+
+            public function __construct(private readonly bool $result) {}
+
+            public function persist(int $receiptId): bool
+            {
+                $this->receiptIds[] = $receiptId;
+
+                return $this->result;
+            }
+        };
 
         (new PersistPredictionResultJob(41))->handle($action);
 
+        $this->assertSame([41], $action->receiptIds);
         Queue::assertPushedOn('status-test', ProjectPredictionProcessingStatusJob::class);
         Queue::assertPushedOn('geo-test', RegisterAiDetectionPublicationJob::class);
     }
@@ -181,11 +194,24 @@ class AiPredictionProjectionTest extends TestCase
         Queue::fake();
         Config::set('mapilio.ai_status_projection.enabled', false);
         Config::set('mapilio.geo_publication.registration_enabled', false);
-        $action = $this->mock(PersistPredictionResult::class);
-        $action->expects('persist')->once()->with(42)->andReturn(true);
+        $action = new class(true) extends PersistPredictionResult
+        {
+            /** @var list<int> */
+            public array $receiptIds = [];
+
+            public function __construct(private readonly bool $result) {}
+
+            public function persist(int $receiptId): bool
+            {
+                $this->receiptIds[] = $receiptId;
+
+                return $this->result;
+            }
+        };
 
         (new PersistPredictionResultJob(42))->handle($action);
 
+        $this->assertSame([42], $action->receiptIds);
         Queue::assertNotPushed(ProjectPredictionProcessingStatusJob::class);
         Queue::assertNotPushed(RegisterAiDetectionPublicationJob::class);
     }

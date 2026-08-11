@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 trait LegacyMobileAuthFixtures
 {
@@ -43,6 +44,9 @@ trait LegacyMobileAuthFixtures
         ));
     }
 
+    /**
+     * @return TestResponse<Response>
+     */
     protected function loginAsLegacyUser(string $fixtureKey): TestResponse
     {
         $user = $this->legacyUserFixtures()[$fixtureKey];

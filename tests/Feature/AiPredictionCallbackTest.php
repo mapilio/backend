@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class AiPredictionCallbackTest extends TestCase
@@ -51,7 +52,7 @@ class AiPredictionCallbackTest extends TestCase
         $receiptId = (int) $response->json('receipt_id');
         $receipt = Schema::getConnection()->table('ai_prediction_callback_receipts')->find($receiptId);
 
-        $this->assertNotNull($receipt);
+        $this->assertIsObject($receipt);
         $this->assertSame('prediction-response-1', $receipt->response_id);
         $this->assertSame('SUCCESS', $receipt->response_status);
         $this->assertSame(2, $receipt->result_feature_count);
@@ -258,6 +259,9 @@ class AiPredictionCallbackTest extends TestCase
         });
     }
 
+    /**
+     * @return TestResponse<Response>
+     */
     private function signedPost(
         string $path,
         string $rawBody,

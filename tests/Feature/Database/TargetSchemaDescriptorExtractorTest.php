@@ -219,7 +219,10 @@ final class TargetSchemaDescriptorExtractorTest extends TestCase
             ->doesntExpectOutput('/private/secret.json');
     }
 
-    /** @return Connection&MockObject */
+    /**
+     * @param  list<string>  $events
+     * @return Connection&MockObject
+     */
     private function mockConnection(array &$events, string $mode = 'success', ?string $expectedTimeout = null): Connection
     {
         $connection = $this->createMock(Connection::class);
@@ -236,7 +239,7 @@ final class TargetSchemaDescriptorExtractorTest extends TestCase
 
             return true;
         });
-        $connection->method('selectOne')->willReturnCallback(function (string $sql) use (&$events, $mode): ?object {
+        $connection->method('selectOne')->willReturnCallback(function (string $sql) use (&$events, $mode): object {
             $events[] = $sql;
             if ($mode === 'query_failure') {
                 throw new \RuntimeException('synthetic');

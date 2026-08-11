@@ -206,11 +206,17 @@ final class ImportSchemaFingerprintTest extends TestCase
         return hash('sha256', $prefix.$canonical);
     }
 
+    /**
+     * @param  array<string, mixed>  $descriptor
+     */
     private function assertSuccessful(string $name, array $descriptor): void
     {
         $this->artisan('mapilio:fingerprint-import-schema', ['descriptor' => $this->write($name.'.json', $descriptor)])->assertSuccessful();
     }
 
+    /**
+     * @param  array<string, mixed>  $descriptor
+     */
     private function assertFailure(string $name, array $descriptor, string $reason): void
     {
         $this->assertFailureRaw($name, $this->write($name.'.json', $descriptor), $reason);
@@ -226,6 +232,9 @@ final class ImportSchemaFingerprintTest extends TestCase
         $this->artisan('mapilio:fingerprint-import-schema', ['descriptor' => $this->writeRaw($name, $contents)])->assertSuccessful();
     }
 
+    /**
+     * @param  array<string, mixed>  $value
+     */
     private function write(string $name, array $value): string
     {
         return $this->writeRaw($name, json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
