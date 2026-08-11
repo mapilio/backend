@@ -22,14 +22,15 @@ The PHP 8.2 job runs:
 2. locked dependency installation and advisory audit
 3. Laravel Pint in check mode
 4. baseline-free Larastan/PHPStan level 6 over `app`, `bootstrap/app.php`, `database`, `routes`, and `tests`
-5. Laravel configuration cache creation and clearing
-6. the complete Laravel test suite
+5. baseline-free Larastan/PHPStan level 7 over an explicitly promoted, bounded path list
+6. Laravel configuration cache creation and clearing
+7. the complete Laravel test suite
 
 The earlier migration used directory-wide level 6 islands to fix findings in bounded batches without suppressions. After those islands were complete, the final application-wide probe had two findings: the legacy user-points pagination contract and the sprite metadata map contract. Both now have explicit return shapes. The island-specific Composer scripts and repeated CI/release steps have been retired in favor of one permanent level 6 gate, so every current and future class in the configured application scope receives the same coverage.
 
 The complete `database` tree was then measured separately at level 6 and had zero findings. Migrations, seeders, and factories are therefore part of the same permanent gate rather than a second command. The first test-suite probe found 38 findings: 15 unsafe object-property reads, 10 iterable values without item types, four missing return types, three undefined mock methods, three generic types without parameters, and one finding each for an unused union member, an always-true comparison, and an already-narrowed assertion. Those contracts were fixed without changing production behavior, adding suppressions, or introducing a baseline. The complete `tests` tree is now part of the same permanent level 6 gate.
 
-A configured production-scope level 7 probe found 419 findings: 387 dynamic database-row property findings and 32 other type findings. Level 7 is not enabled and none of those findings is suppressed; query-row boundaries must be modeled deliberately before promotion.
+The initial configured production-scope level 7 probe found 419 findings: 387 dynamic database-row property findings and 32 other type findings. The first bounded promotion replaces `LeaderboardWinnerQuery`'s whole-row challenge lookup with a scalar `is_calculated` projection, preserving missing, false, and true behavior while removing its only dynamic-property finding. The permanent `analyse:level-7` command now covers that file in local release checks and GitHub Quality. The remaining production-scope probe has 418 findings: 386 dynamic database-row property findings and the same 32 other type findings. None is suppressed; additional files join this single bounded path list only after their data-access contracts and focused behavior tests are clean.
 
 The API-contract job uses a locked npm tree and Redocly `recommended-strict` to run npm advisory audit, OpenAPI lint, and the Vite production asset build. PHPStan and OpenAPI tool versions are committed to Composer/npm lockfiles. GitHub setup actions are pinned to full commit SHAs.
 
@@ -39,4 +40,4 @@ No PHPStan baseline, ignored identifier, Redocly ignore file, or warning allowan
 
 Database connection resolution now returns Laravel's concrete connection type after validating the configured connection name. AI and Geo query results fail safely when their database representation is unexpected. Portable marketplace mapping uses explicit arrays instead of dynamic object properties, and smaller header/timestamp type mismatches are corrected.
 
-Protected `main` now requires both Quality jobs, the disposable PostgreSQL/PostGIS migration job, and the separate full-history Gitleaks job, all bound to the GitHub Actions application. Level 7 promotion, mutation or architecture tests, mandatory pull-request review, and administrator enforcement remain future improvements. The separate full-history secret scan remains required because dependency and static-analysis jobs do not replace credential detection.
+Protected `main` now requires both Quality jobs, the disposable PostgreSQL/PostGIS migration job, and the separate full-history Gitleaks job, all bound to the GitHub Actions application. Expansion of the bounded level 7 path list, mutation or architecture tests, mandatory pull-request review, and administrator enforcement remain future improvements. The separate full-history secret scan remains required because dependency and static-analysis jobs do not replace credential detection.
