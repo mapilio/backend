@@ -6,12 +6,22 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * @phpstan-import-type LeaderboardFilters from LeaderboardQuery
+ * @phpstan-import-type LeaderboardRow from LeaderboardQuery
+ *
+ * @phpstan-type WinnerPayload array{is_finished: bool, is_calculated: bool, leaderboard?: list<LeaderboardRow>}
+ */
 class LeaderboardWinnerQuery
 {
     public function __construct(
         private readonly LeaderboardQuery $leaderboardQuery,
     ) {}
 
+    /**
+     * @param  LeaderboardFilters  $filters
+     * @return WinnerPayload
+     */
     public function get(array $filters = []): array
     {
         $payload = [

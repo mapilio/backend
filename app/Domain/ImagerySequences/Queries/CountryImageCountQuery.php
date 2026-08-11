@@ -5,8 +5,10 @@ namespace App\Domain\ImagerySequences\Queries;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
+/** @phpstan-type CountryImageCount array{name: string, lon: string, lat: string, iso3: string, image_count: int} */
 class CountryImageCountQuery
 {
+    /** @return Collection<int, CountryImageCount> */
     public function get(): Collection
     {
         return DB::connection(config('mapilio.legacy_database_connection'))

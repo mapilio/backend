@@ -6,8 +6,15 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type UploadSummaryRow array{total: int, uploaded_hash: mixed, capture_time: mixed, cover_photo: mixed, group_key: mixed, start_address: mixed, last_status: mixed}
+ * @phpstan-type PaginationLink array{url: string|null, label: string, active: bool}
+ * @phpstan-type UploadPagination array{current_page: int, first_page_url: string, from: int|null, last_page: int, last_page_url: string, links: list<PaginationLink>, next_page_url: string|null, path: string, per_page: int, prev_page_url: string|null, to: int|null, total: int}
+ * @phpstan-type UploadSummaryEnvelope array{data: list<UploadSummaryRow>|null, pagination: UploadPagination}
+ */
 class UserUploadsQuery
 {
+    /** @return UploadSummaryEnvelope */
     public function get(int $userId, Request $request): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
@@ -28,7 +35,7 @@ class UserUploadsQuery
     }
 
     /**
-     * @return array{0: list<array<string, mixed>>, 1: int}
+     * @return array{0: list<UploadSummaryRow>, 1: int}
      */
     private function postgresRows(ConnectionInterface $connection, int $userId, int $limit, int $offset): array
     {
@@ -82,7 +89,7 @@ class UserUploadsQuery
     }
 
     /**
-     * @return array{0: list<array<string, mixed>>, 1: int}
+     * @return array{0: list<UploadSummaryRow>, 1: int}
      */
     private function portableRows(ConnectionInterface $connection, int $userId, int $limit, int $offset): array
     {
@@ -137,6 +144,7 @@ class UserUploadsQuery
         ];
     }
 
+    /** @return UploadSummaryRow */
     private function row(object $row): array
     {
         return [
@@ -155,6 +163,7 @@ class UserUploadsQuery
         return max(1, min(1000, (int) data_get($request->query(), 'options.limit', 15)));
     }
 
+    /** @return UploadPagination */
     private function pagination(Request $request, string $path, int $page, int $limit, int $total, int $rowCount): array
     {
         $lastPage = max(1, (int) ceil($total / $limit));
@@ -176,6 +185,7 @@ class UserUploadsQuery
         ];
     }
 
+    /** @return list<PaginationLink> */
     private function links(string $path, Request $request, int $page, int $lastPage): array
     {
         $links = [

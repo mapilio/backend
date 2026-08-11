@@ -105,6 +105,9 @@ jobs:
       - name: Run level 6 static analysis for InventoryFeatures
         run: composer analyse:inventory-features
 
+      - name: Run level 6 static analysis for ImagerySequences
+        run: composer analyse:imagery-sequences
+
       - name: Verify Laravel configuration caching
         run: |
           php artisan config:cache

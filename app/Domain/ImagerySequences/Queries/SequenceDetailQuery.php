@@ -5,8 +5,10 @@ namespace App\Domain\ImagerySequences\Queries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/** @phpstan-type SequenceImage array{id: int, heading: int|null, filename: string|null, uploaded_hash: string|null, fov: string|null, vfov: string|null, pitch: string|null, capture_time: string|null, created_by_id: int|null, resolution: string|null} */
 class SequenceDetailQuery
 {
+    /** @return list<SequenceImage> */
     public function get(string $sequenceUuid): array
     {
         return DB::connection(config('mapilio.legacy_database_connection'))
@@ -32,6 +34,7 @@ class SequenceDetailQuery
             ->all();
     }
 
+    /** @return SequenceImage */
     private function mapRow(object $row): array
     {
         return [

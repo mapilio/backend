@@ -239,6 +239,9 @@ class CalculateSequenceUkmScores
         return collect($rows);
     }
 
+    /**
+     * @return Collection<int, covariant object>
+     */
     private function portableDistances(Connection $connection, string $sequenceUuid): Collection
     {
         $historyMonths = min(120, max(1, (int) config('mapilio.ukm_scoring.history_months', 6)));
