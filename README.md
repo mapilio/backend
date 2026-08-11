@@ -131,7 +131,7 @@ Run the complete local repository gate before opening a pull request:
 scripts/release/verify-local-readiness.sh
 ```
 
-It checks locked dependency metadata and advisories, formatting, baseline-free static analysis, Laravel configuration caching, the full test suite, OpenAPI, the production asset build, Git history/worktree secrets, and redacted public-content policy across the candidate tree and complete history. Gitleaks `8.30.1` is required locally.
+It checks locked dependency metadata and advisories, formatting, baseline-free level 6 static analysis across the application and database code, Laravel configuration caching, the full test suite, OpenAPI, the production asset build, Git history/worktree secrets, and redacted public-content policy across the candidate tree and complete history. Gitleaks `8.30.1` is required locally.
 
 Focused commands:
 
