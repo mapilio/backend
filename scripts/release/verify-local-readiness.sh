@@ -32,6 +32,7 @@ run_gate 'Install locked PHP dependencies' composer install --no-interaction --p
 run_gate 'Audit locked PHP dependencies' composer audit --locked --no-interaction
 run_gate 'Check PHP formatting' composer format:test
 run_gate 'Run baseline-free level 6 PHP static analysis' composer analyse
+run_gate 'Run bounded baseline-free level 7 PHP static analysis' composer analyse:level-7
 run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test
