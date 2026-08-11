@@ -3,12 +3,20 @@
 namespace App\Domain\ImagerySequences\Queries;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type UploadDetailRow array{filename: string|null, last_status: string|null, sequence_uuid: string|null, id: int, img_code: string|null, latitude: string|null, longitude: string|null, heading: float|null, created_by_id: int|null, created_at: string|null, capture_time: string|null}
+ * @phpstan-type PaginationLink array{url: string|null, label: string, active: bool}
+ * @phpstan-type UploadDetailPagination array{current_page: int, first_page_url: string, from: int, last_page: int, last_page_url: string, links: list<PaginationLink>, next_page_url: string|null, path: string, per_page: int, prev_page_url: string|null, to: int, total: int}
+ * @phpstan-type UploadDetailEnvelope array{data: null}|array{data: list<UploadDetailRow>, pagination: UploadDetailPagination}
+ */
 class UserUploadDetailsQuery
 {
+    /** @return UploadDetailEnvelope */
     public function get(int $userId, string $groupKey, Request $request): array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
@@ -50,7 +58,7 @@ class UserUploadDetailsQuery
         ];
     }
 
-    private function baseQuery(ConnectionInterface $connection, int $userId, string $groupKey)
+    private function baseQuery(ConnectionInterface $connection, int $userId, string $groupKey): Builder
     {
         return $connection
             ->table('default_mapilio_imagery as imagery')
@@ -62,6 +70,7 @@ class UserUploadDetailsQuery
             ->where('imagery.created_by_id', $userId);
     }
 
+    /** @return UploadDetailRow */
     private function row(object $row): array
     {
         return [
@@ -102,6 +111,7 @@ class UserUploadDetailsQuery
         return max(1, (int) data_get($request->query(), 'options.limit', 15));
     }
 
+    /** @return UploadDetailPagination */
     private function pagination(Request $request, string $path, int $page, int $limit, int $total, int $rowCount): array
     {
         $lastPage = max(1, (int) ceil($total / $limit));
@@ -123,6 +133,7 @@ class UserUploadDetailsQuery
         ];
     }
 
+    /** @return list<PaginationLink> */
     private function links(string $path, Request $request, int $page, int $lastPage): array
     {
         $links = [

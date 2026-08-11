@@ -46,6 +46,7 @@ run_gate 'Run level 6 static analysis for ImageryUploads' composer analyse:image
 run_gate 'Run level 6 static analysis for OperationsDashboard' composer analyse:operations-dashboard
 run_gate 'Run level 6 static analysis for DataMigration' composer analyse:data-migration
 run_gate 'Run level 6 static analysis for InventoryFeatures' composer analyse:inventory-features
+run_gate 'Run level 6 static analysis for ImagerySequences' composer analyse:imagery-sequences
 run_gate 'Verify Laravel configuration caching' php artisan config:cache
 run_gate 'Clear Laravel configuration cache' php artisan config:clear
 run_gate 'Run the complete backend test suite' php artisan test

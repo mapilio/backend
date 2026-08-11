@@ -5,8 +5,14 @@ namespace App\Domain\ImagerySequences\Queries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @phpstan-type EmbedInfo array{sequence_uuid: string|null, start_address: string|null}
+ * @phpstan-type EmbedEntry array{photo_uuid: string|null, created_by_id: int|null, id: int, capture_time: string|null, filename: string|null, latitude: string|null, longitude: string|null, uploaded_hash: string|null, sequence_uuid: string|null, heading: int|null, resolution: string|null, fov: string|null, vfov: string|null}
+ * @phpstan-type EmbedPayload array{info: EmbedInfo|null, entries: list<EmbedEntry>}
+ */
 class EmbedImageQuery
 {
+    /** @return EmbedPayload|null */
     public function get(string $sequenceUuid): ?array
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
@@ -55,6 +61,7 @@ class EmbedImageQuery
         ];
     }
 
+    /** @return EmbedEntry */
     private function mapEntry(object $row): array
     {
         return [

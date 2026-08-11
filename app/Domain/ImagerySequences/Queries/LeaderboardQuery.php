@@ -5,10 +5,15 @@ namespace App\Domain\ImagerySequences\Queries;
 use App\Support\Database\LegacyDatabase;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
+/**
+ * @phpstan-type LeaderboardFilters array{user_id?: mixed, start_at?: mixed, finish_at?: mixed}
+ * @phpstan-type LeaderboardRow array{id: int, username: string|null, display_name: string|null, user_profile_photo: string|null, point: string, total_length: string, total_images: int, roles: string|null}
+ */
 class LeaderboardQuery
 {
     public const SCORE_VERSION_SEQUENCE = 1;
@@ -16,6 +21,9 @@ class LeaderboardQuery
     public const SCORE_VERSION_IMAGE = 2;
 
     /**
+     * @param  LeaderboardFilters  $filters
+     * @return list<LeaderboardRow>
+     *
      * @throws ValidationException
      */
     public function get(array $filters = [], ?int $limit = null, int $scoreVersion = self::SCORE_VERSION_SEQUENCE): array
@@ -36,6 +44,8 @@ class LeaderboardQuery
     }
 
     /**
+     * @return list<LeaderboardRow>
+     *
      * @throws ValidationException
      */
     public function forUser(int $userId): array
@@ -66,6 +76,7 @@ class LeaderboardQuery
     }
 
     /**
+     * @param  LeaderboardFilters  $filters
      * @return array{0: string, 1: string}|null
      *
      * @throws ValidationException
@@ -321,6 +332,7 @@ SQL,
 
     /**
      * @param  array{0: string, 1: string}|null  $dateWindow
+     * @return list<int|string>
      */
     private function bindings(?int $userId, ?array $dateWindow): array
     {
@@ -345,6 +357,7 @@ SQL,
         return array_merge($bindings, $this->roleFilterBindings());
     }
 
+    /** @return LeaderboardRow */
     private function mapRow(object $row): array
     {
         return [
@@ -374,18 +387,20 @@ SQL,
         return '{'.$roles.'}';
     }
 
+    /** @return list<string> */
     private function excludedRoleSlugs(): array
     {
-        return collect(config('mapilio.leaderboard.excluded_role_slugs', []))
+        return collect(Config::array('mapilio.leaderboard.excluded_role_slugs', []))
             ->filter(fn (mixed $slug): bool => is_string($slug) && trim($slug) !== '')
             ->map(fn (string $slug): string => trim($slug))
             ->values()
             ->all();
     }
 
+    /** @return list<string> */
     private function publicRoleSlugs(): array
     {
-        return collect(config('mapilio.leaderboard.public_role_slugs', []))
+        return collect(Config::array('mapilio.leaderboard.public_role_slugs', []))
             ->filter(fn (mixed $slug): bool => is_string($slug) && trim($slug) !== '')
             ->map(fn (string $slug): string => trim($slug))
             ->values()

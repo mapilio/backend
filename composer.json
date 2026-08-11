@@ -67,6 +67,7 @@
         "analyse:operations-dashboard": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/OperationsDashboard --no-progress --memory-limit=1G",
         "analyse:data-migration": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/DataMigration --no-progress --memory-limit=1G",
         "analyse:inventory-features": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/InventoryFeatures --no-progress --memory-limit=1G",
+        "analyse:imagery-sequences": "@php vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --level=6 app/Domain/ImagerySequences --no-progress --memory-limit=1G",
         "format:test": "@php vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
