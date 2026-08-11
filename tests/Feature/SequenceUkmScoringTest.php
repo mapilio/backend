@@ -63,6 +63,9 @@ class SequenceUkmScoringTest extends TestCase
         $second = Schema::getConnection()->table('default_mapilio_imagery')->find(2);
         $third = Schema::getConnection()->table('default_mapilio_imagery')->find(3);
 
+        $this->assertIsObject($first);
+        $this->assertIsObject($second);
+        $this->assertIsObject($third);
         $this->assertEqualsWithDelta(20.0, (float) $first->ukm_closest_distance, 0.2);
         $this->assertSame(2.5, (float) $first->ukm_score);
         $this->assertSame(40.0, (float) $second->ukm_closest_distance);
@@ -82,6 +85,7 @@ class SequenceUkmScoringTest extends TestCase
 
         $row = Schema::getConnection()->table('default_mapilio_imagery')->find(1);
 
+        $this->assertIsObject($row);
         $this->assertEqualsWithDelta(2.5 / 3, (float) $row->ukm_score, 0.0001);
     }
 

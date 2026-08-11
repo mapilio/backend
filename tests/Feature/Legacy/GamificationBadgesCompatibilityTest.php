@@ -398,6 +398,9 @@ class GamificationBadgesCompatibilityTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function expectedPayload(): array
     {
         $assetRoot = config('app.url');

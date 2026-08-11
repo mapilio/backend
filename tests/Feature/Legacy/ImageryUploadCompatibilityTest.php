@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class ImageryUploadCompatibilityTest extends TestCase
@@ -367,7 +369,10 @@ class ImageryUploadCompatibilityTest extends TestCase
         });
     }
 
-    private function login()
+    /**
+     * @return TestResponse<Response>
+     */
+    private function login(): TestResponse
     {
         return $this->postJson('/api/v2/login', [
             'grant_type' => 'password',

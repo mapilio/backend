@@ -5,6 +5,8 @@ namespace Tests\Feature\Legacy;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class ImageReportCompatibilityTest extends TestCase
@@ -126,7 +128,10 @@ class ImageReportCompatibilityTest extends TestCase
             ->assertJsonPath('data.description', 'Other');
     }
 
-    private function login()
+    /**
+     * @return TestResponse<Response>
+     */
+    private function login(): TestResponse
     {
         return $this->postJson('/api/v2/login', [
             'grant_type' => 'password',

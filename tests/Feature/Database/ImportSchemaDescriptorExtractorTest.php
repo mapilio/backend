@@ -291,7 +291,12 @@ final class ImportSchemaDescriptorExtractorTest extends TestCase
         }
     }
 
-    /** @return Connection&MockObject */
+    /**
+     * @param  list<string>  $events
+     * @param  array<string, mixed>  $overrides
+     * @param  list<array<string, mixed>>|null  $rows
+     * @return Connection&MockObject
+     */
     private function mockConnection(array &$events, array $overrides = [], ?object $readOnly = null, ?object $tableRow = null, ?object $countRow = null, ?array $rows = null, bool $missingTable = false, ?string $expectedTimeout = null): Connection
     {
         $connection = $this->createMock(Connection::class);

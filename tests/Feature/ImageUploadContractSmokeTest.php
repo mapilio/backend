@@ -50,11 +50,9 @@ class ImageUploadContractSmokeTest extends TestCase
         $this->assertIsString($jpeg);
         $this->assertNotFalse($image);
 
-        if ($image !== false) {
-            $this->assertSame(2, imagesx($image));
-            $this->assertSame(2, imagesy($image));
-            imagedestroy($image);
-        }
+        $this->assertSame(2, imagesx($image));
+        $this->assertSame(2, imagesy($image));
+        imagedestroy($image);
     }
 
     public function test_production_cdn_target_is_rejected_even_when_allowlisted(): void

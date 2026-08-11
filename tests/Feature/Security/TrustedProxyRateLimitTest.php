@@ -4,6 +4,8 @@ namespace Tests\Feature\Security;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class TrustedProxyRateLimitTest extends TestCase
@@ -62,7 +64,10 @@ class TrustedProxyRateLimitTest extends TestCase
             ->assertTooManyRequests();
     }
 
-    private function failedLogin(string $remoteAddress, string $forwardedFor)
+    /**
+     * @return TestResponse<Response>
+     */
+    private function failedLogin(string $remoteAddress, string $forwardedFor): TestResponse
     {
         return $this
             ->withServerVariables(['REMOTE_ADDR' => $remoteAddress])

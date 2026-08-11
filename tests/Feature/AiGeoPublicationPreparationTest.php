@@ -207,11 +207,22 @@ class AiGeoPublicationPreparationTest extends TestCase
     {
         Queue::fake();
         [$receiptId, $publicationId] = $this->seedPublication(0);
-        $registration = $this->mock(RegisterAiDetectionPublicationAction::class);
-        $registration->expects('register')->once()->with($receiptId)->andReturn(false);
+        $registration = new class extends RegisterAiDetectionPublicationAction
+        {
+            /** @var list<int> */
+            public array $receiptIds = [];
+
+            public function register(int $receiptId): bool
+            {
+                $this->receiptIds[] = $receiptId;
+
+                return false;
+            }
+        };
 
         (new RegisterAiDetectionPublicationJob($receiptId))->handle($registration);
 
+        $this->assertSame([$receiptId], $registration->receiptIds);
         Queue::assertPushedOn('geo-preparation-test', PrepareAiDetectionPublicationJob::class);
         Queue::assertPushed(PrepareAiDetectionPublicationJob::class, function ($job) use ($publicationId): bool {
             return $job->publicationId === $publicationId;
