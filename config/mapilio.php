@@ -103,6 +103,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Default API Rate Limit
+    |--------------------------------------------------------------------------
+    |
+    | Ships disabled, and observe-only when first enabled: the limiter counts
+    | requests and logs the callers it *would* reject without rejecting them.
+    | Enable it in production, confirm from the logs that no legitimate consumer
+    | reaches the ceiling across a full traffic cycle including peak, and only
+    | then set 'enforce' to true. Routes that declare their own throttle are
+    | skipped, so the observed data describes the unprotected surface.
+    |
+    */
+
+    'rate_limiting' => [
+        'enabled' => env('MAPILIO_API_RATE_LIMITING_ENABLED', false),
+        'enforce' => env('MAPILIO_API_RATE_LIMITING_ENFORCE', false),
+        'max_attempts' => max(1, (int) env('MAPILIO_API_RATE_LIMIT_MAX_ATTEMPTS', 300)),
+        'decay_seconds' => max(1, (int) env('MAPILIO_API_RATE_LIMIT_DECAY_SECONDS', 60)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Imagery Upload Payload Bounds
     |--------------------------------------------------------------------------
     |
