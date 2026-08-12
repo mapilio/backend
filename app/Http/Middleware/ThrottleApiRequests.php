@@ -26,7 +26,7 @@ class ThrottleApiRequests
     public function handle(Request $request, Closure $next): Response
     {
         if (! config('mapilio.rate_limiting.enabled', false)
-            || (! $request->is('api/*') && ! $request->is('webhook/*'))
+            || ! $this->isRateLimitedSurface($request)
             || $this->routeDeclaresOwnThrottle($request)) {
             return $next($request);
         }
@@ -85,6 +85,22 @@ class ThrottleApiRequests
             'X-RateLimit-Limit' => (string) $maxAttempts,
             'X-RateLimit-Remaining' => '0',
         ]);
+    }
+
+    /**
+     * The rate-limited surface is wider than the api route group.
+     *
+     * /config/general and /webhook/response-prediction are registered on the
+     * web group, so registering this middleware only on the api group left
+     * both unprotected: the config endpoint serves map provider tokens, and
+     * the callback costs an HMAC verification per request even when the
+     * signature is rejected.
+     */
+    private function isRateLimitedSurface(Request $request): bool
+    {
+        return $request->is('api/*')
+            || $request->is('webhook/*')
+            || $request->is('config/*');
     }
 
     private function routeDeclaresOwnThrottle(Request $request): bool
