@@ -31,6 +31,12 @@ class CreateImageryUpload
             throw ImageryUploadException::missing('json_data');
         }
 
+        $maxPoints = (int) config('mapilio.imagery_uploads.max_points');
+
+        if (count($jsonData) > $maxPoints) {
+            throw ImageryUploadException::tooManyPoints(count($jsonData), $maxPoints);
+        }
+
         if (! is_array($summary)) {
             throw ImageryUploadException::missing('summary');
         }
@@ -59,21 +65,13 @@ class CreateImageryUpload
         $organizationKey = $this->blankToNull($parameters['organization_key'] ?? null);
         $projectKey = $this->blankToNull($parameters['project_key'] ?? null);
 
-        $imageryRows = array_map(
-            fn (array $point): array => $this->imageryRow(
-                point: $point,
-                summary: $summary,
-                uploadedHash: $uploadedHash,
-                createdById: $createdById,
-                organizationKey: $organizationKey,
-                projectKey: $projectKey,
-                now: $now,
-            ),
-            $jsonData,
-        );
+        $pointCount = count($jsonData);
+        $chunkSize = (int) config('mapilio.imagery_uploads.chunk_size');
 
         DB::connection(config('mapilio.legacy_database_connection'))->transaction(function () use (
-            $imageryRows,
+            $jsonData,
+            $chunkSize,
+            $uploadedHash,
             $summary,
             $sequenceUuid,
             $createdById,
@@ -81,13 +79,28 @@ class CreateImageryUpload
             $projectKey,
             $now,
         ): void {
-            DB::connection(config('mapilio.legacy_database_connection'))
-                ->table('default_mapilio_imagery')
-                ->upsert(
-                    $imageryRows,
-                    ['latitude', 'longitude', 'capture_time'],
-                    array_values(array_diff(array_keys($imageryRows[0]), ['created_at'])),
+            foreach (array_chunk($jsonData, $chunkSize) as $chunk) {
+                $imageryRows = array_map(
+                    fn (array $point): array => $this->imageryRow(
+                        point: $point,
+                        summary: $summary,
+                        uploadedHash: $uploadedHash,
+                        createdById: $createdById,
+                        organizationKey: $organizationKey,
+                        projectKey: $projectKey,
+                        now: $now,
+                    ),
+                    $chunk,
                 );
+
+                DB::connection(config('mapilio.legacy_database_connection'))
+                    ->table('default_mapilio_imagery')
+                    ->upsert(
+                        $imageryRows,
+                        ['latitude', 'longitude', 'capture_time'],
+                        array_values(array_diff(array_keys($imageryRows[0]), ['created_at'])),
+                    );
+            }
 
             $exists = DB::connection(config('mapilio.legacy_database_connection'))
                 ->table('default_mapilio_sequence_detail')
@@ -140,7 +153,7 @@ class CreateImageryUpload
             'status' => true,
             'data' => true,
             'sequence_uuid' => $sequenceUuid,
-            'count' => count($imageryRows),
+            'count' => $pointCount,
         ];
     }
 
