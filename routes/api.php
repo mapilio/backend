@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Ai\PredictionCallbackController;
 use App\Http\Controllers\Api\V1\Content\NewsletterSubscriptionController;
 use App\Http\Controllers\Api\V1\Geo\AiFeatureDetailController;
+use App\Http\Controllers\Api\V1\Mobile\MobileLogoutController;
 use App\Http\Controllers\Api\V1\Mobile\MobilePublicTokenController;
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Api\V1\Web\WebTokenController;
@@ -125,6 +126,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('mobile/auth/public-token', MobilePublicTokenController::class)
         ->middleware('throttle:mobile-auth')
         ->name('mobile.auth.public-token');
+    Route::post('mobile/auth/logout', MobileLogoutController::class)
+        ->middleware('throttle:mobile-auth')
+        ->name('mobile.auth.logout');
     Route::get('mobile/profile', MobileProfileController::class)
         ->name('mobile.profile');
     Route::post('mobile/profile/email-modal', CheckMobileEmailModalController::class)
