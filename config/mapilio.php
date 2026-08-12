@@ -271,6 +271,27 @@ return [
         'client_id' => env('MAPILIO_MOBILE_AUTH_CLIENT_ID'),
         'client_secret' => env('MAPILIO_MOBILE_AUTH_CLIENT_SECRET'),
         'signing_key' => env('MAPILIO_MOBILE_AUTH_SIGNING_KEY', env('APP_KEY')),
+
+        /*
+         * Set during a signing-key rotation. Tokens are always signed with the
+         * current key, but verification also accepts the previous one, so a
+         * rotation does not invalidate every token in circulation and log out
+         * the entire mobile fleet. Clear it once the longest refresh token TTL
+         * has elapsed and the old key is genuinely retired.
+         */
+        'previous_signing_key' => env('MAPILIO_MOBILE_AUTH_PREVIOUS_SIGNING_KEY'),
+
+        /*
+         * Token revocation. Ships disabled: enabling it adds one indexed lookup
+         * per authenticated request, so switch it on deliberately and confirm
+         * latency before relying on it. While disabled the denylist is still
+         * written, so revocations recorded now take effect the moment it is
+         * enabled.
+         */
+        'revocation' => [
+            'enabled' => env('MAPILIO_MOBILE_AUTH_REVOCATION_ENABLED', false),
+        ],
+
         'access_token_ttl' => (int) env('MAPILIO_MOBILE_ACCESS_TOKEN_TTL', 3600),
         'refresh_token_ttl' => (int) env('MAPILIO_MOBILE_REFRESH_TOKEN_TTL', 36000),
         'rate_limits' => [

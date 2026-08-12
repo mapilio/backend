@@ -213,7 +213,7 @@ class LegacyMobileAuth
     {
         $parts = explode('.', $token, 2);
 
-        if (count($parts) !== 2 || ! hash_equals($this->signature($parts[0]), $parts[1])) {
+        if (count($parts) !== 2 || ! $this->signatureIsValid($parts[0], $parts[1])) {
             return null;
         }
 
@@ -232,12 +232,111 @@ class LegacyMobileAuth
             return null;
         }
 
+        if ($this->isRevoked($payload)) {
+            return null;
+        }
+
         return $payload;
+    }
+
+    /**
+     * Revoke a token so it stops being accepted before its natural expiry.
+     *
+     * Returns false when the token cannot be decoded, so a caller cannot use
+     * this to probe which arbitrary strings happen to be valid tokens.
+     */
+    public function revokeToken(string $token, string $expectedType, ?string $reason = null): bool
+    {
+        $parts = explode('.', $token, 2);
+
+        if (count($parts) !== 2 || ! $this->signatureIsValid($parts[0], $parts[1])) {
+            return false;
+        }
+
+        $json = base64_decode(strtr($parts[0], '-_', '+/'), true);
+        $payload = $json === false ? null : json_decode($json, true);
+
+        if (! is_array($payload)
+            || ($payload['typ'] ?? null) !== $expectedType
+            || ! isset($payload['sub'], $payload['exp'], $payload['jti'])) {
+            return false;
+        }
+
+        DB::table('revoked_auth_tokens')->insertOrIgnore([
+            'jti' => (string) $payload['jti'],
+            'subject' => (int) $payload['sub'],
+            'token_type' => (string) $payload['typ'],
+            'reason' => $reason,
+            'expires_at' => date('Y-m-d H:i:s', (int) $payload['exp']),
+            'revoked_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Drop denylist rows for tokens that have expired on their own.
+     */
+    public function pruneRevokedTokens(): int
+    {
+        return DB::table('revoked_auth_tokens')
+            ->where('expires_at', '<', now())
+            ->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function isRevoked(array $payload): bool
+    {
+        if (! config('mapilio.mobile_auth.revocation.enabled', false)) {
+            return false;
+        }
+
+        $jti = $payload['jti'] ?? null;
+
+        if (! is_string($jti) || $jti === '') {
+            return false;
+        }
+
+        return DB::table('revoked_auth_tokens')->where('jti', $jti)->exists();
+    }
+
+    /**
+     * Accepts the current signing key, and the previous one while a rotation is
+     * in progress, so rotating the key does not invalidate live tokens.
+     */
+    private function signatureIsValid(string $payload, string $providedSignature): bool
+    {
+        foreach ($this->signingKeys() as $key) {
+            if (hash_equals(hash_hmac('sha256', $payload, $key), $providedSignature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function signature(string $payload): string
     {
         return hash_hmac('sha256', $payload, $this->signingKey());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function signingKeys(): array
+    {
+        $keys = [$this->signingKey()];
+        $previous = (string) config('mapilio.mobile_auth.previous_signing_key', '');
+
+        if ($previous !== '' && $previous !== $keys[0]) {
+            $keys[] = $previous;
+        }
+
+        return $keys;
     }
 
     private function signingKey(): string
