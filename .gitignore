@@ -26,3 +26,4 @@ gitleaks-report.*
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.claude/
