@@ -3,6 +3,7 @@
 use App\Http\Middleware\AddApiSecurityHeaders;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\LogApiRequest;
+use App\Http\Middleware\ThrottleApiRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,6 +28,13 @@ return Application::configure(basePath: dirname(__DIR__))
             AssignRequestId::class,
             LogApiRequest::class,
             AddApiSecurityHeaders::class,
+        ]);
+
+        // Registered on the route group rather than globally: group middleware
+        // runs after the router matches, so the limiter can see whether a route
+        // already declares its own throttle and skip it.
+        $middleware->api(append: [
+            ThrottleApiRequests::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

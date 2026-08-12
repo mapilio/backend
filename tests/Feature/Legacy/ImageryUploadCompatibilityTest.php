@@ -229,6 +229,82 @@ class ImageryUploadCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_upload_rejects_payloads_above_the_configured_point_ceiling(): void
+    {
+        Queue::fake();
+        Config::set('mapilio.imagery_uploads.max_points', 2);
+
+        $login = $this->login();
+
+        $beforeImagery = Schema::getConnection()->table('default_mapilio_imagery')->count();
+        $beforeSequences = Schema::getConnection()->table('default_mapilio_sequence_detail')->count();
+
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.json_data', [
+            $this->point(['filename' => 'IMG_0001.jpg', 'captureTime' => '2026-07-01 12:00:00']),
+            $this->point(['filename' => 'IMG_0002.jpg', 'captureTime' => '2026-07-01 12:00:02']),
+            $this->point(['filename' => 'IMG_0003.jpg', 'captureTime' => '2026-07-01 12:00:04']),
+        ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $payload)
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ["'json_data' accepts at most 2 points, 3 received!"],
+                'error_code' => 400,
+            ]);
+
+        $this->assertSame($beforeImagery, Schema::getConnection()->table('default_mapilio_imagery')->count());
+        $this->assertSame($beforeSequences, Schema::getConnection()->table('default_mapilio_sequence_detail')->count());
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_upload_writes_every_point_when_the_sequence_exceeds_the_chunk_size(): void
+    {
+        Queue::fake();
+        Config::set('mapilio.imagery_uploads.chunk_size', 3);
+
+        $login = $this->login();
+
+        $points = [];
+
+        for ($index = 0; $index < 7; $index++) {
+            $points[] = $this->point([
+                'filename' => sprintf('IMG_%04d.jpg', $index),
+                'latitude' => 40.991 + ($index / 10000),
+                'longitude' => 29.025 + ($index / 10000),
+                'captureTime' => sprintf('2026-07-01 12:00:%02d', $index),
+            ]);
+        }
+
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.json_data', $points);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $payload)
+            ->assertOk()
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('sequence_uuid', 'mobile-sequence-1')
+            ->assertJsonPath('count', 7);
+
+        $this->assertSame(
+            7,
+            Schema::getConnection()
+                ->table('default_mapilio_imagery')
+                ->where('sequence_uuid', 'mobile-sequence-1')
+                ->count(),
+        );
+
+        foreach ($points as $index => $point) {
+            $this->assertDatabaseHas('default_mapilio_imagery', [
+                'sequence_uuid' => 'mobile-sequence-1',
+                'filename' => sprintf('IMG_%04d.jpg', $index),
+            ]);
+        }
+    }
+
     public function test_versioned_upload_alias_preserves_negative_contract_without_side_effects(): void
     {
         Queue::fake();

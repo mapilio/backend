@@ -101,6 +101,46 @@ return [
         'poll_delay_ms' => (int) env('MAPILIO_IMAGE_UPLOAD_SMOKE_POLL_DELAY_MS', 500),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default API Rate Limit
+    |--------------------------------------------------------------------------
+    |
+    | Ships disabled, and observe-only when first enabled: the limiter counts
+    | requests and logs the callers it *would* reject without rejecting them.
+    | Enable it in production, confirm from the logs that no legitimate consumer
+    | reaches the ceiling across a full traffic cycle including peak, and only
+    | then set 'enforce' to true. Routes that declare their own throttle are
+    | skipped, so the observed data describes the unprotected surface.
+    |
+    */
+
+    'rate_limiting' => [
+        'enabled' => env('MAPILIO_API_RATE_LIMITING_ENABLED', false),
+        'enforce' => env('MAPILIO_API_RATE_LIMITING_ENFORCE', false),
+        'max_attempts' => max(1, (int) env('MAPILIO_API_RATE_LIMIT_MAX_ATTEMPTS', 300)),
+        'decay_seconds' => max(1, (int) env('MAPILIO_API_RATE_LIMIT_DECAY_SECONDS', 60)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Imagery Upload Payload Bounds
+    |--------------------------------------------------------------------------
+    |
+    | Sequence metadata arrives as one element per captured image. The ceiling
+    | is a resource guard, not a product limit: it is set well above the
+    | largest sequence observed in production (18,824 images) so that no
+    | legitimate upload is rejected, while an unbounded payload can no longer
+    | exhaust memory. Rows are written in chunks so a long sequence never
+    | builds a single oversized statement.
+    |
+    */
+
+    'imagery_uploads' => [
+        'max_points' => max(1, (int) env('MAPILIO_IMAGERY_UPLOAD_MAX_POINTS', 50000)),
+        'chunk_size' => max(1, min(5000, (int) env('MAPILIO_IMAGERY_UPLOAD_CHUNK_SIZE', 500))),
+    ],
+
     'ai_prediction' => [
         'enabled' => env('MAPILIO_AI_PREDICTION_ENABLED', false),
         'dispatch_after_upload' => env('MAPILIO_AI_DISPATCH_AFTER_UPLOAD', false),
