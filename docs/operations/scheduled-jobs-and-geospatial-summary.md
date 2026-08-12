@@ -45,3 +45,19 @@ Public WMS/WFS capabilities were checked without credentials for the root endpoi
 - Every retained job needs an owner, schedule, input source, output target, retry policy, idempotency rule, and test plan.
 - Replace raw spatial filters with validated requests and parameterized PostGIS queries.
 - Treat geospatial export/layer tables as rebuildable derived data whenever possible.
+
+## Map Points Recovery Finding: 2026-08-12
+
+Read-only host, GeoServer log, GeoWebCache catalog, and PostgreSQL inspection
+isolated the active `mapilio:map_points` cache-miss failure. The layer uses a
+`4 x 4` metatile and dense point requests exceed the configured 64 MiB MVT
+metatile memory guard. GeoWebCache then exposes the internal failure as
+`400 Problem communicating with GeoServer`. Cached tiles can continue to work,
+which makes cache-hit-only smoke tests insufficient.
+
+The PostGIS bounding-box query uses the expected GiST expression index, and a
+representative single-tile direct WMS/MVT render returned successfully. The
+approved repair shape is therefore to reduce only this layer's metatiling factor
+to `1 x 1`, preserve the memory guard, and validate a real cache miss followed
+by a cache hit. See the
+[GeoServer map points recovery runbook](geoserver-map-points-recovery.md).

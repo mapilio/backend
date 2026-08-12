@@ -79,6 +79,7 @@
 - [Backup and restore](operations/backup-and-restore.md)
 - [Disposable PostGIS migration gate](operations/postgis-migration-gate.md)
 - [Scheduled jobs and geospatial summary](operations/scheduled-jobs-and-geospatial-summary.md)
+- [GeoServer map points recovery](operations/geoserver-map-points-recovery.md)
 
 ## Security And Governance
 
