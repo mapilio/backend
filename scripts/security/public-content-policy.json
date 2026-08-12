@@ -82,6 +82,13 @@
             "path": "<commit-message>",
             "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
             "reason": "GitHub added a maintainer co-author trailer while squash-merging the GeoServer recovery runbook; future merges use an explicit sanitized commit body."
+        },
+        {
+            "category": "personal-email",
+            "commit": "ee937c94d3f86569de5534dc35dca3d12b76137d",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging the upload and rate-limit hardening PR. The address is the GitHub-provided noreply alias, not a personal mailbox, and the commit is already on main so its message cannot be rewritten. Squash-merging keeps reintroducing this: disabling 'Default to PR author' or editing the commit body at merge time would stop it recurring."
         }
     ]
 }
