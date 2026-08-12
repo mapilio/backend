@@ -11,6 +11,9 @@ Read-only inspection on 2026-07-15 found approximately 19.4 million rows in `def
 
 No production index or data was changed during this inspection.
 
+For immediate production containment of the legacy per-image workload, see
+the [legacy `ukm-old` load-containment runbook](../operations/legacy-ukm-old-load-containment.md).
+
 ## Proposed staging index
 
 Run outside a transaction during an approved staging maintenance window:
@@ -50,3 +53,6 @@ DROP INDEX CONCURRENTLY IF EXISTS public.ix_imagery_ukm_geography_active;
 ```
 
 Do not drop existing geometry or score indexes as part of this rollout.
+
+Production pause status and queue-handling safeguards are documented in the
+[legacy `ukm-old` load-containment runbook](../operations/legacy-ukm-old-load-containment.md).
