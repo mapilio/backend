@@ -75,6 +75,13 @@
             "path": "<commit-message>",
             "fingerprint": "4e309a05ee4c360d89ad4902f68002e0d3ebdce21f4b395b045907552ea984f4",
             "reason": "GitHub added a maintainer co-author trailer while squash-merging the first reviewed Dependabot update; future bot merges use an explicit sanitized commit body."
+        },
+        {
+            "category": "personal-email",
+            "commit": "f3a5e49659abd0293f443b37f9ee39d898de1c9f",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added a maintainer co-author trailer while squash-merging the GeoServer recovery runbook; future merges use an explicit sanitized commit body."
         }
     ]
 }
