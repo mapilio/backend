@@ -4,6 +4,9 @@ Date: 2026-07-08
 
 This document records public-safe findings from the legacy scheduler and geospatial code review.
 
+For the 2026-08-12 legacy UKM load evidence and controlled response, see the
+[legacy `ukm-old` load-containment runbook](legacy-ukm-old-load-containment.md).
+
 ## Scheduled Jobs
 
 The legacy backend currently registers 8 scheduled jobs through Laravel/PyroCMS package scheduling:
