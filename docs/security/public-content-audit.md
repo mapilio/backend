@@ -36,7 +36,7 @@ Composer/npm lockfiles are still scanned for every category except third-party a
 
 ## History Review
 
-Eight commit/path/fingerprint-bound exceptions cover old synthetic proxy/parser fixtures introduced in two known commits and one maintainer co-author trailer that GitHub added to the first merged Dependabot update. The fixtures contain no credential or production evidence and were replaced in the current tree with RFC documentation addresses and reserved example domains. The trailer is retained only in the immutable public commit; future bot merges use an explicit sanitized commit body. Raw values are absent from policy. An exception that no longer matches reachable history fails as stale, and a new occurrence in another commit or path is not accepted.
+Nine commit/path/fingerprint-bound exceptions cover old synthetic proxy/parser fixtures introduced in two known commits and two maintainer co-author trailers that GitHub added during squash merges. The fixtures contain no credential or production evidence and were replaced in the current tree with RFC documentation addresses and reserved example domains. The trailers are retained only in immutable public commits; future merges use an explicit sanitized commit body. Raw values are absent from policy. An exception that no longer matches reachable history fails as stale, and a new occurrence in another commit or path is not accepted.
 
 History content is evaluated when it enters a commit: commit messages and added patch lines are scanned across every reachable revision. Removed lines are not attributed again to the later deletion commit. A file absent from the current tree remains covered by the commit that introduced its content.
 
