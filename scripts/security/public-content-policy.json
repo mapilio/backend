@@ -85,6 +85,13 @@
         },
         {
             "category": "personal-email",
+            "commit": "e39b13baefd84b82baf8bad547679930880f246d",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging the token revocation PR. Fourth occurrence of the same pattern, and it will recur on every squash merge until 'Default to PR author' is turned off in the repository merge settings; tracked so the audit stays meaningful in the meantime."
+        },
+        {
+            "category": "personal-email",
             "commit": "ee937c94d3f86569de5534dc35dca3d12b76137d",
             "path": "<commit-message>",
             "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
