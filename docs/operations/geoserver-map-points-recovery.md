@@ -120,3 +120,28 @@ versioned feature-detail API. Attribute reduction, geometry simplification,
 zoom-dependent publication, and a versioned replacement layer require a
 separate compatibility migration and must not be folded into this incident
 repair.
+
+## Production Application Evidence: 2026-08-12
+
+The controlled repair was applied after the catalog-only archive and separate
+layer backup passed checksum and archive-integrity checks. Only the
+`mapilio:map_points` metatiling factors changed from `4 x 4` to `1 x 1`.
+GeoServer then restarted cleanly and loaded the updated catalog.
+
+Sanitized acceptance evidence:
+
+- the representative point tile returned `200` as a real cache miss in 1.64
+  seconds with a 1,444,791-byte MVT response;
+- the repeated request returned `200` as a cache hit in 0.82 seconds;
+- an adjacent point cache miss returned `200` in 1.31 seconds with a
+  1,887,556-byte MVT response;
+- the control road tile remained `200`;
+- the mobile-equivalent bounded `HEAD` probe returned `200`;
+- the iOS simulator reported both road and point overlays available and raised
+  no MapLibre tile error;
+- no MVT memory-cap, out-of-memory, GeoServer error, exception, or database-pool
+  pattern appeared during the observation interval;
+- the GeoServer database role had no active query after the checks.
+
+Rollback was not invoked. Continue normal service monitoring and preserve the
+backup until the change has passed the organization's retention window.

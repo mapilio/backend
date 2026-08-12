@@ -61,3 +61,8 @@ approved repair shape is therefore to reduce only this layer's metatiling factor
 to `1 x 1`, preserve the memory guard, and validate a real cache miss followed
 by a cache hit. See the
 [GeoServer map points recovery runbook](geoserver-map-points-recovery.md).
+
+The controlled production application completed on the same date. The point
+cache miss, subsequent cache hit, adjacent point tile, road control tile, and
+mobile health probe all returned `200`; the observation interval produced no
+matching GeoServer error or MVT memory-cap event. Rollback was not required.
