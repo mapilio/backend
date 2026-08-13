@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Geo\AiFeatureDetailController;
 use App\Http\Controllers\Api\V1\Mobile\MobileLogoutController;
 use App\Http\Controllers\Api\V1\Mobile\MobilePublicTokenController;
 use App\Http\Controllers\Api\V1\System\HealthController;
+use App\Http\Controllers\Api\V1\System\ReadinessController;
 use App\Http\Controllers\Api\V1\Web\WebTokenController;
 use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
@@ -116,6 +117,7 @@ Route::post('function/mapilio/imagery/upload', ImageryUploadController::class)
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('system/health', HealthController::class)->name('system.health');
+    Route::get('system/readiness', ReadinessController::class)->name('system.readiness');
     Route::post('ai/predictions/callback', PredictionCallbackController::class)
         ->middleware(VerifyAiPredictionCallback::class)
         ->name('ai.predictions.callback');
