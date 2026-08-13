@@ -85,6 +85,13 @@
         },
         {
             "category": "personal-email",
+            "commit": "c84a78f6cd0dc25065217f94c7513aabab9af053",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging #61. This should be the last of these: passing an explicit body to the squash merge suppresses the trailer, so subsequent merges will not need an entry."
+        },
+        {
+            "category": "personal-email",
             "commit": "843b518833b78187f38ad59f5353127a0437b832",
             "path": "<commit-message>",
             "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
