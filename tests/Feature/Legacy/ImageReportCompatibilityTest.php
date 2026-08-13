@@ -20,6 +20,7 @@ class ImageReportCompatibilityTest extends TestCase
         Config::set('mapilio.mobile_auth.signing_key', 'test-signing-key');
 
         $this->createTables();
+        $this->seedImagery();
         $this->seedUsers();
     }
 
@@ -155,6 +156,13 @@ class ImageReportCompatibilityTest extends TestCase
             $table->timestamp('deleted_at')->nullable();
         });
 
+        // The report path now confirms the imagery exists before inserting, so
+        // the fixture needs the rows these cases report against.
+        Schema::create('default_mapilio_imagery', function ($table): void {
+            $table->id();
+            $table->timestamp('deleted_at')->nullable();
+        });
+
         Schema::create('default_image_complaint_complaint', function ($table): void {
             $table->id();
             $table->integer('sort_order')->nullable();
@@ -166,6 +174,15 @@ class ImageReportCompatibilityTest extends TestCase
             $table->integer('imagery_id')->nullable();
             $table->text('description')->nullable();
         });
+    }
+
+    private function seedImagery(): void
+    {
+        Schema::getConnection()->table('default_mapilio_imagery')->insert([
+            ['id' => 123, 'deleted_at' => null],
+            ['id' => 456, 'deleted_at' => null],
+            ['id' => 789, 'deleted_at' => null],
+        ]);
     }
 
     private function seedUsers(): void

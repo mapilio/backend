@@ -124,6 +124,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Imagery Report Bounds
+    |--------------------------------------------------------------------------
+    |
+    | Reports are accepted anonymously by design, so the endpoint is a public
+    | unauthenticated insert. The length ceiling is generous: real reports are
+    | a sentence or two, and the limit exists to stop unbounded text reaching
+    | the moderation queue rather than to constrain what people can say.
+    |
+    */
+
+    'imagery_reports' => [
+        'max_message_length' => max(1, (int) env('MAPILIO_IMAGERY_REPORT_MAX_MESSAGE_LENGTH', 2000)),
+        'rate_limit' => env('MAPILIO_IMAGERY_REPORT_RATE_LIMIT', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Imagery Upload Payload Bounds
     |--------------------------------------------------------------------------
     |

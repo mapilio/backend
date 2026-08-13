@@ -109,6 +109,7 @@ Route::post('onesignal/identity-verification', OneSignalIdentityVerificationCont
 Route::match(['GET', 'POST'], 'search-user', PublicUserProfileController::class)
     ->name('api.legacy.search-user');
 Route::post('image-report', ImageReportController::class)
+    ->middleware('throttle:imagery-reports')
     ->name('api.legacy.imagery.reports');
 Route::post('function/mapilio/imagery/upload', ImageryUploadController::class)
     ->name('api.legacy.imagery.uploads');
@@ -158,6 +159,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
         ->name('imagery.embed-image');
     Route::post('imagery/reports', ImageReportController::class)
+        ->middleware('throttle:imagery-reports')
         ->name('imagery.reports');
     Route::post('imagery/uploads', ImageryUploadController::class)
         ->name('imagery.uploads');

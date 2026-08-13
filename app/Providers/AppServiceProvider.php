@@ -52,6 +52,27 @@ class AppServiceProvider extends ServiceProvider
                     ], 429, $headers);
                 });
         });
+
+        /*
+         * Image reports are accepted anonymously, so this is the only thing
+         * standing between the moderation queue and an unauthenticated caller
+         * in a loop. People report at human speed, so the ceiling is well
+         * above any plausible legitimate rate.
+         */
+        RateLimiter::for('imagery-reports', function (Request $request): Limit {
+            return Limit::perMinute($this->boundedMobileAuthLimit(
+                config('mapilio.imagery_reports.rate_limit'),
+                10,
+            ))
+                ->by('imagery-reports|'.$request->ip())
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => ['Too many reports. Please try again later.'],
+                        'error_code' => 429,
+                    ], 429, $headers);
+                });
+        });
     }
 
     private function boundedMobileAuthLimit(mixed $configuredLimit, int $fallback): int
