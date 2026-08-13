@@ -92,6 +92,40 @@ class ApiRateLimitTest extends TestCase
         $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
     }
 
+    public function test_web_group_routes_are_covered_too(): void
+    {
+        // /config/general and the legacy callback are registered on the web
+        // group, so registering the limiter only on the api group left them
+        // unprotected. The config endpoint serves map provider tokens.
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 2);
+
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $this->getJson('/config/general')->assertOk();
+        $this->getJson('/config/general')->assertOk();
+
+        $this->getJson('/config/general')
+            ->assertStatus(429)
+            ->assertJsonPath('error_code', 429);
+    }
+
+    public function test_unrelated_web_routes_are_not_limited(): void
+    {
+        // The limiter is on the whole web group now, so the service root must
+        // stay outside the rate-limited surface.
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 1);
+
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $this->getJson('/')->assertOk();
+        $this->getJson('/')->assertOk();
+        $this->getJson('/')->assertOk();
+    }
+
     public function test_routes_with_their_own_throttle_are_left_untouched(): void
     {
         Config::set('mapilio.rate_limiting.enabled', true);

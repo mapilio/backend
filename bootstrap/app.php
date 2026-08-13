@@ -37,6 +37,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ThrottleApiRequests::class,
         ]);
 
+        // /config/general and /webhook/response-prediction live on the web
+        // group, so the limiter has to be registered there too or they stay
+        // unprotected.
+        $middleware->web(append: [
+            ThrottleApiRequests::class,
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             'webhook/response-prediction',
         ]);
