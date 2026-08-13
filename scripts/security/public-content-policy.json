@@ -85,6 +85,13 @@
         },
         {
             "category": "personal-email",
+            "commit": "24908002b57a0a3cc7e7431952316bd682f82686",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging #58. Same GitHub noreply alias as the entries above, and the commit is on main so its message cannot be rewritten."
+        },
+        {
+            "category": "personal-email",
             "commit": "e39b13baefd84b82baf8bad547679930880f246d",
             "path": "<commit-message>",
             "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
