@@ -139,6 +139,7 @@ Do not record test-user passwords, tokens, emails, request bodies, or production
 ## 8. Rollout and Observation
 
 - [ ] **Operator:** deploy backend compatibility first, then enable server-side flags, then release web/mobile consumers; do not reverse this dependency order.
+- [ ] **Operator:** activate the August 2026 hardening controls in the order recorded in `hardening-rollout.md`. They ship disabled; the rate limiter in particular must run in observe mode long enough to size its ceiling from real traffic, and trusted proxies must be verified before enforcement or every caller shares one bucket.
 - [ ] **Operator:** use a canary or bounded feature-flag cohort with a defined observation period before wider activation.
 - [ ] **Restricted:** dashboards cover API 4xx/5xx/429, p50/p95/p99 latency, PostgreSQL load/locks, queue depth/age/failures, AI callback failures, image upload/cache/anonymizer state, and GeoServer errors/timeouts.
 - [ ] **Restricted:** alert ownership, thresholds, escalation path, log access, and retention are confirmed before traffic expansion.
