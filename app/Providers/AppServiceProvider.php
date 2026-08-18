@@ -53,6 +53,20 @@ class AppServiceProvider extends ServiceProvider
                 });
         });
 
+        RateLimiter::for('mobile-social-auth', function (Request $request): Limit {
+            $limit = $this->boundedMobileAuthLimit(
+                config('mapilio.mobile_social_auth.rate_limit', 10),
+                10,
+            );
+
+            return Limit::perMinute($limit)
+                ->by('mobile-social-auth|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => response()->json([
+                    'success' => false,
+                    'message' => 'Too many authentication attempts. Please try again later.',
+                ], 429, $headers));
+        });
+
         /*
          * Image reports are accepted anonymously, so this is the only thing
          * standing between the moderation queue and an unauthenticated caller

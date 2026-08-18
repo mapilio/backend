@@ -18,6 +18,15 @@ return [
 
     'legacy_database_connection' => env('MAPILIO_LEGACY_DB_CONNECTION', env('DB_CONNECTION', 'sqlite')),
 
+    'mobile_social_auth' => [
+        'base_url' => env('MAPILIO_LEGACY_SOCIAL_AUTH_BASE_URL', ''),
+        'client_id' => env('MAPILIO_LEGACY_SOCIAL_AUTH_CLIENT_ID', ''),
+        'client_secret' => env('MAPILIO_LEGACY_SOCIAL_AUTH_CLIENT_SECRET', ''),
+        'connect_timeout' => max(1, min(10, (int) env('MAPILIO_LEGACY_SOCIAL_AUTH_CONNECT_TIMEOUT', 3))),
+        'timeout' => max(1, min(20, (int) env('MAPILIO_LEGACY_SOCIAL_AUTH_TIMEOUT', 8))),
+        'rate_limit' => max(1, min(100, (int) env('MAPILIO_MOBILE_SOCIAL_AUTH_RATE_LIMIT', 10))),
+    ],
+
     'legacy_import_preflight' => [
         'enabled' => env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_ENABLED', false),
         'table_allowlist' => (($configuredTables = trim((string) env('MAPILIO_LEGACY_IMPORT_PREFLIGHT_TABLES', ''))) === ''

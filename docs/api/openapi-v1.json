@@ -31,6 +31,111 @@
     }
   ],
   "paths": {
+    "/api/v1/mobile/auth/social-token": {
+      "post": {
+        "operationId": "mobileSocialToken",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Exchange a provider token for Mapilio mobile tokens",
+        "description": "The backend validates the provider token through the configured legacy migration bridge. Legacy client credentials are server-side configuration and are never accepted from the mobile request; only modern Mapilio access and refresh tokens are returned.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileSocialTokenRequest"
+              },
+              "example": {
+                "provider": "google",
+                "token": "provider-token-from-the-mobile-sdk"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Modern Mapilio token pair",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebTokenResponse"
+                },
+                "example": {
+                  "id": 10,
+                  "success": true,
+                  "token_type": "Bearer",
+                  "expires_in": 3600,
+                  "access_token": "opaque-modern-access-token",
+                  "refresh_token": "opaque-modern-refresh-token"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Provider token is invalid or the mapped legacy account is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Invalid social login credentials."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "provider": [
+                      "The selected provider is invalid."
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Social authentication rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too many authentication attempts. Please try again later."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Migration bridge is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Social login is temporarily unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/geo/ai-features/{featureId}": {
       "get": {
         "operationId": "getAiFeatureDetail",
@@ -728,6 +833,29 @@
           }
         ]
       },
+      "MobileSocialTokenRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "token"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "google",
+              "facebook",
+              "apple",
+              "openstreetmap"
+            ]
+          },
+          "token": {
+            "type": "string",
+            "maxLength": 8192
+          }
+        }
+      },
       "WebTokenResponse": {
         "type": "object",
         "required": [
@@ -783,6 +911,27 @@
                 }
               }
             ]
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": [
+          "message",
+          "errors"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         }
       },

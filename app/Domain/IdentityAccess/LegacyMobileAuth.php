@@ -71,6 +71,20 @@ class LegacyMobileAuth
         return $this->tokenPair((int) $user->id);
     }
 
+    /**
+     * Issue modern tokens for a user id already verified by the legacy bridge.
+     *
+     * @return array{id: int, success: true, token_type: string, expires_in: int, access_token: string, refresh_token: string}
+     */
+    public function issueTokenForLegacyUser(int $userId): array
+    {
+        if ($userId < 1 || $this->activeUserById($userId) === null) {
+            throw LegacyMobileAuthException::invalidCredentials();
+        }
+
+        return $this->tokenPair($userId);
+    }
+
     public function userFromBearer(?string $authorizationHeader): ?object
     {
         if ($authorizationHeader === null || ! Str::startsWith($authorizationHeader, 'Bearer ')) {

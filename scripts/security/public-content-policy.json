@@ -21,6 +21,13 @@
     ],
     "reviewedHistoryExceptions": [
         {
+            "category": "personal-email",
+            "commit": "64cdacf585ed720501c8d2421fbd1af82e6863fa",
+            "path": "<commit-message>",
+            "fingerprint": "4e309a05ee4c360d89ad4902f68002e0d3ebdce21f4b395b045907552ea984f4",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging the grouped npm dependency update; the address is not repository content and the merged commit is immutable."
+        },
+        {
             "category": "private-network-ip",
             "commit": "19b1825cf8fdcd8d07a4bbb39cdee03cca61854d",
             "path": "tests/Feature/Security/ApiEdgeHardeningTest.php",
