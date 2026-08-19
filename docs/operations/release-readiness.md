@@ -99,6 +99,7 @@ Never run the rejected legacy `mysqldump` deployment task. Backup creation and r
 - [ ] **Restricted:** mobile password and refresh authentication budgets are configured and verified across both legacy aliases, including trusted/untrusted forwarded-IP behavior, reset behavior, stable 429 JSON, and `Retry-After` headers.
 - [ ] **Restricted:** mobile password login, token refresh after expiry, profile, leaderboard/profile navigation, user uploads/detail, project jobs, image reports, email-modal state, and OneSignal identity verification pass on supported iOS and Android builds.
 - [ ] **Restricted:** forgot-password, registration, social login, profile edit/delete, and any still-legacy paths affected by the release have an explicit pass, defer, or block decision.
+- [ ] **Restricted:** mobile registration/activation, known and unknown forgot-password requests, one-time renewal, provider-placeholder email confirmation, profile-photo persistence, default deletion, Apple deletion, and post-deletion token rejection pass through real staging mail, callback, storage, provider, and database boundaries.
 - [ ] **Restricted:** OpenStreetMap-facing imagery access and any public embed/catalog integrations affected by the release preserve their documented contracts.
 - [ ] **Operator:** backend-compatible routes are deployed before clients begin using new versioned aliases.
 - [ ] **Operator:** legacy paths remain available until supported client versions have migrated and retirement telemetry is accepted.

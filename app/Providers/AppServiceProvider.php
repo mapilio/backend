@@ -7,6 +7,7 @@ use App\Domain\DataMigration\PrivateJsonPublisher;
 use App\Support\Queue\QueueRuntimeConfiguration;
 use App\Support\Queue\QueueWorkerPoolConfiguration;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -67,6 +68,63 @@ class AppServiceProvider extends ServiceProvider
                 ], 429, $headers));
         });
 
+        RateLimiter::for('mobile-registration', function (Request $request): Limit {
+            return Limit::perHour($this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.registration'),
+                10,
+            ))
+                ->by('mobile-registration|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers));
+        });
+
+        RateLimiter::for('mobile-password-reset', function (Request $request): array {
+            $email = strtolower(trim((string) $request->input('email', '')));
+            $perAddress = $this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.password_reset_per_email'),
+                5,
+            );
+            $perIp = $this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.password_reset_per_ip'),
+                20,
+            );
+
+            return [
+                Limit::perHour($perAddress)
+                    ->by('mobile-password-reset|email|'.hash('sha256', $email))
+                    ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers)),
+                Limit::perHour($perIp)
+                    ->by('mobile-password-reset|ip|'.$request->ip())
+                    ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers)),
+            ];
+        });
+
+        RateLimiter::for('mobile-password-renew', function (Request $request): Limit {
+            return Limit::perMinute($this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.password_renew'),
+                10,
+            ))
+                ->by('mobile-password-renew|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers));
+        });
+
+        RateLimiter::for('mobile-account-write', function (Request $request): Limit {
+            return Limit::perMinute($this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.account_write'),
+                20,
+            ))
+                ->by('mobile-account-write|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers));
+        });
+
+        RateLimiter::for('mobile-account-delete', function (Request $request): Limit {
+            return Limit::perHour($this->boundedMobileAuthLimit(
+                config('mapilio.mobile_accounts.rate_limits.account_delete'),
+                3,
+            ))
+                ->by('mobile-account-delete|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => $this->mobileAccountRateLimitResponse($headers));
+        });
+
         /*
          * Image reports are accepted anonymously, so this is the only thing
          * standing between the moderation queue and an unauthenticated caller
@@ -98,5 +156,16 @@ class AppServiceProvider extends ServiceProvider
         };
 
         return min(1000, max(1, $limit));
+    }
+
+    /**
+     * @param  array<string, mixed>  $headers
+     */
+    private function mobileAccountRateLimitResponse(array $headers): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => ['Too many requests. Please try again later.'],
+        ], 429, $headers);
     }
 }

@@ -328,6 +328,39 @@ return [
         'onesignal_rest_api_key' => env('MAPILIO_ONESIGNAL_REST_API_KEY'),
     ],
 
+    'mobile_accounts' => [
+        'allowed_callback_hosts' => array_values(array_filter(array_map(
+            static fn (string $host): string => strtolower(trim($host)),
+            explode(',', env('MAPILIO_MOBILE_ACCOUNT_CALLBACK_HOSTS', 'mapilio.com')),
+        ))),
+        'allowed_callback_schemes' => array_values(array_filter(array_map(
+            static fn (string $scheme): string => strtolower(trim($scheme)),
+            explode(',', env('MAPILIO_MOBILE_ACCOUNT_CALLBACK_SCHEMES', 'https')),
+        ))),
+        'verification_fallback_callback' => env('MAPILIO_MOBILE_ACCOUNT_FALLBACK_CALLBACK', 'https://mapilio.com/app'),
+        'email_verification_callback' => env('MAPILIO_MOBILE_EMAIL_VERIFICATION_CALLBACK', 'https://mapilio.com/app'),
+        'activation_link_minutes' => (int) env('MAPILIO_MOBILE_ACTIVATION_LINK_MINUTES', 1440),
+        'password_reset_link_minutes' => (int) env('MAPILIO_MOBILE_PASSWORD_RESET_LINK_MINUTES', 60),
+        'password_reset_form_minutes' => (int) env('MAPILIO_MOBILE_PASSWORD_RESET_FORM_MINUTES', 30),
+        'profile_photo_disk' => env('MAPILIO_PROFILE_PHOTO_DISK', 'public'),
+        'rate_limits' => [
+            'registration' => env('MAPILIO_MOBILE_REGISTRATION_RATE_LIMIT', 10),
+            'password_reset_per_email' => env('MAPILIO_MOBILE_PASSWORD_RESET_EMAIL_RATE_LIMIT', 5),
+            'password_reset_per_ip' => env('MAPILIO_MOBILE_PASSWORD_RESET_IP_RATE_LIMIT', 20),
+            'password_renew' => env('MAPILIO_MOBILE_PASSWORD_RENEW_RATE_LIMIT', 10),
+            'account_write' => env('MAPILIO_MOBILE_ACCOUNT_WRITE_RATE_LIMIT', 20),
+            'account_delete' => env('MAPILIO_MOBILE_ACCOUNT_DELETE_RATE_LIMIT', 3),
+        ],
+        'apple' => [
+            'team_id' => env('MAPILIO_APPLE_TEAM_ID'),
+            'client_id' => env('MAPILIO_APPLE_CLIENT_ID'),
+            'key_id' => env('MAPILIO_APPLE_KEY_ID'),
+            'private_key_path' => env('MAPILIO_APPLE_PRIVATE_KEY_PATH'),
+            'connect_timeout' => (int) env('MAPILIO_APPLE_CONNECT_TIMEOUT', 3),
+            'timeout' => (int) env('MAPILIO_APPLE_REQUEST_TIMEOUT', 8),
+        ],
+    ],
+
     'leaderboard' => [
         'limit' => (int) env('MAPILIO_LEADERBOARD_LIMIT', 30),
         'public_role_slugs' => array_values(array_filter(array_map(

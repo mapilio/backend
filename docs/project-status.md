@@ -9,6 +9,7 @@ Implemented foundations include:
 - Laravel domain boundaries without a PyroCMS runtime dependency;
 - legacy compatibility controllers and versioned aliases for active web/mobile reads and writes already audited;
 - mobile and first-party web token boundaries;
+- a modern mobile account lifecycle with explicit legacy aliases and versioned registration, signed activation, non-enumerating one-time password reset, authenticated profile/photo updates, confirmed provider-placeholder email replacement, and contribution-preserving account anonymization. Apple authorization is revoked before deletion and failures leave the account unchanged. Local tests cover both route families and security boundaries; real SMTP, callback, persistent storage, PostgreSQL write permissions, Apple credentials, and store-build staging evidence remain required;
 - mobile/mapilio-kit imagery metadata compatibility and image URL generation;
 - signed AI callbacks, encrypted receipts, canonical result persistence, status projection, and publication outboxes;
 - versioned PostGIS AI projection and public AI feature detail;
