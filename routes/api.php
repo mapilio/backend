@@ -15,6 +15,7 @@ use App\Http\Controllers\Legacy\Config\GeneralConfigController;
 use App\Http\Controllers\Legacy\Gamification\GamificationBadgesController;
 use App\Http\Controllers\Legacy\Geo\UploadedRoadsByGroupController;
 use App\Http\Controllers\Legacy\Identity\CheckMobileEmailModalController;
+use App\Http\Controllers\Legacy\Identity\MobileAccountController;
 use App\Http\Controllers\Legacy\Identity\MobileProfileController;
 use App\Http\Controllers\Legacy\Identity\OneSignalIdentityVerificationController;
 use App\Http\Controllers\Legacy\Identity\PublicUserProfileController;
@@ -102,8 +103,35 @@ Route::get('error/{code}', LegacyErrorController::class)
 Route::post('v2/login', MobileLoginController::class)
     ->middleware('throttle:mobile-auth')
     ->name('api.legacy.v2.mobile-login');
+Route::post('register', [MobileAccountController::class, 'register'])
+    ->middleware('throttle:mobile-registration')
+    ->name('api.legacy.mobile-accounts.store');
+Route::get('register/verify', [MobileAccountController::class, 'verifyRegistration'])
+    ->middleware('throttle:30,1')
+    ->name('api.legacy.mobile-accounts.verify');
+Route::post('forgot-password', [MobileAccountController::class, 'forgotPassword'])
+    ->middleware('throttle:mobile-password-reset')
+    ->name('api.legacy.mobile-password.forgot');
+Route::get('forgot-password/verify', [MobileAccountController::class, 'verifyPasswordReset'])
+    ->middleware('throttle:30,1')
+    ->name('api.legacy.mobile-password.verify');
+Route::post('renew-password', [MobileAccountController::class, 'resetPassword'])
+    ->middleware('throttle:mobile-password-renew')
+    ->name('api.legacy.mobile-password.reset');
 Route::get('function/user_profile/profile/getProfile', MobileProfileController::class)
     ->name('api.legacy.mobile-profile');
+Route::post('function/user_profile/profile/updateProfile', [MobileAccountController::class, 'updateProfile'])
+    ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
+    ->name('api.legacy.mobile-profile.update');
+Route::post('function/user_profile/profile/updateMail', [MobileAccountController::class, 'updateEmail'])
+    ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
+    ->name('api.legacy.mobile-profile.email.update');
+Route::get('function/user_profile/profile/verifyMail', [MobileAccountController::class, 'verifyEmail'])
+    ->middleware('throttle:30,1')
+    ->name('api.legacy.mobile-email.verify');
+Route::post('function/user_profile/profile/delete-account', [MobileAccountController::class, 'deleteAccount'])
+    ->middleware(['mobile.auth', 'throttle:mobile-account-delete'])
+    ->name('api.legacy.mobile-account.delete');
 Route::post('function/user_profile/profile/checkIsModalShown', CheckMobileEmailModalController::class)
     ->name('api.legacy.mobile-profile.email-modal');
 Route::post('onesignal/identity-verification', OneSignalIdentityVerificationController::class)
@@ -136,8 +164,35 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('mobile/auth/logout', MobileLogoutController::class)
         ->middleware('throttle:mobile-auth')
         ->name('mobile.auth.logout');
+    Route::post('mobile/accounts', [MobileAccountController::class, 'register'])
+        ->middleware('throttle:mobile-registration')
+        ->name('mobile.accounts.store');
+    Route::get('mobile/accounts/verify', [MobileAccountController::class, 'verifyRegistration'])
+        ->middleware('throttle:30,1')
+        ->name('mobile.accounts.verify');
+    Route::post('mobile/password/forgot', [MobileAccountController::class, 'forgotPassword'])
+        ->middleware('throttle:mobile-password-reset')
+        ->name('mobile.password.forgot');
+    Route::get('mobile/password/verify', [MobileAccountController::class, 'verifyPasswordReset'])
+        ->middleware('throttle:30,1')
+        ->name('mobile.password.verify');
+    Route::post('mobile/password/reset', [MobileAccountController::class, 'resetPassword'])
+        ->middleware('throttle:mobile-password-renew')
+        ->name('mobile.password.reset');
     Route::get('mobile/profile', MobileProfileController::class)
         ->name('mobile.profile');
+    Route::post('mobile/profile', [MobileAccountController::class, 'updateProfile'])
+        ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
+        ->name('mobile.profile.update');
+    Route::post('mobile/profile/email', [MobileAccountController::class, 'updateEmail'])
+        ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
+        ->name('mobile.profile.email.update');
+    Route::get('mobile/profile/email/verify', [MobileAccountController::class, 'verifyEmail'])
+        ->middleware('throttle:30,1')
+        ->name('mobile.profile.email.verify');
+    Route::delete('mobile/account', [MobileAccountController::class, 'deleteAccount'])
+        ->middleware(['mobile.auth', 'throttle:mobile-account-delete'])
+        ->name('mobile.account.delete');
     Route::post('mobile/profile/email-modal', CheckMobileEmailModalController::class)
         ->name('mobile.profile.email-modal');
     Route::post('mobile/onesignal/identity-verification', OneSignalIdentityVerificationController::class)

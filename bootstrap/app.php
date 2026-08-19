@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AddApiSecurityHeaders;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\AuthenticateMobileBearer;
 use App\Http\Middleware\LogApiRequest;
 use App\Http\Middleware\ThrottleApiRequests;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'mobile.auth' => AuthenticateMobileBearer::class,
+        ]);
+
         $middleware->trustProxies(
             headers: Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_PROTO

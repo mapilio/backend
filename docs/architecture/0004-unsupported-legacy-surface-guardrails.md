@@ -43,3 +43,7 @@ Those surfaces need route-by-route compatibility decisions, examples, authentica
 - token-protected dynamic endpoint path
 
 Each response must be HTTP 404 with the stable JSON body `{"message":"Not Found"}`.
+
+ADR 0037 later authorizes only the explicit mobile account routes listed there.
+It does not reopen the rejected dynamic auth registration path covered by this
+guardrail.

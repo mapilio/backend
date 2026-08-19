@@ -57,6 +57,7 @@
 - [0034: Protected main and required GitHub checks](architecture/0034-protected-main-required-checks.md)
 - [0035: Validated queue worker pools](architecture/0035-validated-queue-worker-pools.md)
 - [0036: Reviewed linear main](architecture/0036-reviewed-linear-main.md)
+- [0037: Mobile account lifecycle](architecture/0037-mobile-account-lifecycle.md)
 
 ## Database
 

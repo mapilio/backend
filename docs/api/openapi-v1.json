@@ -31,6 +31,233 @@
     }
   ],
   "paths": {
+    "/api/v1/mobile/accounts": {
+      "post": {
+        "operationId": "registerMobileAccount",
+        "tags": ["Identity"],
+        "summary": "Register a password-based mobile account",
+        "description": "Creates an inactive account and sends a time-limited signed activation link. Callback hosts and schemes are server allowlisted.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobileRegistrationRequest"},
+              "example": {
+                "name": "Example Mapper",
+                "username": "example-mapper",
+                "email": "mapper@example.test",
+                "password": "synthetic-password-for-example",
+                "callback": "https://mapilio.com/app",
+                "success-params": "tverification=true",
+                "error-params": "tverification=false"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration accepted; activation is pending.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileAccountAccepted"},
+                "example": {"success": true, "message": ["Check your email to activate your account."]}
+              }
+            }
+          },
+          "400": {"description": "The identity, callback, or request fields were rejected."},
+          "429": {"description": "The registration rate limit was exceeded."},
+          "503": {"description": "Account creation or activation email delivery is unavailable."}
+        }
+      }
+    },
+    "/api/v1/mobile/password/forgot": {
+      "post": {
+        "operationId": "requestMobilePasswordReset",
+        "tags": ["Identity"],
+        "summary": "Request a mobile password reset",
+        "description": "Returns the same success response for known and unknown addresses. A known active account receives a time-limited signed reset link.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobilePasswordForgotRequest"},
+              "example": {
+                "email": "mapper@example.test",
+                "callback": "https://mapilio.com/reset-password",
+                "success-params": "tverification=true",
+                "error-params": "tverification=false"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request was accepted without confirming account existence.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileBooleanSuccess"},
+                "example": {"success": true}
+              }
+            }
+          },
+          "400": {"description": "The request fields or callback were rejected."},
+          "429": {"description": "The per-address or per-IP reset rate limit was exceeded."}
+        }
+      }
+    },
+    "/api/v1/mobile/password/reset": {
+      "post": {
+        "operationId": "resetMobilePassword",
+        "tags": ["Identity"],
+        "summary": "Complete a mobile password reset",
+        "description": "Consumes the short-lived opaque code produced after the signed email link is opened. A code can be used only once.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobilePasswordResetRequest"},
+              "example": {
+                "code": "synthetic-opaque-reset-code",
+                "password": "new-synthetic-password",
+                "re-password": "new-synthetic-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed and reset code consumed.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileBooleanSuccess"},
+                "example": {"success": true}
+              }
+            }
+          },
+          "400": {"description": "The reset code is invalid, expired, consumed, or the passwords do not match."},
+          "429": {"description": "The password renewal rate limit was exceeded."}
+        }
+      }
+    },
+    "/api/v1/mobile/profile": {
+      "post": {
+        "operationId": "updateMobileProfile",
+        "tags": ["Identity"],
+        "summary": "Update the authenticated mobile profile",
+        "description": "Updates bounded profile fields and optionally stores a validated profile image on the configured persistent disk.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {"$ref": "#/components/schemas/MobileProfileUpdateRequest"},
+              "example": {
+                "user_bio": "Mapping fresh roads.",
+                "display_name": "Example Mapper",
+                "username": "example-mapper",
+                "hidden_profile": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated public profile fields.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProfileUpdateResponse"},
+                "example": {
+                  "status": true,
+                  "response": {
+                    "id": 10,
+                    "username": "example-mapper",
+                    "email": "mapper@example.test",
+                    "display_name": "Example Mapper",
+                    "user_profile_photo": "https://cdn.example.test/profile-photos/10/synthetic.jpg",
+                    "user_bio": "Mapping fresh roads.",
+                    "hidden_profile": false,
+                    "updated_at": "2026-08-19T10:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {"description": "Profile fields, username, or image were rejected."},
+          "401": {"description": "A valid mobile bearer token is required."},
+          "429": {"description": "The authenticated account-write rate limit was exceeded."}
+        }
+      }
+    },
+    "/api/v1/mobile/profile/email": {
+      "post": {
+        "operationId": "requestMobileEmailChange",
+        "tags": ["Identity"],
+        "summary": "Replace a provider-generated placeholder email",
+        "description": "Sends a signed confirmation to the new unique address. The stored address changes only after confirmation and this flow is unavailable to ordinary password accounts.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobileEmailUpdateRequest"},
+              "example": {"email": "mapper@example.test"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email confirmation was sent.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileActionResponse"},
+                "example": {"status": true, "response": true}
+              }
+            }
+          },
+          "400": {"description": "The email is invalid or already used."},
+          "401": {"description": "A valid mobile bearer token is required."},
+          "409": {"description": "The current account is not eligible for placeholder-email replacement."},
+          "429": {"description": "The authenticated account-write rate limit was exceeded."}
+        }
+      }
+    },
+    "/api/v1/mobile/account": {
+      "delete": {
+        "operationId": "deleteMobileAccount",
+        "tags": ["Identity"],
+        "summary": "Delete and anonymize the authenticated mobile account",
+        "description": "Preserves contribution ownership while removing personal profile fields and disabling the identity so all current access and refresh tokens stop working. Apple authorization is revoked before deletion; provider failure leaves the account unchanged.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobileAccountDeleteRequest"},
+              "example": {"delete": true, "login_type": "default"}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The identity was anonymized and disabled.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileDeleteResponse"},
+                "example": {"status": true, "response": {"success": true}}
+              }
+            }
+          },
+          "400": {"description": "Deletion confirmation or login type was rejected."},
+          "401": {"description": "A valid mobile bearer token is required."},
+          "409": {"description": "The account is already unavailable."},
+          "429": {"description": "The account-deletion rate limit was exceeded."},
+          "503": {"description": "Apple authorization could not be revoked; no account data was changed."}
+        }
+      }
+    },
     "/api/v1/mobile/auth/social-token": {
       "post": {
         "operationId": "mobileSocialToken",
@@ -437,6 +664,125 @@
   },
   "components": {
     "schemas": {
+      "MobileRegistrationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "username", "email", "password", "callback", "success-params", "error-params"],
+        "properties": {
+          "name": {"type": "string", "maxLength": 55},
+          "username": {"type": "string", "maxLength": 20},
+          "email": {"type": "string", "format": "email", "maxLength": 255},
+          "password": {"type": "string", "minLength": 8, "maxLength": 72},
+          "callback": {"type": "string", "format": "uri", "maxLength": 2048},
+          "success-params": {"type": "string", "maxLength": 200},
+          "error-params": {"type": "string", "maxLength": 200},
+          "referrer": {"type": ["string", "null"], "maxLength": 255}
+        }
+      },
+      "MobilePasswordForgotRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["email", "callback", "success-params", "error-params"],
+        "properties": {
+          "email": {"type": "string", "format": "email", "maxLength": 255},
+          "callback": {"type": "string", "format": "uri", "maxLength": 2048},
+          "success-params": {"type": "string", "maxLength": 200},
+          "error-params": {"type": "string", "maxLength": 200}
+        }
+      },
+      "MobilePasswordResetRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "password", "re-password"],
+        "properties": {
+          "code": {"type": "string", "maxLength": 4096},
+          "password": {"type": "string", "minLength": 8, "maxLength": 72},
+          "re-password": {"type": "string", "minLength": 8, "maxLength": 72}
+        }
+      },
+      "MobileProfileUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "user_bio": {"type": ["string", "null"], "maxLength": 200},
+          "display_name": {"type": "string", "maxLength": 40},
+          "username": {"type": "string", "maxLength": 20},
+          "hidden_profile": {"type": "boolean"},
+          "user_profile_photo": {"type": "string", "format": "binary"}
+        }
+      },
+      "MobileEmailUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["email"],
+        "properties": {
+          "email": {"type": "string", "format": "email", "maxLength": 255}
+        }
+      },
+      "MobileAccountDeleteRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["delete", "login_type"],
+        "properties": {
+          "delete": {"const": true},
+          "login_type": {"type": "string", "enum": ["default", "apple"]},
+          "auth_code": {"type": "string", "maxLength": 4096, "description": "Required when login_type is apple."}
+        }
+      },
+      "MobileAccountAccepted": {
+        "type": "object",
+        "required": ["success", "message"],
+        "properties": {
+          "success": {"const": true},
+          "message": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "MobileBooleanSuccess": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {"success": {"const": true}}
+      },
+      "MobileActionResponse": {
+        "type": "object",
+        "required": ["status", "response"],
+        "properties": {
+          "status": {"const": true},
+          "response": {"const": true}
+        }
+      },
+      "MobileDeleteResponse": {
+        "type": "object",
+        "required": ["status", "response"],
+        "properties": {
+          "status": {"const": true},
+          "response": {
+            "type": "object",
+            "required": ["success"],
+            "properties": {"success": {"const": true}}
+          }
+        }
+      },
+      "MobileProfileUpdateResponse": {
+        "type": "object",
+        "required": ["status", "response"],
+        "properties": {
+          "status": {"const": true},
+          "response": {
+            "type": "object",
+            "required": ["id", "username", "email", "display_name", "user_profile_photo", "user_bio", "hidden_profile", "updated_at"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "username": {"type": "string"},
+              "email": {"type": "string", "format": "email"},
+              "display_name": {"type": "string"},
+              "user_profile_photo": {"type": ["string", "null"], "format": "uri"},
+              "user_bio": {"type": ["string", "null"]},
+              "hidden_profile": {"type": "boolean"},
+              "updated_at": {"type": ["string", "null"], "format": "date-time"}
+            }
+          }
+        }
+      },
       "AiFeatureDetailResponse": {
         "type": "object",
         "required": [
@@ -978,6 +1324,13 @@
             "type": "string"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "mobileBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Mapilio signed token"
       }
     }
   }
