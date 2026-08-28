@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Domain\AiJobsPredictions\Actions\PredictionCallbackException;
 use App\Domain\AiJobsPredictions\Actions\ValidatePredictionCallbackReceipt;
 use App\Jobs\PersistPredictionResult as PersistPredictionResultJob;
 use App\Jobs\ValidatePredictionCallbackReceipt as ValidatePredictionCallbackReceiptJob;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
@@ -237,6 +241,133 @@ class AiPredictionCallbackTest extends TestCase
                 'processing_error' => 'Callback receipt integrity validation failed.',
             ]);
         }
+    }
+
+    public function test_receipt_validation_persists_malformed_received_row_as_error(): void
+    {
+        $receiptId = Schema::getConnection()->table('ai_prediction_callback_receipts')->insertGetId([
+            'response_id' => 'prediction-response-1',
+            'response_status' => 'SUCCESS',
+            'payload_hash' => ' ',
+            'fingerprint' => str_repeat('r', 64),
+            'encrypted_payload' => 'encrypted-callback-payload',
+            'result_feature_count' => 0,
+            'processing_status' => 'received',
+            'processing_error' => null,
+            'received_at' => now(),
+            'validated_at' => null,
+            'processed_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            app(ValidatePredictionCallbackReceipt::class)->validate((int) $receiptId);
+            $this->fail('Malformed received callback receipt should not validate.');
+        } catch (PredictionCallbackException $exception) {
+            $this->assertSame('Callback receipt has an invalid database representation.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'error',
+            'processing_error' => 'Callback receipt has an invalid database representation.',
+        ]);
+    }
+
+    public function test_receipt_validation_ignores_malformed_terminal_row(): void
+    {
+        $receiptId = Schema::getConnection()->table('ai_prediction_callback_receipts')->insertGetId([
+            'response_id' => ' ',
+            'response_status' => ' ',
+            'payload_hash' => ' ',
+            'fingerprint' => str_repeat('t', 64),
+            'encrypted_payload' => ' ',
+            'result_feature_count' => 0,
+            'processing_status' => 'processed',
+            'processing_error' => 'already processed',
+            'received_at' => now(),
+            'validated_at' => now(),
+            'processed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertFalse(app(ValidatePredictionCallbackReceipt::class)->validate((int) $receiptId));
+
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'response_id' => ' ',
+            'response_status' => ' ',
+            'payload_hash' => ' ',
+            'encrypted_payload' => ' ',
+            'processing_status' => 'processed',
+            'processing_error' => 'already processed',
+        ]);
+    }
+
+    public function test_receipt_validation_does_not_overwrite_a_concurrent_terminal_transition(): void
+    {
+        $receiptId = Schema::getConnection()->table('ai_prediction_callback_receipts')->insertGetId([
+            'response_id' => 'prediction-response-1',
+            'response_status' => 'SUCCESS',
+            'payload_hash' => ' ',
+            'fingerprint' => str_repeat('c', 64),
+            'encrypted_payload' => 'encrypted-callback-payload',
+            'result_feature_count' => 0,
+            'processing_status' => 'received',
+            'processing_error' => null,
+            'received_at' => now(),
+            'validated_at' => null,
+            'processed_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $connection = DB::connection();
+        $originalDispatcher = $connection->getEventDispatcher();
+        $isolatedDispatcher = $originalDispatcher === null
+            ? new Dispatcher(app())
+            : clone $originalDispatcher;
+        $transitioned = false;
+        $isolatedDispatcher->listen(QueryExecuted::class, function (QueryExecuted $query) use (&$transitioned, $connection, $receiptId): void {
+            if ($transitioned || ! str_contains(strtolower($query->sql), 'select') || ! str_contains($query->sql, 'ai_prediction_callback_receipts')) {
+                return;
+            }
+
+            $transitioned = true;
+            $connection->table('ai_prediction_callback_receipts')
+                ->where('id', $receiptId)
+                ->update([
+                    'processing_status' => 'validated',
+                    'processing_error' => null,
+                    'validated_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        });
+        $connection->setEventDispatcher($isolatedDispatcher);
+
+        $exception = null;
+        try {
+            app(ValidatePredictionCallbackReceipt::class)->validate((int) $receiptId);
+            $this->fail('Malformed received callback receipt should not validate.');
+        } catch (PredictionCallbackException $caught) {
+            $exception = $caught;
+        } finally {
+            if ($originalDispatcher === null) {
+                $connection->unsetEventDispatcher();
+            } else {
+                $connection->setEventDispatcher($originalDispatcher);
+            }
+        }
+
+        $this->assertSame('Callback receipt has an invalid database representation.', $exception->getMessage());
+
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'validated',
+            'processing_error' => null,
+        ]);
     }
 
     public function test_validation_job_queues_result_persistence_only_when_enabled(): void
