@@ -52,8 +52,8 @@ class DispatchSequencePrediction
         if ($existing !== null) {
             return [
                 'dispatched' => false,
-                'status' => (string) $existing->process_status,
-                'response_id' => (string) $existing->response_id,
+                'status' => $existing->processStatus,
+                'response_id' => $existing->responseId,
             ];
         }
 
@@ -124,9 +124,9 @@ class DispatchSequencePrediction
         }
     }
 
-    private function activeProcessing(ConnectionInterface $connection, string $sequenceUuid): ?object
+    private function activeProcessing(ConnectionInterface $connection, string $sequenceUuid): ?AiPredictionActiveProcessRow
     {
-        return $connection->table('default_mapilio_processing')
+        $row = $connection->table('default_mapilio_processing')
             ->where('sequence_uuid', $sequenceUuid)
             ->whereNull('deleted_at')
             ->whereIn('process_status', [
@@ -136,10 +136,12 @@ class DispatchSequencePrediction
             ])
             ->orderByDesc('id')
             ->first();
+
+        return $row === null ? null : AiPredictionActiveProcessRow::fromDatabaseRow($row);
     }
 
     /**
-     * @return array{existing: object|null, id: int|null}
+     * @return array{existing: AiPredictionActiveProcessRow|null, id: int|null}
      */
     private function reserveOrReuse(ConnectionInterface $connection, string $sequenceUuid): array
     {
@@ -163,7 +165,11 @@ class DispatchSequencePrediction
 
             return [
                 'existing' => null,
-                'id' => $this->reserve($connection, $sequenceUuid, $detail),
+                'id' => $this->reserve(
+                    $connection,
+                    $sequenceUuid,
+                    AiPredictionSequenceDetailRow::fromDatabaseRow($detail),
+                ),
             ];
         });
     }
@@ -189,17 +195,20 @@ class DispatchSequencePrediction
             ]);
     }
 
-    private function reserve(ConnectionInterface $connection, string $sequenceUuid, object $detail): int
-    {
+    private function reserve(
+        ConnectionInterface $connection,
+        string $sequenceUuid,
+        AiPredictionSequenceDetailRow $detail,
+    ): int {
         return $connection->table('default_mapilio_processing')->insertGetId(
             $this->onlyExistingColumns('default_mapilio_processing', [
                 'created_at' => Carbon::now(),
-                'created_by_id' => $detail->created_by_id,
+                'created_by_id' => $detail->createdById,
                 'updated_at' => Carbon::now(),
-                'updated_by_id' => $detail->created_by_id,
+                'updated_by_id' => $detail->createdById,
                 'deleted_at' => null,
-                'organization_key' => $detail->organization_key,
-                'project_key' => $detail->project_key,
+                'organization_key' => $detail->organizationKey,
+                'project_key' => $detail->projectKey,
                 'sequence_uuid' => $sequenceUuid,
                 'process_status' => self::STATUS_RESERVING,
                 'response_id' => 'dispatch:'.Str::uuid(),
