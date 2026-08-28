@@ -124,6 +124,13 @@
             "path": "<commit-message>",
             "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
             "reason": "GitHub added the maintainer co-author trailer while squash-merging the upload and rate-limit hardening PR. The address is the GitHub-provided noreply alias, not a personal mailbox, and the commit is already on main so its message cannot be rewritten. Squash-merging keeps reintroducing this: disabling 'Default to PR author' or editing the commit body at merge time would stop it recurring."
+        },
+        {
+            "category": "personal-email",
+            "commit": "e98750fa8f620198459a9f9ba09a771f40623bed",
+            "path": "<commit-message>",
+            "fingerprint": "0c7c59db43beb4a44eb62ab0ab98d51dc9349211e26e13398a197510bf435c2b",
+            "reason": "GitHub added the maintainer co-author trailer while squash-merging the mobile account lifecycle PR #67. The address is a GitHub-provided noreply alias rather than repository content, and main is immutable."
         }
     ]
 }
