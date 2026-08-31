@@ -11,6 +11,7 @@ use App\Jobs\PersistPredictionResult as PersistPredictionResultJob;
 use App\Jobs\ProjectPredictionProcessingStatus as ProjectPredictionProcessingStatusJob;
 use App\Jobs\RegisterAiDetectionPublication as RegisterAiDetectionPublicationJob;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -82,6 +83,56 @@ class AiPredictionProjectionTest extends TestCase
         $this->assertSame(1, Schema::getConnection()->table('ai_prediction_status_projections')->value('attempts'));
     }
 
+    public function test_newer_receipt_wins_when_older_receipt_is_projected_afterward(): void
+    {
+        $olderReceiptId = $this->seedReceipt('ERROR');
+        $newerReceiptId = $this->seedReceipt('SUCCESS');
+
+        $this->assertTrue(app(ProjectPredictionProcessingStatus::class)->project($newerReceiptId));
+        $this->assertTrue(app(ProjectPredictionProcessingStatus::class)->project($olderReceiptId));
+
+        $this->assertDatabaseHas('default_mapilio_processing', [
+            'response_id' => 'prediction-result-1',
+            'process_status' => 'SUCCESS',
+        ]);
+        $this->assertDatabaseHas('default_mapilio_sequence_detail', [
+            'sequence_uuid' => 'sequence-ai-1',
+            'last_status' => 'completed',
+            'processing_status' => 3,
+        ]);
+    }
+
+    public function test_newer_processing_attempt_owns_shared_sequence_status(): void
+    {
+        $olderReceiptId = $this->seedReceipt('ERROR');
+        Schema::getConnection()->table('default_mapilio_processing')->insert([
+            'response_id' => 'prediction-result-2',
+            'sequence_uuid' => 'sequence-ai-1',
+            'process_status' => 'pending',
+            'deleted_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $newerReceiptId = $this->seedReceipt('SUCCESS', responseId: 'prediction-result-2');
+
+        $this->assertTrue(app(ProjectPredictionProcessingStatus::class)->project($newerReceiptId));
+        $this->assertTrue(app(ProjectPredictionProcessingStatus::class)->project($olderReceiptId));
+
+        $this->assertDatabaseHas('default_mapilio_processing', [
+            'response_id' => 'prediction-result-1',
+            'process_status' => 'ERROR',
+        ]);
+        $this->assertDatabaseHas('default_mapilio_processing', [
+            'response_id' => 'prediction-result-2',
+            'process_status' => 'SUCCESS',
+        ]);
+        $this->assertDatabaseHas('default_mapilio_sequence_detail', [
+            'sequence_uuid' => 'sequence-ai-1',
+            'last_status' => 'completed',
+            'processing_status' => 3,
+        ]);
+    }
+
     public function test_unprocessed_receipt_cannot_change_legacy_status(): void
     {
         $receiptId = $this->seedReceipt('SUCCESS', 'validated');
@@ -90,6 +141,94 @@ class AiPredictionProjectionTest extends TestCase
         $this->expectExceptionMessage("Callback receipt {$receiptId} has not been processed.");
 
         app(ProjectPredictionProcessingStatus::class)->project($receiptId);
+    }
+
+    public function test_ambiguous_processing_ownership_fails_closed(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS');
+        Schema::getConnection()->table('default_mapilio_processing')->insert([
+            'response_id' => 'prediction-result-1',
+            'sequence_uuid' => 'sequence-ai-2',
+            'process_status' => 'pending',
+            'deleted_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectException(PredictionStatusProjectionException::class);
+        $this->expectExceptionMessage('AI response id does not belong to exactly one processing request.');
+
+        app(ProjectPredictionProcessingStatus::class)->project($receiptId);
+    }
+
+    public function test_malformed_legacy_processing_row_fails_closed(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS');
+        Schema::getConnection()->table('default_mapilio_processing')->update(['sequence_uuid' => '   ']);
+
+        $this->expectException(PredictionStatusProjectionException::class);
+        $this->expectExceptionMessage('Processing request has an invalid database representation.');
+
+        app(ProjectPredictionProcessingStatus::class)->project($receiptId);
+    }
+
+    public function test_modern_finalization_failure_after_legacy_commit_is_durable_and_retries(): void
+    {
+        $receiptId = $this->seedReceipt('SUCCESS');
+        $legacyConnectionName = 'ai_status_failure_legacy';
+        $previousLegacyConnection = config('mapilio.legacy_database_connection');
+        Config::set("database.connections.{$legacyConnectionName}", [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge($legacyConnectionName);
+        Config::set('mapilio.legacy_database_connection', $legacyConnectionName);
+        $this->createFailureLegacyFixture($legacyConnectionName);
+        $modernConnection = Schema::getConnection();
+
+        try {
+            $modernConnection->statement("CREATE TRIGGER fail_ai_projection_finalize BEFORE UPDATE OF projection_status ON ai_prediction_status_projections WHEN NEW.projection_status = 'projected' BEGIN SELECT RAISE(ABORT, 'sensitive modern finalization failure'); END");
+
+            try {
+                app(ProjectPredictionProcessingStatus::class)->project($receiptId);
+                $this->fail('Expected the modern finalization failure to be rethrown.');
+            } catch (PredictionStatusProjectionException $exception) {
+                $this->assertSame('Prediction status projection could not be completed.', $exception->getMessage());
+                $this->assertStringNotContainsString('sensitive modern finalization failure', $exception->getMessage());
+                $this->assertNull($exception->getPrevious());
+            } finally {
+                $modernConnection->statement('DROP TRIGGER fail_ai_projection_finalize');
+            }
+
+            $this->assertSame('SUCCESS', DB::connection($legacyConnectionName)->table('default_mapilio_processing')->value('process_status'));
+            $this->assertSame('completed', DB::connection($legacyConnectionName)->table('default_mapilio_sequence_detail')->value('last_status'));
+            $this->assertSame(3, DB::connection($legacyConnectionName)->table('default_mapilio_sequence_detail')->value('processing_status'));
+            $this->assertDatabaseHas('ai_prediction_status_projections', [
+                'callback_receipt_id' => $receiptId,
+                'projection_status' => 'error',
+                'attempts' => 1,
+                'last_error' => 'Prediction status projection could not be completed.',
+            ]);
+            $this->assertDatabaseMissing('ai_prediction_status_projections', [
+                'callback_receipt_id' => $receiptId,
+                'last_error' => 'sensitive modern finalization failure',
+            ]);
+
+            $this->assertTrue(app(ProjectPredictionProcessingStatus::class)->project($receiptId));
+            $this->assertDatabaseHas('ai_prediction_status_projections', [
+                'callback_receipt_id' => $receiptId,
+                'projection_status' => 'projected',
+                'attempts' => 2,
+                'last_error' => null,
+            ]);
+        } finally {
+            DB::disconnect($legacyConnectionName);
+            DB::purge($legacyConnectionName);
+            Config::set("database.connections.{$legacyConnectionName}", null);
+            Config::set('mapilio.legacy_database_connection', $previousLegacyConnection);
+        }
     }
 
     public function test_disabled_status_projection_has_no_side_effects(): void
@@ -264,10 +403,10 @@ class AiPredictionProjectionTest extends TestCase
         Queue::assertNotPushed(RegisterAiDetectionPublicationJob::class);
     }
 
-    private function seedReceipt(string $status, string $processingStatus = 'processed', int $featureCount = 0): int
+    private function seedReceipt(string $status, string $processingStatus = 'processed', int $featureCount = 0, string $responseId = 'prediction-result-1'): int
     {
         return Schema::getConnection()->table('ai_prediction_callback_receipts')->insertGetId([
-            'response_id' => 'prediction-result-1',
+            'response_id' => $responseId,
             'response_status' => $status,
             'result_feature_count' => $featureCount,
             'processing_status' => $processingStatus,
@@ -298,6 +437,46 @@ class AiPredictionProjectionTest extends TestCase
             'updated_at' => now(),
         ]);
         Schema::getConnection()->table('default_mapilio_sequence_detail')->insert([
+            'sequence_uuid' => 'sequence-ai-1',
+            'last_status' => 'processing',
+            'processing_status' => 2,
+            'processing_status_message' => null,
+            'deleted_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function createFailureLegacyFixture(string $connectionName): void
+    {
+        $schema = Schema::connection($connectionName);
+        $schema->create('default_mapilio_processing', function ($table): void {
+            $table->id();
+            $table->string('response_id');
+            $table->string('sequence_uuid');
+            $table->string('process_status');
+            $table->timestamp('deleted_at')->nullable();
+            $table->timestamps();
+        });
+        $schema->create('default_mapilio_sequence_detail', function ($table): void {
+            $table->id();
+            $table->string('sequence_uuid');
+            $table->string('last_status')->nullable();
+            $table->integer('processing_status')->nullable();
+            $table->text('processing_status_message')->nullable();
+            $table->timestamp('deleted_at')->nullable();
+            $table->timestamps();
+        });
+        $connection = DB::connection($connectionName);
+        $connection->table('default_mapilio_processing')->insert([
+            'response_id' => 'prediction-result-1',
+            'sequence_uuid' => 'sequence-ai-1',
+            'process_status' => 'pending',
+            'deleted_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $connection->table('default_mapilio_sequence_detail')->insert([
             'sequence_uuid' => 'sequence-ai-1',
             'last_status' => 'processing',
             'processing_status' => 2,
