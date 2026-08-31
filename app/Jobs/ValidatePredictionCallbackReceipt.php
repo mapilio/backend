@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Domain\AiJobsPredictions\Actions\MarkSequenceProcessingFailed;
 use App\Domain\AiJobsPredictions\Actions\ValidatePredictionCallbackReceipt as ValidateReceiptAction;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class ValidatePredictionCallbackReceipt implements ShouldQueue
 {
@@ -27,6 +29,11 @@ class ValidatePredictionCallbackReceipt implements ShouldQueue
             PersistPredictionResult::dispatch($this->receiptId)
                 ->onQueue((string) config('mapilio.ai_result_persistence.queue', 'ai-results'));
         }
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        app(MarkSequenceProcessingFailed::class)->markByReceiptId($this->receiptId);
     }
 
     /** @return list<string> */

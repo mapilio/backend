@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Domain\AiJobsPredictions\Actions\MarkSequenceProcessingFailed;
 use App\Domain\AiJobsPredictions\Actions\PersistPredictionResult as PersistPredictionResultAction;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class PersistPredictionResult implements ShouldQueue
 {
@@ -32,6 +34,11 @@ class PersistPredictionResult implements ShouldQueue
             RegisterAiDetectionPublication::dispatch($this->receiptId)
                 ->onQueue((string) config('mapilio.geo_publication.queue', 'geo-publications'));
         }
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        app(MarkSequenceProcessingFailed::class)->markByReceiptId($this->receiptId);
     }
 
     /** @return list<string> */

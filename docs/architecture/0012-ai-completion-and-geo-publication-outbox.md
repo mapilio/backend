@@ -26,6 +26,12 @@ For `SUCCESS`, it sets the processing request to `SUCCESS` and the sequence to `
 
 Legacy updates run in one legacy-database transaction. The modern audit record is then marked `projected`. A crash between those databases can repeat the same deterministic assignments safely. Completed projections are idempotent.
 
+### Retry exhaustion
+
+The four AI sequence-processing jobs have Laravel `failed` hooks that resolve a dedicated action after queue retries are exhausted. The action records the existing terminal sequence state (`last_status=fail`, processing status `1`, and the generic message `AI prediction processing failed.`) without retaining exception text. Dispatch failures require the latest active processing attempt to already be `ERROR`. Receipt-driven failures require one active processing owner plus durable modern failure evidence: either the receipt is `error`, or it is `processed` and its status projection is currently terminal `error`. A processed receipt without that projection error is a no-op, so result fanout failures cannot relabel successful persistence. Completed and already-failed sequences remain unchanged, and ambiguous ownership is a no-op.
+
+For an existing response stream, repository callback storage and receipt-driven failure projection both lock the oldest modern receipt before inserting or checking for newer receipts. Failure projection holds that modern lock through the legacy transaction, serializing these repository writers without holding a nonce row while waiting. This does not provide cross-database atomicity: external writers that bypass the lock and rollback or commit failures between databases remain staging-verification concerns. A watchdog and SLA-based timeout policy remain deferred.
+
 This flow is controlled by `MAPILIO_AI_STATUS_PROJECTION_ENABLED=false` and has a dedicated queue.
 
 ### Geo publication registration
