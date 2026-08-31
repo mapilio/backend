@@ -24,7 +24,7 @@ final class ExtractTargetSchemaDescriptor
 
     private readonly PostgresqlEndpointNormalizer $endpointNormalizer;
 
-    public function run(?string $output, bool $confirmed): object
+    public function run(?string $output, bool $confirmed): ImportSchemaDescriptorExtractionResult
     {
         if (! in_array((string) config('app.env', app()->environment()), self::ALLOWED_ENVIRONMENTS, true)) {
             throw new ImportSchemaDescriptorExtractionException('PRODUCTION_BLOCKED');
@@ -99,7 +99,7 @@ final class ExtractTargetSchemaDescriptor
         }
         $this->publisher->publish($directory, $output, $json);
 
-        return (object) ['checks' => ['TARGET_READ_ONLY', 'TABLE_METADATA', 'DESCRIPTOR_WRITTEN']];
+        return new ImportSchemaDescriptorExtractionResult(['TARGET_READ_ONLY', 'TABLE_METADATA', 'DESCRIPTOR_WRITTEN']);
     }
 
     private function identifier(mixed $value): ?string

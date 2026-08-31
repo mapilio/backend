@@ -4,6 +4,7 @@ namespace Tests\Feature\Database;
 
 use App\Domain\DataMigration\ComputeImportSchemaFingerprint;
 use App\Domain\DataMigration\ImportSchemaDescriptorExtractionException;
+use App\Domain\DataMigration\ImportSchemaFingerprintResult;
 use App\Domain\DataMigration\PrivateJsonPublisher;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
@@ -48,6 +49,8 @@ final class PrivateJsonPublisherTest extends TestCase
         $this->assertSame(0600, fileperms($path) & 0777);
         $this->assertSame($json, File::get($path));
         $result = (new ComputeImportSchemaFingerprint)->compute($path);
+        $this->assertInstanceOf(ImportSchemaFingerprintResult::class, $result);
+        $this->assertSame(['SCHEMA_DESCRIPTOR', 'CANONICALIZATION', 'SCHEMA_FINGERPRINT'], $result->checks);
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $result->fingerprint);
         $this->assertSame([], File::glob($this->directory.'/.'.'*.tmp'));
     }

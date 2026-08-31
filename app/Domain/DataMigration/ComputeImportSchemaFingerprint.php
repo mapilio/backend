@@ -31,7 +31,7 @@ final class ComputeImportSchemaFingerprint
     /** @var list<string> */
     public const COLUMN_KEYS = ['position', 'name', 'type_schema', 'type_name', 'nullable', 'character_length', 'numeric_precision', 'numeric_scale', 'datetime_precision'];
 
-    public function compute(?string $descriptorPath): object
+    public function compute(?string $descriptorPath): ImportSchemaFingerprintResult
     {
         $environment = (string) config('app.env', app()->environment());
         if (! in_array($environment, self::ALLOWED_ENVIRONMENTS, true)) {
@@ -60,7 +60,7 @@ final class ComputeImportSchemaFingerprint
             throw new ImportSchemaFingerprintException('CANONICALIZATION_FAILED');
         }
 
-        return (object) ['fingerprint' => $digest, 'checks' => ['SCHEMA_DESCRIPTOR', 'CANONICALIZATION', 'SCHEMA_FINGERPRINT']];
+        return new ImportSchemaFingerprintResult($digest, ['SCHEMA_DESCRIPTOR', 'CANONICALIZATION', 'SCHEMA_FINGERPRINT']);
     }
 
     private function readDescriptor(?string $path): string
@@ -118,15 +118,17 @@ final class ComputeImportSchemaFingerprint
 
     private function canonicalize(stdClass $descriptor): string
     {
-        if (! is_array($descriptor->columns ?? null) || ! array_is_list($descriptor->columns)) {
+        $root = get_object_vars($descriptor);
+        $columns = $root['columns'] ?? null;
+        if (! is_array($columns) || ! array_is_list($columns)) {
             throw new ImportSchemaFingerprintException('DESCRIPTOR_SCHEMA_INVALID');
         }
-        foreach ($descriptor->columns as $column) {
+        foreach ($columns as $column) {
             if (! $column instanceof stdClass) {
                 throw new ImportSchemaFingerprintException('DESCRIPTOR_SCHEMA_INVALID');
             }
         }
-        $value = $this->normalize($descriptor);
+        $value = $this->normalizeObject($descriptor);
         $this->keys($value, self::TOP_KEYS);
         if (! $this->schemaVersion($value['schema_version']) || $value['fingerprint_algorithm'] !== self::FINGERPRINT_ALGORITHM || ! in_array($value['engine'], self::ENGINES, true) || ! $this->identifier($value['schema']) || ! $this->identifier($value['table'])) {
             throw new ImportSchemaFingerprintException('DESCRIPTOR_SCHEMA_INVALID');
@@ -185,18 +187,24 @@ final class ComputeImportSchemaFingerprint
     private function normalize(mixed $value): mixed
     {
         if ($value instanceof stdClass) {
-            $result = [];
-            foreach (get_object_vars($value) as $key => $child) {
-                $result[$key] = $this->normalize($child);
-            }
-
-            return $result;
+            return $this->normalizeObject($value);
         }
         if (is_array($value)) {
             return array_map(fn (mixed $child): mixed => $this->normalize($child), $value);
         }
 
         return $value;
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeObject(stdClass $value): array
+    {
+        $result = [];
+        foreach (get_object_vars($value) as $key => $child) {
+            $result[$key] = $this->normalize($child);
+        }
+
+        return $result;
     }
 
     /**
