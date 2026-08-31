@@ -4,6 +4,7 @@ namespace Tests\Feature\Database;
 
 use App\Domain\DataMigration\ExtractTargetSchemaDescriptor;
 use App\Domain\DataMigration\ImportSchemaDescriptorExtractionException;
+use App\Domain\DataMigration\ImportSchemaDescriptorExtractionResult;
 use App\Domain\DataMigration\JsonPublisher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
@@ -143,6 +144,7 @@ final class TargetSchemaDescriptorExtractorTest extends TestCase
         }));
         $result = (new ExtractTargetSchemaDescriptor($database, $publisher))->run('target.json', true);
 
+        $this->assertInstanceOf(ImportSchemaDescriptorExtractionResult::class, $result);
         $this->assertSame(['TARGET_READ_ONLY', 'TABLE_METADATA', 'DESCRIPTOR_WRITTEN'], $result->checks);
         $this->assertSame('set transaction read only', $events[0]);
         $this->assertStringContainsString('pg_catalog.pg_class', strtolower(implode('\n', $events)));
