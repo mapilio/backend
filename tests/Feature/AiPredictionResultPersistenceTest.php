@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Domain\AiJobsPredictions\Actions\PersistPredictionResult;
 use App\Domain\AiJobsPredictions\Actions\PredictionResultPersistenceException;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 use Tests\TestCase;
 
 class AiPredictionResultPersistenceTest extends TestCase
@@ -153,6 +156,102 @@ class AiPredictionResultPersistenceTest extends TestCase
         $this->assertCanonicalTablesAreEmpty();
     }
 
+    public function test_missing_receipt_fails_closed(): void
+    {
+        try {
+            app(PersistPredictionResult::class)->persist(999);
+            $this->fail('Prediction result persistence should have failed.');
+        } catch (PredictionResultPersistenceException $exception) {
+            $this->assertSame('Callback receipt 999 was not found.', $exception->getMessage());
+            $this->assertNull($exception->getPrevious());
+        }
+    }
+
+    public function test_nonvalidated_receipt_fails_closed(): void
+    {
+        $receiptId = $this->seedReceipt($this->payload(), 'pending');
+
+        $this->assertPersistenceFails($receiptId, "Callback receipt {$receiptId} is not validated.");
+    }
+
+    public function test_malformed_receipt_fails_closed(): void
+    {
+        $receiptId = $this->seedReceipt($this->payload());
+        Schema::getConnection()->table('ai_prediction_callback_receipts')
+            ->where('id', $receiptId)
+            ->update(['response_id' => ' ']);
+
+        $this->assertPersistenceFails(
+            $receiptId,
+            'Callback receipt has an invalid database representation.',
+        );
+    }
+
+    public function test_success_feature_count_mismatch_has_no_canonical_writes(): void
+    {
+        $receiptId = $this->seedReceipt($this->payload());
+        Schema::getConnection()->table('ai_prediction_callback_receipts')
+            ->where('id', $receiptId)
+            ->update(['result_feature_count' => 2]);
+
+        $this->assertPersistenceFails(
+            $receiptId,
+            'AI result feature count does not match its receipt.',
+        );
+        $this->assertCanonicalTablesAreEmpty();
+    }
+
+    public function test_error_result_becomes_processed_without_a_canonical_graph(): void
+    {
+        $payload = $this->payload();
+        $payload['status'] = 'ERROR';
+        unset($payload['result']);
+        $receiptId = $this->seedReceipt($payload);
+
+        $this->assertTrue(app(PersistPredictionResult::class)->persist($receiptId));
+        $this->assertCanonicalTablesAreEmpty();
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'processed',
+            'processing_error' => null,
+        ]);
+    }
+
+    public function test_database_write_failure_rolls_back_and_records_only_a_generic_error(): void
+    {
+        $receiptId = $this->seedReceipt($this->payload());
+        $connection = Schema::getConnection();
+        $originalDispatcher = $connection->getEventDispatcher();
+        $dispatcher = $originalDispatcher === null
+            ? new Dispatcher(app())
+            : clone $originalDispatcher;
+        $dispatcher->listen(QueryExecuted::class, function (QueryExecuted $query): void {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'insert') && str_contains($sql, 'ai_detection_matches')) {
+                throw new RuntimeException('database failure details must not escape');
+            }
+        });
+        $connection->setEventDispatcher($dispatcher);
+
+        try {
+            app(PersistPredictionResult::class)->persist($receiptId);
+            $this->fail('Prediction result persistence should have failed.');
+        } catch (PredictionResultPersistenceException $exception) {
+            $this->assertSame('AI result persistence could not be completed.', $exception->getMessage());
+            $this->assertNull($exception->getPrevious());
+        } finally {
+            $connection->setEventDispatcher($originalDispatcher);
+        }
+
+        $this->assertCanonicalTablesAreEmpty();
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'error',
+            'processing_error' => 'AI result persistence could not be completed.',
+        ]);
+    }
+
     private function assertPersistenceFails(int $receiptId, string $message): void
     {
         try {
@@ -179,7 +278,7 @@ class AiPredictionResultPersistenceTest extends TestCase
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function seedReceipt(array $payload): int
+    private function seedReceipt(array $payload, string $processingStatus = 'validated'): int
     {
         $rawBody = json_encode($payload, JSON_THROW_ON_ERROR);
 
@@ -190,7 +289,7 @@ class AiPredictionResultPersistenceTest extends TestCase
             'fingerprint' => hash('sha256', $rawBody.'receipt'),
             'encrypted_payload' => Crypt::encryptString($rawBody),
             'result_feature_count' => count($payload['result']['features'] ?? []),
-            'processing_status' => 'validated',
+            'processing_status' => $processingStatus,
             'processing_error' => null,
             'received_at' => now(),
             'validated_at' => now(),

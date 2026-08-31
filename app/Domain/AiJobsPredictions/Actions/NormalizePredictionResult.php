@@ -12,7 +12,7 @@ class NormalizePredictionResult
      * @param  array<string, mixed>  $payload
      * @return array<int, array<string, mixed>>
      */
-    public function normalize(array $payload, object $processing): array
+    public function normalize(array $payload, AiPredictionResultProcessingRow $processing): array
     {
         if (strtoupper((string) ($payload['status'] ?? '')) !== 'SUCCESS') {
             return [];
@@ -95,7 +95,7 @@ class NormalizePredictionResult
         }
 
         $this->assertClassCodes($classCodes);
-        $this->assertImageryOwnership($imageryIds, (string) $processing->sequence_uuid);
+        $this->assertImageryOwnership($imageryIds, $processing->sequenceUuid);
 
         return $normalized;
     }
@@ -310,8 +310,8 @@ class NormalizePredictionResult
     {
         try {
             return json_encode($value, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new PredictionResultPersistenceException('AI result contains invalid JSON values.', previous: $exception);
+        } catch (JsonException) {
+            throw new PredictionResultPersistenceException('AI result contains invalid JSON values.');
         }
     }
 
