@@ -104,7 +104,7 @@ class ProjectPredictionProcessingStatus
                             'updated_at' => now(),
                         ]
                         : [
-                            'last_status' => 'uploaded',
+                            'last_status' => 'fail',
                             'processing_status' => 1,
                             'processing_status_message' => 'AI prediction processing failed.',
                             'updated_at' => now(),
