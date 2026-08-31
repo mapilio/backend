@@ -10,7 +10,7 @@ use JsonException;
 class StorePredictionCallbackReceipt
 {
     /**
-     * @return array{id: int, duplicate: bool}
+     * @return array{id: int, duplicate: bool, dispatch_required: bool}
      */
     public function store(string $rawBody, string $nonce, int $signedAt, string $payloadHash): array
     {
@@ -84,19 +84,14 @@ class StorePredictionCallbackReceipt
                 'updated_at' => now(),
             ]);
 
-            $receiptId = $connection->table('ai_prediction_callback_receipts')
-                ->where('fingerprint', $fingerprint)
-                ->value('id');
+            $receipt = $this->lockReceiptState($connection, $fingerprint);
 
-            if ($receiptId === null) {
-                throw new PredictionCallbackException('Callback receipt could not be stored.', 500);
-            }
-
-            $this->attachNonce($connection, $nonce, (int) $receiptId);
+            $this->attachNonce($connection, $nonce, $receipt['id']);
 
             return [
-                'id' => (int) $receiptId,
+                'id' => $receipt['id'],
                 'duplicate' => $receiptInserted === 0,
+                'dispatch_required' => $receipt['processing_status'] === 'received',
             ];
         });
     }
@@ -108,6 +103,43 @@ class StorePredictionCallbackReceipt
             ->orderBy('id')
             ->lockForUpdate()
             ->first(['id']);
+    }
+
+    /**
+     * @return array{id: int, processing_status: string}
+     */
+    private function lockReceiptState(ConnectionInterface $connection, string $fingerprint): array
+    {
+        $receipt = $connection->table('ai_prediction_callback_receipts')
+            ->where('fingerprint', $fingerprint)
+            ->lockForUpdate()
+            ->first(['id', 'processing_status']);
+
+        if (! is_object($receipt)) {
+            throw new PredictionCallbackException('Callback receipt could not be stored.', 500);
+        }
+
+        $values = get_object_vars($receipt);
+        $receiptId = $values['id'] ?? null;
+        $processingStatus = $values['processing_status'] ?? null;
+
+        if (is_string($receiptId) && preg_match('/^[1-9][0-9]*$/D', $receiptId)) {
+            $receiptId = filter_var($receiptId, FILTER_VALIDATE_INT);
+        }
+
+        if (
+            ! is_int($receiptId)
+            || $receiptId < 1
+            || ! is_string($processingStatus)
+            || ! in_array($processingStatus, ['received', 'validated', 'processed', 'error'], true)
+        ) {
+            throw new PredictionCallbackException('Callback receipt could not be stored.', 500);
+        }
+
+        return [
+            'id' => $receiptId,
+            'processing_status' => $processingStatus,
+        ];
     }
 
     /**

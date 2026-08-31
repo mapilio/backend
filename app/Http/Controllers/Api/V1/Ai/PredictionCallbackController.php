@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ValidatePredictionCallbackReceipt;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class PredictionCallbackController extends Controller
 {
+    private const QUEUE_FAILURE_MESSAGE = 'Callback receipt could not be queued.';
+
     public function __invoke(Request $request, StorePredictionCallbackReceipt $receipts): JsonResponse
     {
         try {
@@ -26,9 +29,17 @@ class PredictionCallbackController extends Controller
             ], $exception->getCode() ?: 400);
         }
 
-        if (! $receipt['duplicate']) {
-            ValidatePredictionCallbackReceipt::dispatch($receipt['id'])
-                ->onQueue((string) config('mapilio.ai_callback.queue', 'ai-callbacks'));
+        if ($receipt['dispatch_required']) {
+            try {
+                ValidatePredictionCallbackReceipt::dispatch($receipt['id'])
+                    ->onQueue((string) config('mapilio.ai_callback.queue', 'ai-callbacks'));
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return response()->json([
+                    'message' => self::QUEUE_FAILURE_MESSAGE,
+                ], 500);
+            }
         }
 
         if ($request->routeIs('webhook.legacy.prediction-response')) {

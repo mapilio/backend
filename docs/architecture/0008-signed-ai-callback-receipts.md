@@ -40,9 +40,9 @@ Valid callbacks are stored in the modern database as:
 - a separate unique nonce record with an expiry timestamp
 - result feature count and processing state metadata
 
-Reusing a nonce returns HTTP 409. Sending the same signed payload with a new nonce reuses the existing receipt and does not queue duplicate validation work.
+Reusing a nonce returns HTTP 409. Sending the same signed payload with a new nonce reuses the existing receipt. A duplicate queues validation again only while that receipt remains `received`; `validated`, `processed`, and `error` duplicates do not queue another job. Receipt acceptance is therefore at-least-once while validation is pending: the receipt commits before dispatch, and a later fresh-nonce delivery can redeliver validation after a dispatch failure.
 
-New receipts are handed to `ValidatePredictionCallbackReceipt` on the configured callback queue. The job decrypts the payload, recomputes its hash, verifies response id and status consistency, and marks the receipt `validated`. When the separate result-persistence feature flag is enabled, validation queues the canonical persistence job. It does not write detections into legacy feature tables.
+New and duplicate `received` receipts are handed to `ValidatePredictionCallbackReceipt` on the configured callback queue. If queue dispatch fails, the receipt remains committed, the exception is reported internally, and both callback routes return the generic HTTP 500 message `Callback receipt could not be queued.` The job decrypts the payload, recomputes its hash, verifies response id and status consistency, and marks the receipt `validated`. When the separate result-persistence feature flag is enabled, validation queues the canonical persistence job. It does not write detections into legacy feature tables.
 
 ## Response compatibility
 
