@@ -174,7 +174,44 @@ class AiPredictionCallbackTest extends TestCase
         $this->assertSame($first->json('receipt_id'), $second->json('receipt_id'));
         $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_receipts')->count());
         $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')->count());
+        $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')
+            ->where('callback_receipt_id', (int) $first->json('receipt_id'))
+            ->count());
         Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, 1);
+    }
+
+    public function test_distinct_payload_for_existing_response_stream_creates_a_newer_receipt(): void
+    {
+        $first = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            json_encode($this->successPayload(), JSON_THROW_ON_ERROR),
+            'nonce-response-stream-0001',
+        )->assertStatus(202)->assertJsonPath('duplicate', false);
+        $second = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            json_encode([
+                'id' => 'prediction-response-1',
+                'status' => 'ERROR',
+            ], JSON_THROW_ON_ERROR),
+            'nonce-response-stream-0002',
+        )->assertStatus(202)->assertJsonPath('duplicate', false);
+
+        $firstReceiptId = (int) $first->json('receipt_id');
+        $secondReceiptId = (int) $second->json('receipt_id');
+
+        $this->assertGreaterThan($firstReceiptId, $secondReceiptId);
+        $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_receipts')
+            ->where('response_id', 'prediction-response-1')
+            ->count());
+        $this->assertDatabaseHas('ai_prediction_callback_nonces', [
+            'nonce' => 'nonce-response-stream-0001',
+            'callback_receipt_id' => $firstReceiptId,
+        ]);
+        $this->assertDatabaseHas('ai_prediction_callback_nonces', [
+            'nonce' => 'nonce-response-stream-0002',
+            'callback_receipt_id' => $secondReceiptId,
+        ]);
+        Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, 2);
     }
 
     public function test_signed_callback_rejects_invalid_or_oversized_payload(): void

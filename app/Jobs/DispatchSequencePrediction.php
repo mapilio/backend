@@ -3,11 +3,13 @@
 namespace App\Jobs;
 
 use App\Domain\AiJobsPredictions\Actions\DispatchSequencePrediction as DispatchSequencePredictionAction;
+use App\Domain\AiJobsPredictions\Actions\MarkSequenceProcessingFailed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class DispatchSequencePrediction implements ShouldQueue
 {
@@ -22,6 +24,11 @@ class DispatchSequencePrediction implements ShouldQueue
     public function handle(DispatchSequencePredictionAction $predictions): void
     {
         $predictions->dispatch($this->sequenceUuid);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        app(MarkSequenceProcessingFailed::class)->markBySequenceUuid($this->sequenceUuid);
     }
 
     /** @return list<string> */

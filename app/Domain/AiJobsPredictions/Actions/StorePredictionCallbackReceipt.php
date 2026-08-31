@@ -54,6 +54,8 @@ class StorePredictionCallbackReceipt
             $responseId,
             $status,
         ): array {
+            $this->lockResponseStream($connection, $responseId);
+
             $nonceInserted = $connection->table('ai_prediction_callback_nonces')->insertOrIgnore([
                 'nonce' => $nonce,
                 'signed_at' => date('Y-m-d H:i:s', $signedAt),
@@ -97,6 +99,15 @@ class StorePredictionCallbackReceipt
                 'duplicate' => $receiptInserted === 0,
             ];
         });
+    }
+
+    private function lockResponseStream(ConnectionInterface $connection, string $responseId): void
+    {
+        $connection->table('ai_prediction_callback_receipts')
+            ->where('response_id', $responseId)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first(['id']);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\AiJobsPredictions\Actions\MarkSequenceProcessingFailed;
 use App\Domain\AiJobsPredictions\Actions\ProjectPredictionProcessingStatus as ProjectPredictionProcessingStatusAction;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -9,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class ProjectPredictionProcessingStatus implements ShouldBeUnique, ShouldQueue
 {
@@ -25,6 +27,11 @@ class ProjectPredictionProcessingStatus implements ShouldBeUnique, ShouldQueue
     public function handle(ProjectPredictionProcessingStatusAction $statuses): void
     {
         $statuses->project($this->receiptId);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        app(MarkSequenceProcessingFailed::class)->markByReceiptId($this->receiptId);
     }
 
     /** @return list<int> */
