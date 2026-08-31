@@ -55,7 +55,7 @@ class AiPredictionProjectionTest extends TestCase
         ]);
     }
 
-    public function test_error_status_uses_safe_legacy_error_state(): void
+    public function test_error_status_projects_terminal_fail_state_with_generic_message(): void
     {
         $receiptId = $this->seedReceipt('ERROR');
 
@@ -67,7 +67,7 @@ class AiPredictionProjectionTest extends TestCase
         ]);
         $this->assertDatabaseHas('default_mapilio_sequence_detail', [
             'sequence_uuid' => 'sequence-ai-1',
-            'last_status' => 'uploaded',
+            'last_status' => 'fail',
             'processing_status' => 1,
             'processing_status_message' => 'AI prediction processing failed.',
         ]);

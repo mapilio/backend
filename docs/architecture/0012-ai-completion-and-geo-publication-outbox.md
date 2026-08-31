@@ -22,7 +22,7 @@ The modern result worker may dispatch two independent, unique, retryable follow-
 - exactly one active processing row for the response id
 - exactly one active sequence-detail row for the processing sequence
 
-For `SUCCESS`, it sets the processing request to `SUCCESS` and the sequence to `completed` with legacy processing status `3`. For `ERROR`, it sets the request to `ERROR` and returns the sequence to `uploaded` with status `1` and a generic message that cannot leak an AI response body.
+For `SUCCESS`, it sets the processing request to `SUCCESS` and the sequence to `completed` with legacy processing status `3`. For `ERROR`, it sets the request to `ERROR` and projects the sequence to the existing client-supported terminal status `fail` with processing status `1` and a generic message that cannot leak an AI response body. This reuses an installed-client status rather than adding a new value.
 
 Legacy updates run in one legacy-database transaction. The modern audit record is then marked `projected`. A crash between those databases can repeat the same deterministic assignments safely. Completed projections are idempotent.
 
