@@ -20,45 +20,60 @@ class PersistPredictionResult
             return false;
         }
 
-        $receipt = DB::table('ai_prediction_callback_receipts')->find($receiptId);
-
-        if ($receipt === null) {
-            throw new PredictionResultPersistenceException("Callback receipt {$receiptId} was not found.");
-        }
-
-        if (! is_object($receipt)) {
-            throw new PredictionResultPersistenceException('Callback receipt has an invalid database representation.');
-        }
-
-        if ($receipt->processing_status === 'processed') {
-            return false;
-        }
-
-        if ($receipt->processing_status !== 'validated') {
-            throw new PredictionResultPersistenceException("Callback receipt {$receiptId} is not validated.");
-        }
-
         try {
-            $payload = $this->payload($receipt->encrypted_payload);
+            $databaseReceipt = DB::table('ai_prediction_callback_receipts')
+                ->select([
+                    'id',
+                    'processing_status',
+                    'encrypted_payload',
+                    'response_id',
+                    'response_status',
+                    'result_feature_count',
+                ])
+                ->where('id', $receiptId)
+                ->first();
+
+            if ($databaseReceipt === null) {
+                throw new PredictionResultPersistenceException("Callback receipt {$receiptId} was not found.");
+            }
+
+            $receipt = AiPredictionResultReceiptRow::fromDatabaseRow($databaseReceipt);
+
+            if ($receipt->processingStatus === 'processed') {
+                return false;
+            }
+
+            if ($receipt->processingStatus !== 'validated') {
+                throw new PredictionResultPersistenceException("Callback receipt {$receiptId} is not validated.");
+            }
+
+            $payload = $this->payload($receipt->encryptedPayload);
             $this->assertReceiptMatchesPayload($receipt, $payload);
-            $processing = $this->processingContext($receipt->response_id);
+            $processing = $this->processingContext($receipt->responseId);
             $features = $this->normalizer->normalize($payload, $processing);
 
-            if ($receipt->response_status === 'SUCCESS' && count($features) !== (int) $receipt->result_feature_count) {
+            if ($receipt->responseStatus === 'SUCCESS' && count($features) !== $receipt->resultFeatureCount) {
                 throw new PredictionResultPersistenceException('AI result feature count does not match its receipt.');
             }
 
             return DB::transaction(function () use ($receiptId, $receipt, $processing, $features): bool {
-                $locked = DB::table('ai_prediction_callback_receipts')
+                $databaseLocked = DB::table('ai_prediction_callback_receipts')
+                    ->select(['processing_status'])
                     ->where('id', $receiptId)
                     ->lockForUpdate()
                     ->first();
 
-                if ($locked === null || $locked->processing_status === 'processed') {
+                if ($databaseLocked === null) {
                     return false;
                 }
 
-                if ($locked->processing_status !== 'validated') {
+                $locked = AiPredictionResultLockedReceiptRow::fromDatabaseRow($databaseLocked);
+
+                if ($locked->processingStatus === 'processed') {
+                    return false;
+                }
+
+                if ($locked->processingStatus !== 'validated') {
                     throw new PredictionResultPersistenceException("Callback receipt {$receiptId} is not validated.");
                 }
 
@@ -82,39 +97,35 @@ class PersistPredictionResult
                 ? Str::limit($exception->getMessage(), 1000, '')
                 : 'AI result persistence could not be completed.';
 
-            DB::table('ai_prediction_callback_receipts')
-                ->where('id', $receiptId)
-                ->where('processing_status', '!=', 'processed')
-                ->update([
-                    'processing_status' => 'error',
-                    'processing_error' => $message,
-                    'updated_at' => now(),
-                ]);
+            $this->recordError($receiptId, $message);
 
             if ($exception instanceof PredictionResultPersistenceException) {
                 throw $exception;
             }
 
-            throw new PredictionResultPersistenceException($message, previous: $exception);
+            throw new PredictionResultPersistenceException($message);
         }
     }
 
     /**
      * @param  array<string, mixed>  $feature
      */
-    private function persistFeature(object $receipt, object $processing, array $feature): void
-    {
+    private function persistFeature(
+        AiPredictionResultReceiptRow $receipt,
+        AiPredictionResultProcessingRow $processing,
+        array $feature,
+    ): void {
         $identity = [
             'callback_receipt_id' => $receipt->id,
             'source_index' => $feature['source_index'],
         ];
 
         DB::table('ai_detection_features')->updateOrInsert($identity, [
-            'response_id' => $receipt->response_id,
-            'sequence_uuid' => $processing->sequence_uuid,
-            'created_by_id' => $processing->created_by_id,
-            'organization_key' => $processing->organization_key,
-            'project_key' => $processing->project_key,
+            'response_id' => $receipt->responseId,
+            'sequence_uuid' => $processing->sequenceUuid,
+            'created_by_id' => $processing->createdById,
+            'organization_key' => $processing->organizationKey,
+            'project_key' => $processing->projectKey,
             'class_code' => $feature['class_code'],
             'confidence' => $feature['confidence'],
             'longitude' => $feature['longitude'],
@@ -129,9 +140,10 @@ class PersistPredictionResult
             'updated_at' => now(),
         ]);
 
-        $featureId = (int) DB::table('ai_detection_features')
+        $featureId = $this->positiveDatabaseInteger(DB::table('ai_detection_features')
             ->where($identity)
-            ->value('id');
+            ->select('id')
+            ->value('id'));
 
         foreach ($feature['matches'] as $match) {
             $observation1 = $this->persistObservation($receipt, $processing, $match['observation_1']);
@@ -156,15 +168,18 @@ class PersistPredictionResult
     /**
      * @param  array<string, mixed>  $observation
      */
-    private function persistObservation(object $receipt, object $processing, array $observation): int
-    {
+    private function persistObservation(
+        AiPredictionResultReceiptRow $receipt,
+        AiPredictionResultProcessingRow $processing,
+        array $observation,
+    ): int {
         $identity = [
-            'response_id' => $receipt->response_id,
+            'response_id' => $receipt->responseId,
             'object_key' => $observation['object_key'],
         ];
 
         DB::table('ai_detection_observations')->updateOrInsert($identity, [
-            'sequence_uuid' => $processing->sequence_uuid,
+            'sequence_uuid' => $processing->sequenceUuid,
             'imagery_id' => $observation['imagery_id'],
             'x_min' => $observation['x_min'],
             'y_min' => $observation['y_min'],
@@ -176,12 +191,13 @@ class PersistPredictionResult
             'updated_at' => now(),
         ]);
 
-        return (int) DB::table('ai_detection_observations')
+        return $this->positiveDatabaseInteger(DB::table('ai_detection_observations')
             ->where($identity)
-            ->value('id');
+            ->select('id')
+            ->value('id'));
     }
 
-    private function processingContext(string $responseId): object
+    private function processingContext(string $responseId): AiPredictionResultProcessingRow
     {
         $entries = $this->legacyConnection()
             ->table('default_mapilio_processing')
@@ -206,7 +222,7 @@ class PersistPredictionResult
             throw new PredictionResultPersistenceException('AI processing request has an invalid database representation.');
         }
 
-        return $entry;
+        return AiPredictionResultProcessingRow::fromDatabaseRow($entry);
     }
 
     /**
@@ -221,8 +237,8 @@ class PersistPredictionResult
                 depth: 64,
                 flags: JSON_THROW_ON_ERROR,
             );
-        } catch (Throwable $exception) {
-            throw new PredictionResultPersistenceException('Callback receipt payload could not be decoded.', previous: $exception);
+        } catch (Throwable) {
+            throw new PredictionResultPersistenceException('Callback receipt payload could not be decoded.');
         }
 
         if (! is_array($payload)) {
@@ -235,11 +251,11 @@ class PersistPredictionResult
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function assertReceiptMatchesPayload(object $receipt, array $payload): void
+    private function assertReceiptMatchesPayload(AiPredictionResultReceiptRow $receipt, array $payload): void
     {
         if (
-            (string) ($payload['id'] ?? '') !== $receipt->response_id
-            || strtoupper((string) ($payload['status'] ?? '')) !== $receipt->response_status
+            (string) ($payload['id'] ?? '') !== $receipt->responseId
+            || strtoupper((string) ($payload['status'] ?? '')) !== $receipt->responseStatus
         ) {
             throw new PredictionResultPersistenceException('Callback receipt ownership fields do not match its payload.');
         }
@@ -257,8 +273,43 @@ class PersistPredictionResult
     {
         try {
             return json_encode($value, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            throw new PredictionResultPersistenceException('AI result contains invalid JSON values.', previous: $exception);
+        } catch (JsonException) {
+            throw new PredictionResultPersistenceException('AI result contains invalid JSON values.');
         }
+    }
+
+    private function recordError(int $receiptId, string $message): void
+    {
+        try {
+            DB::table('ai_prediction_callback_receipts')
+                ->where('id', $receiptId)
+                ->where('processing_status', '!=', 'processed')
+                ->update([
+                    'processing_status' => 'error',
+                    'processing_error' => $message,
+                    'updated_at' => now(),
+                ]);
+        } catch (Throwable) {
+            // Preserve the bounded public error if durable error recording is unavailable.
+        }
+    }
+
+    private function positiveDatabaseInteger(mixed $value): int
+    {
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+
+        if (! is_string($value) || ! preg_match('/^[1-9][0-9]*$/D', $value)) {
+            throw new PredictionResultPersistenceException('Canonical AI result has an invalid database representation.');
+        }
+
+        $normalized = filter_var($value, FILTER_VALIDATE_INT);
+
+        if ($normalized === false || $normalized < 1) {
+            throw new PredictionResultPersistenceException('Canonical AI result has an invalid database representation.');
+        }
+
+        return $normalized;
     }
 }
