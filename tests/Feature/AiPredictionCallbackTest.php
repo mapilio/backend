@@ -6,14 +6,18 @@ use App\Domain\AiJobsPredictions\Actions\PredictionCallbackException;
 use App\Domain\AiJobsPredictions\Actions\ValidatePredictionCallbackReceipt;
 use App\Jobs\PersistPredictionResult as PersistPredictionResultJob;
 use App\Jobs\ValidatePredictionCallbackReceipt as ValidatePredictionCallbackReceiptJob;
+use Illuminate\Contracts\Bus\Dispatcher as DispatcherContract;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
+use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -94,6 +98,33 @@ class AiPredictionCallbackTest extends TestCase
         $response->assertOk()->assertExactJson(['status' => true]);
     }
 
+    public function test_legacy_callback_preserves_sanitized_queue_failure_error_shape(): void
+    {
+        Exceptions::fake();
+        $originalDispatcher = app(DispatcherContract::class);
+        $failingDispatcher = Mockery::mock(DispatcherContract::class);
+        $failingDispatcher->shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new \RuntimeException('queue credentials and callback nonce leaked'));
+        $this->app->instance(DispatcherContract::class, $failingDispatcher);
+
+        try {
+            $response = $this->signedPost(
+                '/webhook/response-prediction',
+                json_encode($this->successPayload(), JSON_THROW_ON_ERROR),
+                'nonce-legacy-queue-failure-001',
+            );
+        } finally {
+            $this->app->instance(DispatcherContract::class, $originalDispatcher);
+        }
+
+        $response->assertStatus(500)->assertExactJson([
+            'message' => 'Callback receipt could not be queued.',
+        ]);
+        $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_receipts')->count());
+        Exceptions::assertReported(\RuntimeException::class);
+    }
+
     public function test_disabled_callback_remains_closed(): void
     {
         Config::set('mapilio.ai_callback.enabled', false);
@@ -154,7 +185,7 @@ class AiPredictionCallbackTest extends TestCase
         $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_nonces')->count());
     }
 
-    public function test_same_payload_with_new_nonce_is_idempotent(): void
+    public function test_received_duplicate_with_new_nonce_reuses_receipt_and_redelivers_validation(): void
     {
         $rawBody = json_encode($this->successPayload(), JSON_THROW_ON_ERROR);
 
@@ -173,11 +204,108 @@ class AiPredictionCallbackTest extends TestCase
 
         $this->assertSame($first->json('receipt_id'), $second->json('receipt_id'));
         $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_receipts')->count());
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => (int) $first->json('receipt_id'),
+            'processing_status' => 'received',
+        ]);
         $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')->count());
         $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')
             ->where('callback_receipt_id', (int) $first->json('receipt_id'))
             ->count());
+        Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, 2);
+        Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, function ($job) use ($first): bool {
+            return $job->receiptId === (int) $first->json('receipt_id');
+        });
+    }
+
+    #[DataProvider('terminalReceiptStatuses')]
+    public function test_terminal_duplicate_with_new_nonce_does_not_redeliver_validation(string $processingStatus): void
+    {
+        $rawBody = json_encode($this->successPayload(), JSON_THROW_ON_ERROR);
+        $first = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            $rawBody,
+            "nonce-terminal-{$processingStatus}-01",
+        )->assertStatus(202);
+        $receiptId = (int) $first->json('receipt_id');
+
+        Schema::getConnection()->table('ai_prediction_callback_receipts')
+            ->where('id', $receiptId)
+            ->update(['processing_status' => $processingStatus]);
+
+        $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            $rawBody,
+            "nonce-terminal-{$processingStatus}-02",
+        )->assertStatus(200)->assertExactJson([
+            'status' => true,
+            'receipt_id' => $receiptId,
+            'duplicate' => true,
+        ]);
+
         Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, 1);
+        $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_receipts')->count());
+        $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')->count());
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => $processingStatus,
+        ]);
+    }
+
+    public function test_dispatch_failure_keeps_committed_receipt_and_allows_duplicate_redelivery(): void
+    {
+        $rawBody = json_encode($this->successPayload(), JSON_THROW_ON_ERROR);
+        $queueException = new \RuntimeException(
+            'queue credentials callback body nonce signature infrastructure detail',
+        );
+
+        Exceptions::fake();
+        $originalDispatcher = app(DispatcherContract::class);
+        $failingDispatcher = Mockery::mock(DispatcherContract::class);
+        $failingDispatcher->shouldReceive('dispatch')->once()->andThrow($queueException);
+        $this->app->instance(DispatcherContract::class, $failingDispatcher);
+
+        try {
+            $failed = $this->signedPost(
+                '/api/v1/ai/predictions/callback',
+                $rawBody,
+                'nonce-queue-failure-request-01',
+            );
+        } finally {
+            $this->app->instance(DispatcherContract::class, $originalDispatcher);
+        }
+
+        $failed->assertStatus(500)->assertExactJson([
+            'message' => 'Callback receipt could not be queued.',
+        ]);
+        foreach (['queue credentials', 'callback body', 'nonce', 'signature', 'infrastructure detail'] as $sensitiveText) {
+            $this->assertStringNotContainsString($sensitiveText, $failed->getContent());
+        }
+        Exceptions::assertReported(\RuntimeException::class);
+
+        $receiptId = (int) Schema::getConnection()->table('ai_prediction_callback_receipts')->value('id');
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'received',
+        ]);
+
+        $retry = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            $rawBody,
+            'nonce-queue-failure-request-02',
+        );
+
+        $retry->assertStatus(200)->assertExactJson([
+            'status' => true,
+            'receipt_id' => $receiptId,
+            'duplicate' => true,
+        ]);
+        Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, 1);
+        Queue::assertPushed(ValidatePredictionCallbackReceiptJob::class, function ($job) use ($receiptId): bool {
+            return $job->receiptId === $receiptId;
+        });
+        $this->assertSame(1, Schema::getConnection()->table('ai_prediction_callback_receipts')->count());
+        $this->assertSame(2, Schema::getConnection()->table('ai_prediction_callback_nonces')->count());
     }
 
     public function test_distinct_payload_for_existing_response_stream_creates_a_newer_receipt(): void
@@ -468,6 +596,18 @@ class AiPredictionCallbackTest extends TestCase
                     ['type' => 'Feature', 'properties' => ['class_code' => 'speed-limit']],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function terminalReceiptStatuses(): array
+    {
+        return [
+            'validated receipt' => ['validated'],
+            'processed receipt' => ['processed'],
+            'error receipt' => ['error'],
         ];
     }
 
