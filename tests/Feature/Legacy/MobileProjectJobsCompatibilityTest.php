@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Domain\IdentityAccess\LegacyMobileAuth;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
@@ -77,7 +78,7 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             ->assertExactJson($legacy);
     }
 
-    public function test_mobile_create_job_accepts_marketplace_project_for_authenticated_user(): void
+    public function test_mobile_create_job_repeat_call_preserves_duplicate_contract_and_creates_one_active_membership(): void
     {
         $login = $this->loginAsLegacyUser('empty_jobs');
 
@@ -94,6 +95,21 @@ class MobileProjectJobsCompatibilityTest extends TestCase
                 'data' => true,
             ]);
 
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['You are a member of this project'],
+                'error_code' => 500,
+            ]);
+
         $this->assertDatabaseHas('default_projects_job', [
             'project_id' => 100,
             'project_key' => 'project-istanbul',
@@ -101,6 +117,13 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             'created_by_id' => 20,
             'updated_by_id' => 20,
         ]);
+
+        $this->assertSame(1, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('project_id', 100)
+            ->where('assign_id', 20)
+            ->whereNull('deleted_at')
+            ->count());
     }
 
     public function test_mobile_create_job_requires_valid_bearer_token(): void
@@ -116,6 +139,45 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             ->assertExactJson([
                 'message' => 'Unauthenticated.',
             ]);
+    }
+
+    public function test_mobile_create_job_rejects_stale_auth_after_user_is_disabled(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+        $staleUser = Schema::getConnection()->table('default_users_users')->where('id', 20)->first();
+
+        Schema::getConnection()->table('default_users_users')->where('id', 20)->update([
+            'enabled' => false,
+        ]);
+
+        $this->app->instance(LegacyMobileAuth::class, new class($staleUser) extends LegacyMobileAuth
+        {
+            public function __construct(private readonly object $staleUser) {}
+
+            public function userFromBearer(?string $authorizationHeader): object
+            {
+                return $this->staleUser;
+            }
+        });
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/projects/job/createJob', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+
+        $this->assertSame(0, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('project_id', 100)
+            ->where('assign_id', 20)
+            ->count());
     }
 
     public function test_mobile_create_job_preserves_validation_and_domain_errors(): void
