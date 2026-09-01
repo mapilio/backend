@@ -772,6 +772,156 @@
         }
       }
     },
+    "/api/v1/imagery/user-uploads": {
+      "get": {
+        "operationId": "getUserUploads",
+        "tags": ["Imagery reads"],
+        "summary": "Read a contributor's uploaded imagery groups",
+        "description": "Returns the legacy mobile user-uploads feed through its versioned alias. Maintained mobile clients currently use `/api/user-uploads-v2`; this alias invokes the same controller and preserves its nested query names, row fields, nullability, and Laravel-style pagination object. The controller reads numeric `options[parameters][user_id]` values and integer-casts them, using the result when it is positive. It integer-casts scalar number/string values for `options[limit]` and `page`; an omitted limit defaults to 15, limit is then clamped to 1..1000, and page defaults to and is clamped to at least 1. Pagination link values intentionally retain the legacy `/api/user-uploads-v2` path, even when the request uses this versioned alias. Empty and out-of-range pages return `data: null` rather than an empty array.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "options[parameters][user_id]",
+            "in": "query",
+            "required": true,
+            "description": "Numeric contributor id whose PHP integer cast must be positive. Decimal numeric forms are accepted and truncated by that integer cast before lookup.",
+            "schema": {"type": "number", "minimum": 1},
+            "example": 10
+          },
+          {
+            "name": "options[limit]",
+            "in": "query",
+            "required": false,
+            "description": "Optional scalar number or string. The controller PHP integer-casts the raw value, then clamps the result to the inclusive range 1..1000; omission uses 15. Non-numeric and zero values therefore normalize to 1.",
+            "schema": {"type": ["number", "string"], "default": 15},
+            "example": 2
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Optional scalar number or string. The controller PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 1. Non-numeric and zero values therefore normalize to 1.",
+            "schema": {"type": ["number", "string"], "default": 1},
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The grouped upload feed and the complete legacy Laravel-style pagination object. `data` is null when no rows match or the requested page is out of range.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/UserUploadsResponse"},
+                "examples": {
+                  "pageWithRows": {
+                    "summary": "Synthetic populated page",
+                    "value": {
+                      "data": [
+                        {
+                          "total": 3,
+                          "uploaded_hash": "synthetic-upload-hash-a",
+                          "capture_time": "2026-07-15 10:00:00",
+                          "cover_photo": "synthetic-a.jpg",
+                          "group_key": "synthetic-group-a",
+                          "start_address": "Synthetic Main Street",
+                          "last_status": "completed"
+                        },
+                        {
+                          "total": 1,
+                          "uploaded_hash": "synthetic-upload-hash-b",
+                          "capture_time": "2026-07-14 09:30:00",
+                          "cover_photo": "synthetic-b.jpg",
+                          "group_key": "synthetic-group-b",
+                          "start_address": null,
+                          "last_status": null
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "first_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=2&page=1",
+                        "from": 1,
+                        "last_page": 1,
+                        "last_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=2&page=1",
+                        "links": [
+                          {"url": null, "label": "&laquo; Previous", "active": false},
+                          {"url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=2&page=1", "label": "1", "active": true},
+                          {"url": null, "label": "Next &raquo;", "active": false}
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/user-uploads-v2",
+                        "per_page": 2,
+                        "prev_page_url": null,
+                        "to": 2,
+                        "total": 2
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {
+                      "data": null,
+                      "pagination": {
+                        "current_page": 1,
+                        "first_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=99&options%5Blimit%5D=10&page=1",
+                        "from": null,
+                        "last_page": 1,
+                        "last_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=99&options%5Blimit%5D=10&page=1",
+                        "links": [
+                          {"url": null, "label": "&laquo; Previous", "active": false},
+                          {"url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=99&options%5Blimit%5D=10&page=1", "label": "1", "active": true},
+                          {"url": null, "label": "Next &raquo;", "active": false}
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/user-uploads-v2",
+                        "per_page": 10,
+                        "prev_page_url": null,
+                        "to": null,
+                        "total": 0
+                      }
+                    }
+                  },
+                  "outOfRange": {
+                    "summary": "Synthetic out-of-range page",
+                    "value": {
+                      "data": null,
+                      "pagination": {
+                        "current_page": 2,
+                        "first_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=10&page=1",
+                        "from": null,
+                        "last_page": 1,
+                        "last_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=10&page=1",
+                        "links": [
+                          {"url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=10&page=1", "label": "&laquo; Previous", "active": false},
+                          {"url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=10&page=1", "label": "1", "active": false},
+                          {"url": null, "label": "Next &raquo;", "active": false}
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/user-uploads-v2",
+                        "per_page": 10,
+                        "prev_page_url": "/api/user-uploads-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Blimit%5D=10&page=1",
+                        "to": null,
+                        "total": 10
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The required nested user id is missing, non-numeric, or has a non-positive PHP integer cast. This exact object-shaped message intentionally has no `error_code`.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/UserUploadsValidationError"},
+                "example": {
+                  "success": false,
+                  "message": {"user_id": ["The user_id field is required."]}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imagery/sequence-detail": {
       "get": {
         "operationId": "getSequenceDetail",
@@ -1971,6 +2121,79 @@
           "success": {"const": false},
           "message": {"type": "array", "items": {"type": "string"}},
           "error_code": {"const": 400}
+        }
+      },
+      "UserUploadsRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["total", "uploaded_hash", "capture_time", "cover_photo", "group_key", "start_address", "last_status"],
+        "properties": {
+          "total": {"type": "integer", "minimum": 1},
+          "uploaded_hash": {"type": ["string", "null"]},
+          "capture_time": {"type": ["string", "null"]},
+          "cover_photo": {"type": ["string", "null"]},
+          "group_key": {"type": ["string", "null"]},
+          "start_address": {"type": ["string", "null"]},
+          "last_status": {"type": ["string", "null"]}
+        }
+      },
+      "UserUploadsPaginationLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "label", "active"],
+        "properties": {
+          "url": {"type": ["string", "null"]},
+          "label": {"type": "string"},
+          "active": {"type": "boolean"}
+        }
+      },
+      "UserUploadsPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "first_page_url", "from", "last_page", "last_page_url", "links", "next_page_url", "path", "per_page", "prev_page_url", "to", "total"],
+        "properties": {
+          "current_page": {"type": "integer", "minimum": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": ["integer", "null"]},
+          "last_page": {"type": "integer", "minimum": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/UserUploadsPaginationLink"}},
+          "next_page_url": {"type": ["string", "null"]},
+          "path": {"type": "string"},
+          "per_page": {"type": "integer", "minimum": 1, "maximum": 1000},
+          "prev_page_url": {"type": ["string", "null"]},
+          "to": {"type": ["integer", "null"]},
+          "total": {"type": "integer", "minimum": 0}
+        }
+      },
+      "UserUploadsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/UserUploadsRow"}},
+              {"type": "null"}
+            ]
+          },
+          "pagination": {"$ref": "#/components/schemas/UserUploadsPagination"}
+        }
+      },
+      "UserUploadsValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["user_id"],
+            "properties": {
+              "user_id": {"type": "array", "items": {"const": "The user_id field is required."}}
+            }
+          }
         }
       },
       "SequenceDetailItem": {
