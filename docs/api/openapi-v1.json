@@ -268,6 +268,148 @@
         }
       }
     },
+    "/api/v1/mobile/config/general": {
+      "get": {
+        "operationId": "getMobileGeneralConfig",
+        "tags": ["Identity"],
+        "summary": "Get the mobile general configuration",
+        "description": "Returns the exact `{config: ...}` configuration tree used by mobile clients. When `MAPILIO_MOBILE_CONFIG_TOKEN` is a non-empty string, access requires a matching token supplied through either the preferred `X-Mapilio-Config-Token` header or the legacy deprecated `?token=` query parameter. Only a non-empty header takes precedence over the query parameter; an empty or omitted header falls back to the query token. An empty, unset, or non-string configured server token allows access without either client token. This endpoint has no endpoint authentication, response cache, ETag, or conditional-request handling and does not define a 304 response. The optional global API limiter may return the documented 429 response when enforcement is enabled; its limits and production enforcement are deployment-configurable.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Mapilio-Config-Token",
+            "in": "header",
+            "required": false,
+            "description": "Preferred config token transport. A non-empty header value takes precedence over `token` in the query string; an empty or omitted header allows fallback to that query parameter.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "synthetic-config-header-token"
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Legacy deprecated config token transport retained for already shipped clients. It is used when `X-Mapilio-Config-Token` is empty or omitted.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "synthetic-config-query-token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current mobile general configuration tree.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGeneralConfigResponse"
+                },
+                "example": {
+                  "config": {
+                    "isMarketOpen": false,
+                    "isChallengeOpen": true,
+                    "leaderboard": {
+                      "challengeDescEN": "Synthetic challenge description",
+                      "challengeDescTR": "Sentetik mucadele aciklamasi",
+                      "challengeDates": "2026-01-01,2026-03-31",
+                      "challengeURL": "https://example.test/mobile/challenge",
+                      "isChallengeOpen": true,
+                      "infoBoxDescTR": "Sentetik bilgi kutusu",
+                      "infoBoxDescEN": "Synthetic info box",
+                      "isInfoBoxOpen": false,
+                      "showWeek": true
+                    },
+                    "socialLogin": {
+                      "isFacebookEnabled": true,
+                      "isGoogleEnabled": false,
+                      "isAppleEnabled": true,
+                      "isOSMEnabled": true
+                    },
+                    "versions": {
+                      "android": {
+                        "version": "9.9.9",
+                        "minVersion": "9.0.0"
+                      },
+                      "ios": {
+                        "version": "8.8.8",
+                        "minVersion": "8.0.0"
+                      }
+                    },
+                    "map": {
+                      "iosToken": "synthetic-ios-map-token",
+                      "androidToken": "synthetic-android-map-token"
+                    },
+                    "mapTokens": {
+                      "iosToken": "synthetic-ios-map-token",
+                      "androidToken": "synthetic-android-map-token"
+                    },
+                    "osmModal": {
+                      "titleEN": "Synthetic email safety title",
+                      "descriptionEN": "Synthetic email safety description",
+                      "titleTR": "Sentetik e-posta basligi",
+                      "descriptionTR": "Sentetik e-posta aciklamasi"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The configured server token is a non-empty string and the effective header or query token is missing or does not match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileGeneralConfigForbiddenError"
+                },
+                "example": {
+                  "success": false,
+                  "message": ["Forbidden"]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {
+                  "const": "0"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRateLimitError"
+                },
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/accounts": {
       "post": {
         "operationId": "registerMobileAccount",
@@ -3001,6 +3143,110 @@
   },
   "components": {
     "schemas": {
+      "MobileGeneralConfigResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["config"],
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/MobileGeneralConfig"
+          }
+        }
+      },
+      "MobileGeneralConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["isMarketOpen", "isChallengeOpen", "leaderboard", "socialLogin", "versions", "map", "mapTokens", "osmModal"],
+        "properties": {
+          "isMarketOpen": {"type": ["boolean", "string", "null"]},
+          "isChallengeOpen": {"type": ["boolean", "string", "null"]},
+          "leaderboard": {"$ref": "#/components/schemas/MobileGeneralConfigLeaderboard"},
+          "socialLogin": {"$ref": "#/components/schemas/MobileGeneralConfigSocialLogin"},
+          "versions": {"$ref": "#/components/schemas/MobileGeneralConfigVersions"},
+          "map": {"$ref": "#/components/schemas/MobileGeneralConfigMap"},
+          "mapTokens": {"$ref": "#/components/schemas/MobileGeneralConfigMap"},
+          "osmModal": {"$ref": "#/components/schemas/MobileGeneralConfigOsmModal"}
+        }
+      },
+      "MobileGeneralConfigLeaderboard": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["challengeDescEN", "challengeDescTR", "challengeDates", "challengeURL", "isChallengeOpen", "infoBoxDescTR", "infoBoxDescEN", "isInfoBoxOpen", "showWeek"],
+        "properties": {
+          "challengeDescEN": {"type": ["string", "boolean", "null"]},
+          "challengeDescTR": {"type": ["string", "boolean", "null"]},
+          "challengeDates": {"type": ["string", "boolean", "null"]},
+          "challengeURL": {"type": ["string", "boolean", "null"]},
+          "isChallengeOpen": {"type": ["boolean", "string", "null"]},
+          "infoBoxDescTR": {"type": ["string", "boolean", "null"]},
+          "infoBoxDescEN": {"type": ["string", "boolean", "null"]},
+          "isInfoBoxOpen": {"type": ["boolean", "string", "null"]},
+          "showWeek": {"type": ["boolean", "string", "null"]}
+        }
+      },
+      "MobileGeneralConfigSocialLogin": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["isFacebookEnabled", "isGoogleEnabled", "isAppleEnabled", "isOSMEnabled"],
+        "properties": {
+          "isFacebookEnabled": {"type": ["boolean", "string", "null"]},
+          "isGoogleEnabled": {"type": ["boolean", "string", "null"]},
+          "isAppleEnabled": {"type": ["boolean", "string", "null"]},
+          "isOSMEnabled": {"type": ["boolean", "string", "null"]}
+        }
+      },
+      "MobileGeneralConfigVersions": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["android", "ios"],
+        "properties": {
+          "android": {"$ref": "#/components/schemas/MobileGeneralConfigVersion"},
+          "ios": {"$ref": "#/components/schemas/MobileGeneralConfigVersion"}
+        }
+      },
+      "MobileGeneralConfigVersion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "minVersion"],
+        "properties": {
+          "version": {"type": ["string", "boolean", "null"]},
+          "minVersion": {"type": ["string", "boolean", "null"]}
+        }
+      },
+      "MobileGeneralConfigMap": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["iosToken", "androidToken"],
+        "properties": {
+          "iosToken": {"type": ["string", "boolean", "null"]},
+          "androidToken": {"type": ["string", "boolean", "null"]}
+        }
+      },
+      "MobileGeneralConfigOsmModal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["titleEN", "descriptionEN", "titleTR", "descriptionTR"],
+        "properties": {
+          "titleEN": {"type": ["string", "boolean", "null"]},
+          "descriptionEN": {"type": ["string", "boolean", "null"]},
+          "titleTR": {"type": ["string", "boolean", "null"]},
+          "descriptionTR": {"type": ["string", "boolean", "null"]}
+        }
+      },
+      "MobileGeneralConfigForbiddenError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"const": "Forbidden"}
+          }
+        }
+      },
       "MobileRegistrationRequest": {
         "type": "object",
         "additionalProperties": false,
