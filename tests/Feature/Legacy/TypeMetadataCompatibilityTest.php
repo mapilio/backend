@@ -462,7 +462,20 @@ class TypeMetadataCompatibilityTest extends TestCase
         ]);
 
         $payload = $this->getJson('/api/v1/inventory/groups')->assertOk()->json();
-        $row = collect($payload['data'])->firstWhere('id', 3);
+        $data = $payload['data'];
+        $this->assertIsArray($data);
+
+        $row = null;
+        foreach ($data as $candidate) {
+            if (! is_array($candidate) || ($candidate['id'] ?? null) !== 3) {
+                continue;
+            }
+
+            $row = $candidate;
+
+            break;
+        }
+        $this->assertIsArray($row);
 
         $this->assertSame([
             'id',
@@ -475,7 +488,6 @@ class TypeMetadataCompatibilityTest extends TestCase
             'slug',
             'name',
         ], array_keys($row));
-        $this->assertIsInt($row['id']);
         $this->assertNull($row['sort_order']);
         $this->assertNull($row['created_at']);
         $this->assertNull($row['created_by_id']);
@@ -485,8 +497,17 @@ class TypeMetadataCompatibilityTest extends TestCase
         $this->assertNull($row['slug']);
         $this->assertNull($row['name']);
 
-        $firstRow = collect($payload['data'])->firstWhere('id', 2);
-        $this->assertIsInt($firstRow['id']);
+        $firstRow = null;
+        foreach ($data as $candidate) {
+            if (! is_array($candidate) || ($candidate['id'] ?? null) !== 2) {
+                continue;
+            }
+
+            $firstRow = $candidate;
+
+            break;
+        }
+        $this->assertIsArray($firstRow);
         $this->assertIsInt($firstRow['sort_order']);
         $this->assertIsString($firstRow['created_at']);
         $this->assertMatchesRegularExpression(
