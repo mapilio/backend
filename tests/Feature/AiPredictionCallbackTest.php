@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
-use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
@@ -102,10 +101,10 @@ class AiPredictionCallbackTest extends TestCase
     {
         Exceptions::fake();
         $originalDispatcher = app(DispatcherContract::class);
-        $failingDispatcher = Mockery::mock(DispatcherContract::class);
-        $failingDispatcher->shouldReceive('dispatch')
-            ->once()
-            ->andThrow(new \RuntimeException('queue credentials and callback nonce leaked'));
+        $failingDispatcher = $this->createMock(DispatcherContract::class);
+        $failingDispatcher->expects($this->once())
+            ->method('dispatch')
+            ->willThrowException(new \RuntimeException('queue credentials and callback nonce leaked'));
         $this->app->instance(DispatcherContract::class, $failingDispatcher);
 
         try {
@@ -261,8 +260,10 @@ class AiPredictionCallbackTest extends TestCase
 
         Exceptions::fake();
         $originalDispatcher = app(DispatcherContract::class);
-        $failingDispatcher = Mockery::mock(DispatcherContract::class);
-        $failingDispatcher->shouldReceive('dispatch')->once()->andThrow($queueException);
+        $failingDispatcher = $this->createMock(DispatcherContract::class);
+        $failingDispatcher->expects($this->once())
+            ->method('dispatch')
+            ->willThrowException($queueException);
         $this->app->instance(DispatcherContract::class, $failingDispatcher);
 
         try {
@@ -547,6 +548,48 @@ class AiPredictionCallbackTest extends TestCase
         $receiptId = (int) $response->json('receipt_id');
 
         $job = new ValidatePredictionCallbackReceiptJob($receiptId);
+        $job->handle(app(ValidatePredictionCallbackReceipt::class));
+
+        Queue::assertPushedOn('ai-results-test', PersistPredictionResultJob::class);
+        Queue::assertPushed(PersistPredictionResultJob::class, function ($queued) use ($receiptId): bool {
+            return $queued->receiptId === $receiptId;
+        });
+    }
+
+    public function test_validation_job_retries_result_persistence_handoff_from_validated_receipt(): void
+    {
+        Config::set('mapilio.ai_result_persistence.enabled', true);
+        Config::set('mapilio.ai_result_persistence.queue', 'ai-results-test');
+        $response = $this->signedPost(
+            '/api/v1/ai/predictions/callback',
+            json_encode($this->successPayload(), JSON_THROW_ON_ERROR),
+            'nonce-result-handoff-retry-0001',
+        )->assertStatus(202);
+        $receiptId = (int) $response->json('receipt_id');
+        $job = new ValidatePredictionCallbackReceiptJob($receiptId);
+
+        $originalDispatcher = app(DispatcherContract::class);
+        $failingDispatcher = $this->createMock(DispatcherContract::class);
+        $failingDispatcher->expects($this->once())
+            ->method('dispatch')
+            ->willThrowException(new \RuntimeException('result queue unavailable'));
+        $this->app->instance(DispatcherContract::class, $failingDispatcher);
+
+        try {
+            $job->handle(app(ValidatePredictionCallbackReceipt::class));
+            $this->fail('The first persistence handoff should fail.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('result queue unavailable', $exception->getMessage());
+        } finally {
+            $this->app->instance(DispatcherContract::class, $originalDispatcher);
+        }
+
+        $this->assertDatabaseHas('ai_prediction_callback_receipts', [
+            'id' => $receiptId,
+            'processing_status' => 'validated',
+        ]);
+        Queue::assertNotPushed(PersistPredictionResultJob::class);
+
         $job->handle(app(ValidatePredictionCallbackReceipt::class));
 
         Queue::assertPushedOn('ai-results-test', PersistPredictionResultJob::class);
