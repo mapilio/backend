@@ -180,7 +180,7 @@ test('guards route, controller, query, fixture, and package drift', async () => 
         'imagery.filename', 'detail.last_status', 'imagery.sequence_uuid', 'imagery.id',
         'imagery.uploaded_hash as img_code', 'imagery.latitude', 'imagery.longitude',
         'imagery.heading', 'imagery.created_by_id', 'imagery.created_at', 'imagery.capture_time',
-    ]) assert.match(query, new RegExp(`['"]${field.replace(/[.]/g, '\\.')}`));
+    ]) assert.ok(query.includes(`'${field}'`) || query.includes(`"${field}"`));
     assert.match(query, /->orderBy\('imagery\.id'\)/);
     assert.match(query, /return \['data' => null\]/);
     assert.match(query, /\/api\/user-uploads-detail-v2/);
