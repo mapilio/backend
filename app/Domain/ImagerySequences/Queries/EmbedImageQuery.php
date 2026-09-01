@@ -2,8 +2,14 @@
 
 namespace App\Domain\ImagerySequences\Queries;
 
+use App\Support\Http\BoundedRead\PayloadTooLargeException;
+use App\Support\Http\BoundedRead\PublicReadBounds;
+use App\Support\Http\Pagination\PaginationParameters;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 /**
  * @phpstan-type EmbedInfo array{sequence_uuid: string|null, start_address: string|null}
@@ -17,7 +23,74 @@ class EmbedImageQuery
     {
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
 
-        $entries = $connection
+        $query = $connection
+            ->table('default_mapilio_imagery')
+            ->select([
+                'photo_uuid',
+                'created_by_id',
+                'id',
+                'capture_time',
+                'filename',
+                'latitude',
+                'longitude',
+                'uploaded_hash',
+                'sequence_uuid',
+                'heading',
+                'resolution',
+                'fov',
+                'vfov',
+            ])
+            ->where('sequence_uuid', $sequenceUuid)
+            ->whereNull('deleted_at');
+
+        if (PublicReadBounds::enforced()) {
+            $query->limit(PublicReadBounds::maxRows(PublicReadBounds::EMBED) + 1);
+        }
+
+        $rawEntries = $query->orderBy('id')->get();
+
+        if ($rawEntries->isEmpty()) {
+            return null;
+        }
+
+        if (PublicReadBounds::enforced() && $rawEntries->count() > PublicReadBounds::maxRows(PublicReadBounds::EMBED)) {
+            throw new PayloadTooLargeException('Embed row limit exceeded.');
+        }
+
+        $entries = $this->mapEntries($rawEntries, PublicReadBounds::enforced());
+
+        return $this->payload($connection, $sequenceUuid, $entries);
+    }
+
+    /** @return array{payload: EmbedPayload|null, has_more: bool} */
+    public function getPage(string $sequenceUuid, PaginationParameters $pagination): array
+    {
+        $connection = DB::connection(config('mapilio.legacy_database_connection'));
+        $maxRows = PublicReadBounds::maxRows(PublicReadBounds::EMBED);
+        $offset = $pagination->offset;
+
+        if ($offset === null) {
+            $hasEntries = $connection
+                ->table('default_mapilio_imagery')
+                ->where('sequence_uuid', $sequenceUuid)
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if (! $hasEntries) {
+                return ['payload' => null, 'has_more' => false];
+            }
+
+            return [
+                'payload' => [
+                    'info' => $this->info($connection, $sequenceUuid),
+                    'entries' => [],
+                ],
+                'has_more' => false,
+            ];
+        }
+
+        $remainingRows = $maxRows - $offset;
+        $rawEntries = $connection
             ->table('default_mapilio_imagery')
             ->select([
                 'photo_uuid',
@@ -37,14 +110,72 @@ class EmbedImageQuery
             ->where('sequence_uuid', $sequenceUuid)
             ->whereNull('deleted_at')
             ->orderBy('id')
-            ->get()
-            ->map(fn (object $row): array => $this->mapEntry($row))
-            ->all();
+            ->offset($offset)
+            ->limit(min($pagination->perPage + 1, $remainingRows))
+            ->get();
 
-        if ($entries === []) {
-            return null;
+        if ($rawEntries->isEmpty()) {
+            $hasEntries = $connection
+                ->table('default_mapilio_imagery')
+                ->where('sequence_uuid', $sequenceUuid)
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if (! $hasEntries) {
+                return ['payload' => null, 'has_more' => false];
+            }
         }
 
+        $info = $this->info($connection, $sequenceUuid);
+        $hasMore = $remainingRows > $pagination->perPage
+            && $rawEntries->count() > $pagination->perPage;
+
+        return [
+            'payload' => [
+                'info' => $info,
+                'entries' => $this->mapEntries($rawEntries->take($pagination->perPage), true),
+            ],
+            'has_more' => $hasMore,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, stdClass>  $rawEntries
+     * @return list<EmbedEntry>
+     */
+    private function mapEntries(Collection $rawEntries, bool $bounded): array
+    {
+        $entries = [];
+        $encodedBytes = 0;
+
+        foreach ($rawEntries as $row) {
+            $entry = $this->mapEntry($row);
+
+            if ($bounded) {
+                $encodedBytes = PublicReadBounds::nextEncodedBytes($entry, $encodedBytes);
+            }
+
+            $entries[] = $entry;
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  list<EmbedEntry>  $entries
+     * @return EmbedPayload
+     */
+    private function payload(Connection $connection, string $sequenceUuid, array $entries): array
+    {
+        return [
+            'info' => $this->info($connection, $sequenceUuid),
+            'entries' => $entries,
+        ];
+    }
+
+    /** @return EmbedInfo|null */
+    private function info(Connection $connection, string $sequenceUuid): ?array
+    {
         $info = $connection
             ->table('default_mapilio_sequence_detail')
             ->select(['sequence_uuid', 'start_address'])
@@ -52,12 +183,9 @@ class EmbedImageQuery
             ->whereNull('deleted_at')
             ->first();
 
-        return [
-            'info' => $info === null ? null : [
-                'sequence_uuid' => $info->sequence_uuid === null ? null : (string) $info->sequence_uuid,
-                'start_address' => $info->start_address === null ? null : (string) $info->start_address,
-            ],
-            'entries' => $entries,
+        return $info === null ? null : [
+            'sequence_uuid' => $info->sequence_uuid === null ? null : (string) $info->sequence_uuid,
+            'start_address' => $info->start_address === null ? null : (string) $info->start_address,
         ];
     }
 

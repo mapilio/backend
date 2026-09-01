@@ -90,6 +90,13 @@ return [
         'refresh_lock_seconds' => max(1, min(60, (int) env('MAPILIO_PUBLIC_AGGREGATE_CACHE_REFRESH_LOCK_SECONDS', 10))),
     ],
 
+    'public_read_bounds' => [
+        'enabled' => env('MAPILIO_PUBLIC_READ_BOUNDS_ENABLED', true),
+        'max_imagery_rows' => max(1, min(25_000, (int) env('MAPILIO_PUBLIC_READ_MAX_IMAGERY_ROWS', 25_000))),
+        'max_road_rows' => max(1, min(10_000, (int) env('MAPILIO_PUBLIC_READ_MAX_ROAD_ROWS', 10_000))),
+        'max_item_bytes' => max(1, min(16 * 1024 * 1024, (int) env('MAPILIO_PUBLIC_READ_MAX_ITEM_BYTES', 16 * 1024 * 1024))),
+    ],
+
     'backup_readiness' => [
         'evidence_path' => env('MAPILIO_BACKUP_EVIDENCE_PATH'),
         'expected_environment' => env('MAPILIO_BACKUP_EXPECTED_ENVIRONMENT'),

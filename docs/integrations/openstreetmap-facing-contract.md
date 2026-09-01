@@ -22,6 +22,7 @@ Evidence used here includes:
 - [ADR 0012: AI completion and Geo publication outbox](../architecture/0012-ai-completion-and-geo-publication-outbox.md);
 - [ADR 0013: versioned AI geospatial projection](../architecture/0013-versioned-ai-geospatial-projection.md);
 - [ADR 0014: versioned AI feature-detail API](../architecture/0014-versioned-ai-feature-detail-api.md);
+- [ADR 0039: bounded public read results](../architecture/0039-bounded-public-read-results.md);
 - focused [AI feature tests](../../tests/Feature/AiFeatureDetailApiTest.php),
   [embed tests](../../tests/Feature/Legacy/EmbedImageCompatibilityTest.php),
   [sequence-detail tests](../../tests/Feature/Legacy/SequenceDetailCompatibilityTest.php),
@@ -38,9 +39,9 @@ owner confirmation before a consumer, publication, or release decision.
 | Surface | Direction | Repository evidence | Current boundary |
 | --- | --- | --- | --- |
 | `/api/v1/geo/ai-features/{featureId}` | Read | Explicit v1 route, controller, ADR 0014, feature tests | Public response shape in tests; 120/min throttle; no OSM-specific semantics proven |
-| `/api/v1/imagery/embed/{sequenceUuid}` | Read | Versioned route and equality test with legacy embed path | Compatibility alias; no new OSM promise |
-| `/api/v1/imagery/sequence-detail` | Read | Versioned route and equality test with legacy sequence path | Compatibility alias; query envelope is legacy-shaped |
-| `/api/v1/geo/uploaded-roads-group` | Read | Versioned route and equality test with legacy road-group path | Compatibility alias; query envelope is legacy-shaped |
+| `/api/v1/imagery/embed/{sequenceUuid}` | Read | Versioned route and equality test with legacy embed path | Compatibility alias; optional explicit pagination under ADR 0039; no new OSM promise |
+| `/api/v1/imagery/sequence-detail` | Read | Versioned route and equality test with legacy sequence path | Compatibility alias; optional explicit pagination; query envelope remains legacy-shaped |
+| `/api/v1/geo/uploaded-roads-group` | Read | Versioned route and equality test with legacy road-group path | Compatibility alias; optional explicit pagination; query envelope remains legacy-shaped |
 | `/api/v1/imagery/uploads` | Write | Versioned route, authenticated controller, upload tests | Mobile/Mapilio Kit imagery metadata write; not an OSM writeback contract |
 | GeoServer / WFS / WMTS delivery | Read/publication outside Laravel | ADRs 0012/0013 and operations evidence | External, disabled, unverified, and owner-gated |
 
@@ -79,7 +80,10 @@ it is an OSM API, an OSM data source, or an OSM editing endpoint.
 The aliases below are route-level compatibility surfaces. ADR 0003 requires a
 versioned alias for preserved legacy endpoints and says future breaking changes
 must use a new versioned path. Each focused test compares the legacy response
-JSON with the `/api/v1` response JSON.
+JSON with the `/api/v1` response JSON for the parameter-free default. Issue
+`#87` adds pagination only when `page` or `per_page` is explicitly present on
+the v1 alias; it does not change the legacy route or the parameter-free v1
+response.
 
 #### `GET /api/v1/imagery/embed/{sequenceUuid}`
 
@@ -104,6 +108,36 @@ The required query parameter is `group_key`. Success is `{ "data": [...] }`
 or `{ "data": null }`. Each tested row contains `sequence_uuid` and a
 `linefeature` string containing a LineString JSON value. Missing `group_key`
 preserves the tested `400` error envelope.
+
+### Issue #87 bounded pagination
+
+The three reads have a default-enabled full-read guard: 25,000 imagery rows
+for sequence/embed, 10,000 road rows, and a 16 MiB encoded-item budget. The
+production measurements behind these limits are diagnostic, not an SLO: the
+largest active sequence was 2,091 rows; sequence-detail was 718,277 bytes /
+662.607ms; embed was 1,001,456 bytes / 572.895ms; and the largest road group
+was 3,196 rows / 631,467 bytes / 433.118ms. A historical legitimate upload
+contained 18,824 images. The guard and its rollback are specified in [ADR
+0039](../architecture/0039-bounded-public-read-results.md).
+
+Repository inspection found active clients using the legacy routes and no
+inspected client using these v1 aliases. OSM/community consumers must therefore
+not infer that pagination is an OSM contract or that a v1 alias is actively
+consumed.
+
+When explicitly requested, `page` and `per_page` use strict positive canonical
+integers, default to 1 and 500 when one is omitted, and cap `per_page` at 1,000.
+Sequence and road responses add `pagination` beside `data`, whose fields are
+`current_page`, `per_page`, and `has_more`; embed keeps `info` and `entries`
+under `data` and adds the same object beside it. Pagination uses a `per_page + 1` sentinel,
+deterministic ordering, no total count, and an offset bounded by the endpoint
+row ceiling. Invalid values return exactly
+`{"success":false,"message":["'page' and 'per_page' must be positive integers within the supported range."],"error_code":422}`;
+overflow returns exactly
+`{"success":false,"message":["Payload Too Large"],"error_code":413}`; unknown
+embed sequences remain exactly
+`{"success":false,"message":["Not Found"],"error_code":404}`. These are Mapilio compatibility semantics, not OSM import,
+editing, attribution, licensing, or writeback authorization.
 
 No explicit authentication middleware is attached to these GET routes in the
 repository route file, and the compatibility tests call them without a bearer

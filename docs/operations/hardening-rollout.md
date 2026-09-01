@@ -18,6 +18,7 @@ themselves. This document only covers turning on what is already deployed.
 | Rate limit enforcement | `MAPILIO_API_RATE_LIMITING_ENFORCE` | `false` | Returns 429 in the legacy envelope once the ceiling is exceeded. |
 | Token revocation | `MAPILIO_MOBILE_AUTH_REVOCATION_ENABLED` | `false` | Denylist is consulted on every authenticated request. Revocations are **recorded regardless** of this flag. |
 | Signing key rotation | `MAPILIO_MOBILE_AUTH_PREVIOUS_SIGNING_KEY` | empty | Verification also accepts the previous key, so a rotation does not log out live sessions. |
+| Public full-read bounds | `MAPILIO_PUBLIC_READ_BOUNDS_ENABLED` | `true` | Guards legacy and parameter-free v1 sequence/embed/road reads at 25,000, 25,000, and 10,000 rows, plus a 16 MiB encoded item budget. Explicit pagination remains bounded. |
 
 Two controls are active as soon as the code is deployed and need no flag:
 
@@ -43,6 +44,30 @@ The organization measurements are diagnostic production read-only evidence,
 not an SLO. This completes issue `#50`; marketplace and filtered leaderboard
 responses deliberately remain uncached unless later production telemetry shows
 a material regression that justifies a new measured change.
+
+The bounded public-read guard is active by default and is documented in
+[ADR 0039](../architecture/0039-bounded-public-read-results.md). Its production
+read-only evidence includes a 2,091-row active sequence, 718,277-byte
+sequence-detail response in 662.607ms, a 1,001,456-byte embed response in
+572.895ms, and a 3,196-row road group with 631,467 bytes in 433.118ms. These
+measurements are diagnostic, not an SLO.
+
+## Step 0a — verify public read bounds
+
+- [ ] **Restricted:** keep `MAPILIO_PUBLIC_READ_BOUNDS_ENABLED=true` for
+      production. Confirm the configured imagery and road row ceilings are
+      25,000 and 10,000, and the encoded-item ceiling is 16 MiB.
+- [ ] **Restricted:** verify a parameter-free legacy or v1 read that exceeds a
+      bound returns the exact legacy 413 envelope
+      `{"success":false,"message":["Payload Too Large"],"error_code":413}`.
+- [ ] **Operator:** verify explicit v1 pagination uses `page`/`per_page`,
+      defaults to 1/500, caps `per_page` at 1,000, and never returns total or
+      count metadata.
+
+Rollback is limited to the legacy/default-v1 full-read guard: set
+`MAPILIO_PUBLIC_READ_BOUNDS_ENABLED=false`, rebuild Laravel's config cache,
+and reload PHP-FPM and other long-running workers. Explicit pagination remains
+bounded. Do not treat this as a rollback of the v1 pagination contract.
 
 ## Step 0 — before enabling anything
 
