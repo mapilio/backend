@@ -7,6 +7,8 @@ use App\Http\Controllers\Legacy\Imagery\ImageryUploadController;
 use App\Jobs\CalculateSequenceUkmScores;
 use App\Jobs\DispatchSequencePrediction;
 use App\Jobs\ResolveSequenceAddress;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
@@ -145,6 +147,17 @@ class ImageryUploadCompatibilityTest extends TestCase
     public function test_upload_metadata_generates_road_line_for_three_or_more_nearby_points(): void
     {
         $login = $this->login();
+        $metadataQueries = [];
+        LegacyDatabase::connection()->listen(static function (QueryExecuted $query) use (&$metadataQueries): void {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'pragma_table_')) {
+                $metadataQueries[] = 'column-listing';
+            } elseif (str_contains($sql, 'sqlite_master')) {
+                $metadataQueries[] = 'sqlite-master';
+            }
+        });
+
         $payload = $this->mobilePayload();
         data_set($payload, 'options.parameters.json_data.1.latitude', 40.99109);
         data_set($payload, 'options.parameters.json_data.1.longitude', 29.02509);
@@ -164,6 +177,11 @@ class ImageryUploadCompatibilityTest extends TestCase
             ->assertOk()
             ->assertJsonPath('count', 3);
 
+        $this->assertCount(3, $metadataQueries);
+        $this->assertSame(
+            ['sqlite-master', 'column-listing', 'sqlite-master'],
+            $metadataQueries,
+        );
         $this->assertSame(3, Schema::getConnection()->table('default_mapilio_imagery')->count());
         $this->assertSame(1, Schema::getConnection()->table('default_mapilio_road')->count());
         $this->assertDatabaseHas('default_mapilio_road', [
