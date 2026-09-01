@@ -39,52 +39,82 @@ class UserUploadsQuery
      */
     private function postgresRows(ConnectionInterface $connection, int $userId, int $limit, int $offset): array
     {
-        $baseSql = 'from (
-            select *
-            from default_mapilio_imagery
+        $entriesSql = 'select imagery.id as imagery_id,
+                imagery.uploaded_hash,
+                imagery.capture_time,
+                imagery.filename,
+                group_table.group_key
+            from default_mapilio_imagery as imagery
             left join (
                 select sequence_uuid, group_key
                 from default_mapilio_sequence_detail
                 where anomaly is false
                   and created_by_id = ?
                   and deleted_at is null
-            ) as group_table on group_table.sequence_uuid = default_mapilio_imagery.sequence_uuid
-            where default_mapilio_imagery.anomaly is false
-              and default_mapilio_imagery.created_by_id = ?
-              and default_mapilio_imagery.deleted_at is null
-        ) as entries
-        group by group_key';
+            ) as group_table on group_table.sequence_uuid = imagery.sequence_uuid
+            where imagery.anomaly is false
+              and imagery.created_by_id = ?
+              and imagery.deleted_at is null';
 
-        $selectSql = 'select count(*) as total,
-            (array_agg(uploaded_hash))[1] as uploaded_hash,
-            (array_agg(capture_time))[1] as capture_time,
-            (array_agg(filename))[1] as cover_photo,
-            group_key,
-            (
-                select start_address
-                from default_mapilio_sequence_detail
-                where default_mapilio_sequence_detail.group_key = entries.group_key
-                  and start_address is not null
-                limit 1
-            ) as start_address,
-            (
-                select last_status
-                from default_mapilio_sequence_detail
-                where default_mapilio_sequence_detail.group_key = entries.group_key
-                order by default_mapilio_sequence_detail.id desc
-                limit 1
-            ) as last_status '.$baseSql.' order by capture_time desc limit ? offset ?';
+        $groupedSql = 'select count(*) as total,
+                (array_agg(uploaded_hash order by capture_time desc nulls last, imagery_id asc))[1] as uploaded_hash,
+                (array_agg(capture_time order by capture_time desc nulls last, imagery_id asc))[1] as capture_time,
+                (array_agg(filename order by capture_time desc nulls last, imagery_id asc))[1] as cover_photo,
+                (array_agg(imagery_id order by capture_time desc nulls last, imagery_id asc))[1] as representative_id,
+                group_key
+            from entries
+            group by group_key';
+
+        $selectSql = 'with entries as ('.$entriesSql.'),
+            grouped as ('.$groupedSql.'),
+            paged as (
+                select grouped.*, count(*) over() as pagination_total
+                from grouped
+                order by capture_time desc nulls last, representative_id asc
+                limit ? offset ?
+            ),
+            page_group_keys as (
+                select group_key
+                from paged
+                group by group_key
+            ),
+            page_metadata as (
+                select detail.group_key,
+                    (array_agg(detail.start_address order by detail.id asc) filter (where detail.start_address is not null))[1] as start_address,
+                    (array_agg(detail.last_status order by detail.id desc))[1] as last_status
+                from default_mapilio_sequence_detail as detail
+                inner join page_group_keys on page_group_keys.group_key = detail.group_key
+                group by detail.group_key
+            )
+            select paged.total,
+                paged.uploaded_hash,
+                paged.capture_time,
+                paged.cover_photo,
+                paged.group_key,
+                page_metadata.start_address,
+                page_metadata.last_status,
+                paged.pagination_total
+            from paged
+            left join page_metadata on page_metadata.group_key = paged.group_key
+            order by paged.capture_time desc nulls last, paged.representative_id asc';
 
         $rows = $connection->select($selectSql, [$userId, $userId, $limit, $offset]);
 
-        $totalRows = $connection->select('select count(*) as count from (select group_key '.$baseSql.') as values', [
-            $userId,
-            $userId,
-        ]);
+        if ($rows === []) {
+            $fallbackSql = 'with entries as ('.$entriesSql.'),
+                grouped as ('.$groupedSql.')
+                select pagination_total as count
+                from (select count(*) over() as pagination_total
+                    from grouped
+                    limit 1) as counted';
+            $fallback = $connection->select($fallbackSql, [$userId, $userId]);
+
+            return [[], (int) ($fallback[0]->count ?? 0)];
+        }
 
         return [
             array_map(fn (object $row): array => $this->row($row), $rows),
-            (int) ($totalRows[0]->count ?? 0),
+            (int) ($rows[0]->pagination_total ?? 0),
         ];
     }
 
@@ -167,7 +197,7 @@ class UserUploadsQuery
     private function pagination(Request $request, string $path, int $page, int $limit, int $total, int $rowCount): array
     {
         $lastPage = max(1, (int) ceil($total / $limit));
-        $from = $total === 0 ? null : (($page - 1) * $limit) + 1;
+        $from = $total === 0 || $rowCount === 0 ? null : (($page - 1) * $limit) + 1;
 
         return [
             'current_page' => $page,
