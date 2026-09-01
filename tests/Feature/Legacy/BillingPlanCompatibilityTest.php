@@ -9,6 +9,25 @@ use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * @phpstan-type BillingPackageRow array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: null,
+ *     km_price: string|null,
+ *     currency: string|null,
+ *     interval_period: string|null,
+ *     image_id: int|null,
+ *     hover_image_id: int|null,
+ *     image_url: string|null,
+ *     hover_image_url: string|null,
+ *     name: string|null
+ * }
+ */
 class BillingPlanCompatibilityTest extends TestCase
 {
     protected function setUp(): void
@@ -228,9 +247,8 @@ class BillingPlanCompatibilityTest extends TestCase
         ]);
 
         $payload = $this->getJson('/api/v1/billing/packages')->assertOk()->json();
-        $row = collect($payload['data'])->firstWhere('id', 3);
+        $row = $this->packageRowById($payload['data'], 3);
 
-        $this->assertIsArray($row);
         $this->assertSame([
             'id',
             'sort_order',
@@ -270,7 +288,7 @@ class BillingPlanCompatibilityTest extends TestCase
             $this->assertNull($row[$field]);
         }
 
-        $populated = collect($payload['data'])->firstWhere('id', 2);
+        $populated = $this->packageRowById($payload['data'], 2);
         $this->assertIsInt($populated['sort_order']);
         $this->assertIsString($populated['created_at']);
         $this->assertIsInt($populated['created_by_id']);
@@ -387,7 +405,7 @@ class BillingPlanCompatibilityTest extends TestCase
     {
         $response = $this->getJson('https://pricing.synthetic.test/api/v1/billing/packages')
             ->assertOk();
-        $row = collect($response->json('data'))->firstWhere('id', 2);
+        $row = $this->packageRowById($response->json('data'), 2);
 
         $this->assertSame('https://pricing.synthetic.test', $row['image_url']);
         $this->assertSame('https://pricing.synthetic.test', $row['hover_image_url']);
@@ -554,5 +572,20 @@ class BillingPlanCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacyHosting, $versionedHosting);
+    }
+
+    /**
+     * @param  list<BillingPackageRow>  $rows
+     * @return BillingPackageRow
+     */
+    private function packageRowById(array $rows, int $id): array
+    {
+        foreach ($rows as $row) {
+            if ($row['id'] === $id) {
+                return $row;
+            }
+        }
+
+        $this->fail("Billing package {$id} was not found.");
     }
 }
