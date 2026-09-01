@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\ImagerySequences\Actions\CalculateSequenceUkmScores;
 use App\Domain\ImagerySequences\Actions\UkmScoringException;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
@@ -133,8 +134,13 @@ class SequenceUkmScoringTest extends TestCase
     {
         $this->insertImagery(1, 'current-sequence', '2026-07-01 10:00:00', 0, 40.0, 29.0);
         Config::set('mapilio.ukm_scoring.enabled', false);
+        $metadataReads = 0;
+        Schema::getConnection()->listen(static function (QueryExecuted $query) use (&$metadataReads): void {
+            $metadataReads++;
+        });
 
         $result = app(CalculateSequenceUkmScores::class)->calculate('current-sequence');
+        $metadataReadsAfterAction = $metadataReads;
 
         $this->assertSame([
             'status' => 'disabled',
@@ -145,6 +151,28 @@ class SequenceUkmScoringTest extends TestCase
             'id' => 1,
             'ukm_score' => null,
             'ukm_status' => null,
+        ]);
+        $this->assertSame(0, $metadataReadsAfterAction);
+    }
+
+    public function test_missing_required_imagery_column_preserves_error_and_marks_status(): void
+    {
+        $this->insertImagery(1, 'current-sequence', '2026-07-01 10:00:00', 0, 40.0, 29.0);
+        Schema::table('default_mapilio_imagery', function ($table): void {
+            $table->dropColumn('capture_time');
+        });
+
+        try {
+            app(CalculateSequenceUkmScores::class)->calculate('current-sequence');
+            $this->fail('Missing required imagery column should fail UKM scoring.');
+        } catch (UkmScoringException $exception) {
+            $this->assertSame('UKM scoring column capture_time is not available.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('default_mapilio_imagery', [
+            'id' => 1,
+            'ukm_status' => 1,
+            'ukm_status_message' => 'UKM scoring column capture_time is not available.',
         ]);
     }
 

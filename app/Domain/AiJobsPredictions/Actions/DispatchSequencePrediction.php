@@ -2,12 +2,12 @@
 
 namespace App\Domain\AiJobsPredictions\Actions;
 
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -20,6 +20,8 @@ class DispatchSequencePrediction
     private const STATUS_RESERVING = 'dispatching';
 
     private const STATUS_SUCCESS = 'SUCCESS';
+
+    public function __construct(private readonly LegacySchemaCapabilities $schemaCapabilities) {}
 
     /**
      * @return array{dispatched: bool, status: string, response_id: string|null}
@@ -176,9 +178,7 @@ class DispatchSequencePrediction
 
     private function expireStaleReservations(ConnectionInterface $connection, string $sequenceUuid): void
     {
-        $connectionName = config('mapilio.legacy_database_connection');
-
-        if (! Schema::connection($connectionName)->hasColumn('default_mapilio_processing', 'updated_at')) {
+        if (! $this->schemaCapabilities->hasColumn('default_mapilio_processing', 'updated_at')) {
             return;
         }
 
@@ -270,8 +270,7 @@ class DispatchSequencePrediction
 
     private function configUrl(string $sequenceUuid): string
     {
-        $connectionName = config('mapilio.legacy_database_connection');
-        $connection = DB::connection($connectionName);
+        $connection = DB::connection(config('mapilio.legacy_database_connection'));
         $detail = $connection->table('default_mapilio_sequence_detail')
             ->where('sequence_uuid', $sequenceUuid)
             ->whereNull('deleted_at')
@@ -279,8 +278,8 @@ class DispatchSequencePrediction
 
         if (
             $detail?->project_key
-            && Schema::connection($connectionName)->hasTable('default_projects_projects')
-            && Schema::connection($connectionName)->hasColumn('default_projects_projects', 'config_url')
+            && $this->schemaCapabilities->hasTable('default_projects_projects')
+            && $this->schemaCapabilities->hasColumn('default_projects_projects', 'config_url')
         ) {
             $projectConfig = $connection->table('default_projects_projects')
                 ->where('project_key', $detail->project_key)
@@ -316,13 +315,7 @@ class DispatchSequencePrediction
      */
     private function onlyExistingColumns(string $table, array $values): array
     {
-        $schema = Schema::connection(config('mapilio.legacy_database_connection'));
-
-        return array_filter(
-            $values,
-            static fn (string $column): bool => $schema->hasColumn($table, $column),
-            ARRAY_FILTER_USE_KEY,
-        );
+        return $this->schemaCapabilities->filterExistingColumns($table, $values);
     }
 
     /**
