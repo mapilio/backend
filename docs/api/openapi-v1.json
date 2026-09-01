@@ -42,6 +42,10 @@
       "description": "Legacy-compatible public inventory metadata."
     },
     {
+      "name": "Billing",
+      "description": "Legacy-compatible public billing catalog reads."
+    },
+    {
       "name": "Public content",
       "description": "Public content and server-side subscription operations."
     },
@@ -3684,6 +3688,171 @@
         }
       }
     },
+    "/api/v1/billing/packages": {
+      "get": {
+        "operationId": "getBillingPackages",
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Read public billing packages",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/package-list` and preserves the exact response contract used by the maintained pricing UI. No bearer token is required and a bearer token is irrelevant. The optional scalar `page` query value is PHP-int-cast and minimum-clamped to 1; omission uses 1. The optional nonempty string `locale` is used exactly, while an empty or non-string locale falls back to `en`; omission uses the deployment application locale. Rows are emitted in this order: `id`, `sort_order`, `created_at`, `created_by_id`, `updated_at`, `updated_by_id`, `deleted_at`, `km_price`, `currency`, `interval_period`, `image_id`, `hover_image_id`, `image_url`, `hover_image_url`, `name`. IDs are JSON integers; `km_price` is a decimal numeric string when present; timestamps and image IDs are nullable; translated `name` and the other nullable database fields preserve string-or-null or integer-or-null output. When an image ID exists, its URL is exactly the request scheme and HTTP host; when the ID is null, the URL is null. The query selects active rows where `deleted_at` is null and left-joins the requested translation locale. It fetches with a limit and offset of 100, while populated legacy pagination reports `per_page` 15 and uses 15-based metadata math. Pagination `path` and every link use fixed legacy `/api/package-list` URLs, preserve parsed query parameters, overwrite `page`, and enumerate every numeric page with Previous and Next entries. No portable response ordering is promised: the source adds `rowid` ordering only for SQLite. An empty or out-of-range page is exactly `{data: null}` with no pagination member. There is no endpoint-specific throttle, response cache, ETag, 304, or queue behavior. A deployment-wide global limiter is disabled and observe-only by default; when enforcement is enabled it may return the exact 429 response documented below. Generic database failures are not stabilized by this contract.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional scalar legacy page query value. It is PHP-int-cast and minimum-clamped to 1; omission uses 1. Malformed arrays and extreme values are outside this contract.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "2"
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional locale. A nonempty string is used exactly; an empty or non-string value falls back to `en`, while omission uses the deployment application locale.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible populated or empty billing package response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPackagesResponse"
+                },
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic populated billing package response",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 101,
+                          "sort_order": 1,
+                          "created_at": "2026-07-15T10:00:00.000000Z",
+                          "created_by_id": 20,
+                          "updated_at": "2026-07-16T10:00:00.000000Z",
+                          "updated_by_id": 21,
+                          "deleted_at": null,
+                          "km_price": "12.5",
+                          "currency": "SYN",
+                          "interval_period": "month",
+                          "image_id": 901,
+                          "hover_image_id": 902,
+                          "image_url": "https://billing.synthetic.example",
+                          "hover_image_url": "https://billing.synthetic.example",
+                          "name": "Synthetic Imagery"
+                        },
+                        {
+                          "id": 102,
+                          "sort_order": null,
+                          "created_at": null,
+                          "created_by_id": null,
+                          "updated_at": null,
+                          "updated_by_id": null,
+                          "deleted_at": null,
+                          "km_price": null,
+                          "currency": null,
+                          "interval_period": null,
+                          "image_id": null,
+                          "hover_image_id": null,
+                          "image_url": null,
+                          "hover_image_url": null,
+                          "name": null
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "first_page_url": "/api/package-list?page=1",
+                        "from": 1,
+                        "last_page": 1,
+                        "last_page_url": "/api/package-list?page=1",
+                        "links": [
+                          {
+                            "url": null,
+                            "label": "&laquo; Previous",
+                            "active": false
+                          },
+                          {
+                            "url": "/api/package-list?page=1",
+                            "label": "1",
+                            "active": true
+                          },
+                          {
+                            "url": null,
+                            "label": "Next &raquo;",
+                            "active": false
+                          }
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/package-list",
+                        "per_page": 15,
+                        "prev_page_url": null,
+                        "to": 2,
+                        "total": 2
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty or out-of-range response",
+                    "value": {
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional deployment-wide global limiter rejected the request. The limiter is disabled and observe-only by default, and this response is not endpoint-specific.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window; the rejected response serializes this as `0`.",
+                "schema": {
+                  "const": "0"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRateLimitError"
+                },
+                "example": {
+                  "success": false,
+                  "message": [
+                    "Too many requests."
+                  ],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imagery/country-image-count": {
       "get": {
         "operationId": "getCountryImageCounts",
@@ -5827,6 +5996,116 @@
         "properties": {
           "data": {"oneOf": [{"type": "array", "items": {"$ref": "#/components/schemas/UploadedRoad"}}, {"type": "null"}]},
           "pagination": {"$ref": "#/components/schemas/PublicReadPagination"}
+        }
+      },
+      "BillingPackageRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "sort_order",
+          "created_at",
+          "created_by_id",
+          "updated_at",
+          "updated_by_id",
+          "deleted_at",
+          "km_price",
+          "currency",
+          "interval_period",
+          "image_id",
+          "hover_image_id",
+          "image_url",
+          "hover_image_url",
+          "name"
+        ],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": "null"},
+          "km_price": {"type": ["string", "null"], "description": "Stored numeric kilometer price serialized as a decimal string when present."},
+          "currency": {"type": ["string", "null"]},
+          "interval_period": {"type": ["string", "null"]},
+          "image_id": {"type": ["integer", "null"]},
+          "hover_image_id": {"type": ["integer", "null"]},
+          "image_url": {"type": ["string", "null"], "format": "uri"},
+          "hover_image_url": {"type": ["string", "null"], "format": "uri"},
+          "name": {"type": ["string", "null"]}
+        }
+      },
+      "BillingPackagePaginationLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "label", "active"],
+        "properties": {
+          "url": {"type": ["string", "null"]},
+          "label": {"type": "string"},
+          "active": {"type": "boolean"}
+        }
+      },
+      "BillingPackagesPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current_page",
+          "first_page_url",
+          "from",
+          "last_page",
+          "last_page_url",
+          "links",
+          "next_page_url",
+          "path",
+          "per_page",
+          "prev_page_url",
+          "to",
+          "total"
+        ],
+        "properties": {
+          "current_page": {"type": "integer", "minimum": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": "integer", "minimum": 1},
+          "last_page": {"type": "integer", "minimum": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/BillingPackagePaginationLink"}},
+          "next_page_url": {"type": ["string", "null"]},
+          "path": {"type": "string", "const": "/api/package-list"},
+          "per_page": {"type": "integer", "const": 15},
+          "prev_page_url": {"type": ["string", "null"]},
+          "to": {"type": "integer", "minimum": 1},
+          "total": {"type": "integer", "minimum": 1}
+        }
+      },
+      "BillingPackagesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "oneOf": [
+          {
+            "required": ["data", "pagination"],
+            "properties": {
+              "data": {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/BillingPackageRow"}},
+              "pagination": {"$ref": "#/components/schemas/BillingPackagesPagination"}
+            }
+          },
+          {
+            "maxProperties": 1,
+            "properties": {
+              "data": {"type": "null"},
+              "pagination": {"$ref": "#/components/schemas/BillingPackagesPagination"}
+            }
+          }
+        ],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/BillingPackageRow"}},
+              {"type": "null"}
+            ]
+          },
+          "pagination": {"$ref": "#/components/schemas/BillingPackagesPagination"}
         }
       },
       "InventoryTypeRow": {
