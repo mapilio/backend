@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Domain\ImagerySequences\Actions\ResolveSequenceAddress;
 use App\Domain\ImagerySequences\Actions\SequenceAddressException;
+use App\Support\Database\LegacyDatabase;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -40,6 +42,16 @@ class SequenceAddressEnrichmentTest extends TestCase
                 ],
             ]),
         ]);
+        $metadataQueries = [];
+        LegacyDatabase::connection()->listen(static function (QueryExecuted $query) use (&$metadataQueries): void {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'pragma_table_')) {
+                $metadataQueries[] = 'column-listing';
+            } elseif (str_contains($sql, 'sqlite_master')) {
+                $metadataQueries[] = 'sqlite-master';
+            }
+        });
 
         $result = app(ResolveSequenceAddress::class)->resolve('sequence-address-1');
 
@@ -59,6 +71,8 @@ class SequenceAddressEnrichmentTest extends TestCase
                 && $request->hasHeader('User-Agent', 'MapilioAddressTest/1.0');
         });
         Http::assertSentCount(1);
+        $this->assertSame(['sqlite-master', 'column-listing', 'sqlite-master'], $metadataQueries);
+        $this->assertCount(3, $metadataQueries);
 
         $this->assertDatabaseHas('default_mapilio_sequence_detail', [
             'sequence_uuid' => 'sequence-address-1',
