@@ -828,6 +828,102 @@
         }
       }
     },
+    "/api/v1/mobile/auth/logout": {
+      "post": {
+        "operationId": "logoutMobileSession",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Sign out a mobile bearer session",
+        "description": "Request validation runs before bearer lookup, so an invalid or oversized `refresh_token` returns 422 even without a bearer; the 401 cases below apply after request validation succeeds. A valid `Authorization: Bearer ...` mobile token is required. This route has only the shared `throttle:mobile-auth` middleware; bearer validation is controller-owned through `LegacyMobileAuth::userFromBearer`. Missing, invalid, stale, deleted-user, unactivated-user, and disabled-user bearer credentials all return the exact 401 envelope below. The optional `refresh_token` is a string with a maximum length of 4096 characters; explicit JSON null is accepted and treated as absent. An empty string is also treated as absent. A non-empty malformed or otherwise invalid signed refresh string that passes string and length validation is passed to `revokeToken`, whose false result is ignored; logout still succeeds. A valid supplied refresh token is recorded for revocation, as is the access token. The shared limiter selects its bucket from raw `grant_type` before controller validation: absent or any value other than exactly `refresh_token` uses the password/IP bucket, while raw `grant_type=refresh_token` uses the refresh/IP bucket even though `grant_type` is not a logout field. Revocation rows are recorded even when immediate denylist enforcement is disabled; the setting defaults to false, and a revoked token is rejected immediately only when `MAPILIO_MOBILE_AUTH_REVOCATION_ENABLED=true`. This endpoint has no endpoint-specific cache or ETag behavior and does not define a 304 response. Examples use synthetic token values only.",
+        "security": [
+          {
+            "mobileBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileLogoutRequest"
+              },
+              "example": {
+                "refresh_token": "synthetic-refresh-token-not-a-credential"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The bearer session was signed out. The access token is recorded for revocation, and a valid supplied refresh token is recorded too.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLogoutResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": [
+                    "Signed out."
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The controller could not resolve a valid active user from the bearer header. This includes a missing, invalid, stale, deleted-user, unactivated-user, or disabled-user bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLogoutUnauthorizedError"
+                },
+                "example": {
+                  "success": false,
+                  "message": [
+                    "Unauthorized"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The optional refresh_token failed request validation, such as being non-string or longer than 4096 characters. Validation runs before bearer lookup, so these requests return 422 even without a bearer. JSON null and an empty string are treated as absent; a non-empty syntactically malformed string that passes these rules is not a 422, is silently ignored by revocation, and logout returns 200.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The refresh token field must not be greater than 4096 characters.",
+                  "errors": {
+                    "refresh_token": [
+                      "The refresh token field must not be greater than 4096 characters."
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The shared mobile-auth rate limit was exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthRateLimitError"
+                },
+                "example": {
+                  "success": false,
+                  "message": [
+                    "Too many authentication attempts. Please try again later."
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/auth/social-token": {
       "post": {
         "operationId": "mobileSocialToken",
@@ -3219,6 +3315,81 @@
             }
           }
         ]
+      },
+      "MobileLogoutRequest": {
+        "type": "object",
+        "properties": {
+          "refresh_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4096
+          }
+        }
+      },
+      "MobileLogoutResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "const": "Signed out."
+            }
+          }
+        }
+      },
+      "MobileLogoutUnauthorizedError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "const": "Unauthorized"
+            }
+          }
+        }
+      },
+      "MobileAuthRateLimitError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "const": "Too many authentication attempts. Please try again later."
+            }
+          }
+        }
       },
       "MobilePublicTokenRequest": {
         "oneOf": [
