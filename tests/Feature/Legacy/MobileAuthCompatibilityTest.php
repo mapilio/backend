@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Domain\IdentityAccess\Queries\MobileProfileQuery;
+use App\Http\Controllers\Legacy\Identity\MobileProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -193,34 +196,73 @@ class MobileAuthCompatibilityTest extends TestCase
             'password' => 'correct-password',
         ])->assertOk();
 
-        $this->withToken($login->json('access_token'))
-            ->getJson('/api/function/user_profile/profile/getProfile')
-            ->assertOk()
-            ->assertJsonPath('data.0.id', 10)
-            ->assertJsonPath('data.0.email', 'alice@example.test')
-            ->assertJsonPath('data.0.username', 'alice')
-            ->assertJsonPath('data.0.display_name', 'Alice Example')
-            ->assertJsonPath('data.0.user_profile_photo', 'https://mapilio.test/default-avatar.png')
-            ->assertJsonPath('data.0.isAdmin', true)
-            ->assertJsonPath('data.0.sequences', 2)
-            ->assertJsonPath('data.0.photos', 3)
-            ->assertJsonPath('data.0.meters', '4.000')
-            ->assertJsonPath('data.0.score', '16');
+        $expected = [
+            'data' => [[
+                'id' => 10,
+                'username' => 'alice',
+                'email' => 'alice@example.test',
+                'user_profile_photo' => 'https://mapilio.test/default-avatar.png',
+                'display_name' => 'Alice Example',
+                'str_id' => 'alice-key',
+                'hidden_profile' => 0,
+                'user_bio' => 'Mapping roads.',
+                'created_at' => '2026-01-01 00:00:00',
+                'updated_at' => '2026-01-02 00:00:00',
+                'shape_limit' => 100,
+                'isAdmin' => true,
+                'sequences' => 2,
+                'photos' => 3,
+                'meters' => '4.000',
+                'score' => '16',
+            ]],
+        ];
+
+        foreach (['/api/function/user_profile/profile/getProfile', '/api/v1/mobile/profile'] as $path) {
+            $this->withToken($login->json('access_token'))
+                ->getJson($path)
+                ->assertOk()
+                ->assertExactJson($expected);
+        }
     }
 
     public function test_mobile_profile_endpoints_require_valid_bearer(): void
     {
-        $this->getJson('/api/function/user_profile/profile/getProfile')
-            ->assertUnauthorized()
-            ->assertExactJson([
-                'message' => 'Unauthenticated.',
-            ]);
+        foreach (['/api/function/user_profile/profile/getProfile', '/api/v1/mobile/profile'] as $path) {
+            $this->getJson($path)
+                ->assertUnauthorized()
+                ->assertExactJson([
+                    'message' => 'Unauthenticated.',
+                ]);
+        }
+    }
 
-        $this->getJson('/api/v1/mobile/profile')
-            ->assertUnauthorized()
-            ->assertExactJson([
-                'message' => 'Unauthenticated.',
-            ]);
+    public function test_mobile_profile_aliases_use_mobile_auth_middleware(): void
+    {
+        foreach (['api.legacy.mobile-profile', 'api.v1.mobile.profile'] as $name) {
+            $route = app('router')->getRoutes()->getByName($name);
+
+            $this->assertNotNull($route);
+            $this->assertContains('mobile.auth', $route->middleware());
+        }
+    }
+
+    public function test_mobile_profile_controller_fails_closed_without_usable_authenticated_user(): void
+    {
+        $query = $this->createMock(MobileProfileQuery::class);
+        $query->expects($this->never())->method('get');
+
+        foreach ([null, 'not-a-user', (object) [], (object) ['id' => 0], (object) ['id' => 'not-an-id']] as $user) {
+            $request = Request::create('/api/v1/mobile/profile', 'GET');
+
+            if ($user !== null) {
+                $request->attributes->set('mapilio_mobile_user', $user);
+            }
+
+            $response = app(MobileProfileController::class)($request, $query);
+
+            $this->assertSame(401, $response->getStatusCode());
+            $this->assertSame(['message' => 'Unauthenticated.'], $response->getData(true));
+        }
     }
 
     public function test_legacy_onesignal_identity_verification_failure_remains_server_error(): void

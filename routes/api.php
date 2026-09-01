@@ -119,6 +119,7 @@ Route::post('renew-password', [MobileAccountController::class, 'resetPassword'])
     ->middleware('throttle:mobile-password-renew')
     ->name('api.legacy.mobile-password.reset');
 Route::get('function/user_profile/profile/getProfile', MobileProfileController::class)
+    ->middleware('mobile.auth')
     ->name('api.legacy.mobile-profile');
 Route::post('function/user_profile/profile/updateProfile', [MobileAccountController::class, 'updateProfile'])
     ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
@@ -181,6 +182,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:mobile-password-renew')
         ->name('mobile.password.reset');
     Route::get('mobile/profile', MobileProfileController::class)
+        ->middleware('mobile.auth')
         ->name('mobile.profile');
     Route::post('mobile/profile', [MobileAccountController::class, 'updateProfile'])
         ->middleware(['mobile.auth', 'throttle:mobile-account-write'])
