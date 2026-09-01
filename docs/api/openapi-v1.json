@@ -3683,6 +3683,64 @@
           }
         }
       }
+    },
+    "/api/v1/imagery/country-image-count": {
+      "get": {
+        "operationId": "getCountryImageCounts",
+        "tags": ["Imagery reads"],
+        "summary": "Get imagery counts by country",
+        "description": "Returns the public country imagery-count aggregate as an additive versioned alias of legacy `GET /api/country-image-count`. The maintained web globe uses the legacy alias; both paths share the same controller, query, and public aggregate cache. This is a zero-input, unauthenticated GET: no bearer token is required, a bearer token is irrelevant, and unknown query parameters do not affect the result. The exact successful envelope is `{data: [...]}`. Every row has the ordered fields `name`, `lon`, `lat`, `iso3`, `image_count`; the first four are always strings and `image_count` is always an integer because the PHP boundary casts null values to empty strings and `0`. An empty result is exactly `{data: []}`. There is no pagination or filtering, the query applies no filtering or ordering, and row ordering is unspecified. Generic database, cache, or runtime exceptions on a cold miss are not stable endpoint responses. The application-level `PublicAggregateCache` uses key `mapilio:public:v1:imagery:country-image-count` with configurable fresh and stale-through windows and a refresh lock (defaults 60 seconds, 300 seconds, and 10 seconds). A stale value is served while a deferred refresh runs; if that deferred refresh fails, the stale value is preserved. A cold-miss failure bubbles to the caller. This describes application caching only and makes no edge or CDN caching promise. There is no endpoint-specific throttle. A deployment-wide global limiter is disabled and observe-only by default; when enforcement is enabled it may return the exact 429 response documented below with `Retry-After`, `X-RateLimit-Limit`, and `X-RateLimit-Remaining: 0`. `If-None-Match` is ignored; the endpoint has no ETag and does not return 304.",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The current public country imagery-count aggregate.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/CountryImageCountResponse"},
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic populated result",
+                    "value": {
+                      "data": [
+                        {"name": "Synthetic Coast", "lon": "12.34", "lat": "56.78", "iso3": "SYN", "image_count": 42},
+                        {"name": "", "lon": "", "lat": "", "iso3": "", "image_count": 0}
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {"data": []}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional deployment-wide global limiter rejected the request. The limiter is disabled and observe-only by default, and this response is not endpoint-specific.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {"success": false, "message": ["Too many requests."], "error_code": 429}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6164,6 +6222,29 @@
           "status": {"const": true},
           "receipt_id": {"type": "integer", "format": "int64", "minimum": 1},
           "duplicate": {"const": true}
+        }
+      },
+      "CountryImageCountResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/CountryImageCountRow"}
+          }
+        }
+      },
+      "CountryImageCountRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "lon", "lat", "iso3", "image_count"],
+        "properties": {
+          "name": {"type": "string"},
+          "lon": {"type": "string"},
+          "lat": {"type": "string"},
+          "iso3": {"type": "string"},
+          "image_count": {"type": "integer"}
         }
       },
       "ApiMessage": {
