@@ -348,12 +348,30 @@ class CreateImageryUpload
             ->whereNotNull('longitude')
             ->get(['id', 'latitude', 'longitude']);
 
-        foreach ($rows as $row) {
-            $connection->table('default_mapilio_imagery')
-                ->where('id', $row->id)
-                ->update([
-                    'geom' => 'POINT('.(float) $row->longitude.' '.(float) $row->latitude.')',
-                ]);
+        $geometryRows = $rows->map(static fn (object $row): array => [
+            'id' => (int) $row->id,
+            'geom' => 'POINT('.(float) $row->longitude.' '.(float) $row->latitude.')',
+        ])->all();
+
+        $grammar = $connection->getQueryGrammar();
+        $table = $grammar->wrapTable('default_mapilio_imagery');
+        $idColumn = $grammar->wrap('id');
+        $geomColumn = $grammar->wrap('geom');
+
+        foreach (array_chunk($geometryRows, 400) as $geometryChunk) {
+            $ids = implode(', ', array_map(
+                static fn (array $row): string => (string) $row['id'],
+                $geometryChunk,
+            ));
+            $case = implode(' ', array_map(
+                static fn (array $row): string => 'WHEN '.$row['id'].' THEN ?',
+                $geometryChunk,
+            ));
+
+            $connection->update(
+                "UPDATE {$table} SET {$geomColumn} = CASE {$idColumn} {$case} END WHERE {$idColumn} IN ({$ids})",
+                array_column($geometryChunk, 'geom'),
+            );
         }
     }
 }

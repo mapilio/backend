@@ -305,6 +305,86 @@ class ImageryUploadCompatibilityTest extends TestCase
         }
     }
 
+    public function test_non_postgres_geometry_bulk_write_preserves_points_and_skips_null_coordinates(): void
+    {
+        Queue::fake();
+        $connection = Schema::getConnection();
+
+        $connection->table('default_mapilio_imagery')->insert([
+            [
+                'created_at' => '2026-07-01 11:59:00',
+                'sequence_uuid' => 'mobile-sequence-1',
+                'latitude' => null,
+                'longitude' => 29.999,
+                'geom' => 'KEEP-LATITUDE',
+                'anomaly' => true,
+            ],
+            [
+                'created_at' => '2026-07-01 11:59:01',
+                'sequence_uuid' => 'mobile-sequence-1',
+                'latitude' => 41.999,
+                'longitude' => null,
+                'geom' => 'KEEP-LONGITUDE',
+                'anomaly' => true,
+            ],
+        ]);
+
+        $points = [];
+
+        for ($index = 0; $index < 401; $index++) {
+            $points[] = $this->point([
+                'filename' => sprintf('IMG_%04d.jpg', $index),
+                'latitude' => 40.991 + ($index / 1000),
+                'longitude' => 29.025 + ($index / 1000),
+                'captureTime' => sprintf('2026-07-01 12:%02d:%02d', intdiv($index, 60), $index % 60),
+            ]);
+        }
+
+        $geometryUpdates = [];
+        $connection->listen(function ($query) use (&$geometryUpdates): void {
+            $sql = strtolower($query->sql);
+
+            if (
+                preg_match('/^update\s+"default_mapilio_imagery"\s+set\s+"geom"\s*=/i', $sql) === 1
+            ) {
+                $geometryUpdates[] = $query;
+            }
+        });
+
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.json_data', $points);
+
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/function/mapilio/imagery/upload', $payload)
+            ->assertOk()
+            ->assertJsonPath('count', 401);
+
+        $this->assertCount(2, $geometryUpdates);
+        $geometrySqlPattern = '/^update\s+"default_mapilio_imagery"\s+set\s+"geom"\s*=\s*case\s+"id"\s+when\s+\d+\s+then\s+\?(?:\s+when\s+\d+\s+then\s+\?)*\s+end\s+where\s+"id"\s+in\s+\(\d+(?:,\s*\d+)*\)$/i';
+        $this->assertMatchesRegularExpression($geometrySqlPattern, $geometryUpdates[0]->sql);
+        $this->assertMatchesRegularExpression($geometrySqlPattern, $geometryUpdates[1]->sql);
+        $this->assertCount(400, $geometryUpdates[0]->bindings);
+        $this->assertCount(1, $geometryUpdates[1]->bindings);
+        $this->assertSame(
+            'POINT(29.025 40.991)',
+            $connection->table('default_mapilio_imagery')->where('filename', 'IMG_0000.jpg')->value('geom'),
+        );
+        $this->assertSame(
+            'POINT(29.425 41.391)',
+            $connection->table('default_mapilio_imagery')->where('filename', 'IMG_0400.jpg')->value('geom'),
+        );
+        $this->assertSame(
+            'KEEP-LATITUDE',
+            $connection->table('default_mapilio_imagery')->where('longitude', 29.999)->value('geom'),
+        );
+        $this->assertSame(
+            'KEEP-LONGITUDE',
+            $connection->table('default_mapilio_imagery')->where('latitude', 41.999)->value('geom'),
+        );
+    }
+
     public function test_versioned_upload_alias_preserves_negative_contract_without_side_effects(): void
     {
         Queue::fake();
