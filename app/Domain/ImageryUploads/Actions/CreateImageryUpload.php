@@ -6,9 +6,10 @@ use App\Domain\GeoPublishing\Actions\CreateRoadLineForSequence;
 use App\Jobs\CalculateSequenceUkmScores;
 use App\Jobs\DispatchSequencePrediction;
 use App\Jobs\ResolveSequenceAddress;
+use App\Support\Database\LegacyDatabase;
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CreateImageryUpload
@@ -16,6 +17,7 @@ class CreateImageryUpload
     public function __construct(
         private readonly CreateRoadLineForSequence $roadLines,
         private readonly CalculateSequenceQualityScores $qualityScores,
+        private readonly LegacySchemaCapabilities $schemaCapabilities,
     ) {}
 
     /**
@@ -326,10 +328,10 @@ class CreateImageryUpload
 
     private function generateImageryGeometry(string $sequenceUuid): void
     {
-        $connectionName = config('mapilio.legacy_database_connection');
-        $connection = DB::connection($connectionName);
+        $connection = LegacyDatabase::connection();
+        $connectionName = $connection->getName();
 
-        if (! Schema::connection($connectionName)->hasColumn('default_mapilio_imagery', 'geom')) {
+        if (! $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'geom', $connectionName)) {
             return;
         }
 

@@ -5,12 +5,12 @@
 
 ## Context
 
-The legacy UKM scoring action, AI prediction dispatch action, and mobile profile
-query probe optional legacy tables and columns while handling schemas that
-differ during migration. Repeated `hasTable` and `hasColumn` calls can repeat
-database metadata work in a single request or queue-job lifecycle. The useful
-boundary is deliberately small: this decision covers those callers and their
-existing fail-closed or fallback checks.
+The legacy UKM scoring action, AI prediction dispatch action, mobile profile
+query, and imagery upload actions probe optional legacy tables and columns while
+handling schemas that differ during migration. Repeated `hasTable` and
+`hasColumn` calls can repeat database metadata work in a single request or
+queue-job lifecycle. The useful boundary is deliberately small: this decision
+covers those callers and their existing fail-closed or fallback checks.
 
 ## Decision
 
@@ -66,6 +66,21 @@ transactions, HTTP request, job behavior, and error envelopes are unchanged.
 Mobile profile keeps its user fields, default photo fallback, aggregate counts,
 and response envelope unchanged. Missing optional aggregate tables still use
 the existing zero-value fallbacks.
+
+Imagery upload now injects the scoped service into both the upload and quality
+scoring actions. The existing three-point upload contract measures one
+table-existence capability lookup and one lazy complete-column snapshot across
+geometry generation and quality scoring. In this locked framework version, that
+snapshot is implemented as two SQLite SQL statements, pragma_table_xinfo and a
+create-SQL sqlite_master read, for exactly three SQLite metadata statements in
+total. The assertion filters only SQLite metadata statements on the legacy
+connection, so application SQL is not part of that count. Upload response,
+validation, transaction, idempotency, geometry, score calculations,
+missing-column behavior, and queued jobs remain unchanged.
+
+Marketplace and one-shot schema probes remain open and are outside this
+verification boundary. The measured test slice does not make a production
+latency claim or establish deploy-time schema completion.
 
 ## Alternatives And Consequences
 

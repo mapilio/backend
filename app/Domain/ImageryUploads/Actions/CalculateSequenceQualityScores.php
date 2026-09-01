@@ -2,28 +2,29 @@
 
 namespace App\Domain\ImageryUploads\Actions;
 
+use App\Support\Database\LegacyDatabase;
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class CalculateSequenceQualityScores
 {
+    public function __construct(private readonly LegacySchemaCapabilities $schemaCapabilities) {}
+
     public function calculate(string $sequenceUuid): int
     {
-        $connectionName = config('mapilio.legacy_database_connection');
-        $schema = Schema::connection($connectionName);
+        $connection = LegacyDatabase::connection();
+        $connectionName = $connection->getName();
 
         $scoreColumns = array_filter([
-            'gps_score' => $schema->hasColumn('default_mapilio_imagery', 'gps_score'),
-            'time_score' => $schema->hasColumn('default_mapilio_imagery', 'time_score'),
-            'distance_score' => $schema->hasColumn('default_mapilio_imagery', 'distance_score'),
+            'gps_score' => $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'gps_score', $connectionName),
+            'time_score' => $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'time_score', $connectionName),
+            'distance_score' => $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'distance_score', $connectionName),
         ]);
 
         if ($scoreColumns === []) {
             return 0;
         }
 
-        $connection = DB::connection($connectionName);
         $points = $connection->table('default_mapilio_imagery')
             ->where('sequence_uuid', $sequenceUuid)
             ->whereNull('deleted_at')
@@ -52,11 +53,11 @@ class CalculateSequenceQualityScores
                     $distance = $this->distanceMeters($point, $nearest);
                     $values['distance_score'] = $this->distanceScore($distance);
 
-                    if ($schema->hasColumn('default_mapilio_imagery', 'nearest_point_id')) {
+                    if ($this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'nearest_point_id', $connectionName)) {
                         $values['nearest_point_id'] = (int) $nearest->id;
                     }
 
-                    if ($schema->hasColumn('default_mapilio_imagery', 'nearest_distance_on_sequence')) {
+                    if ($this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'nearest_distance_on_sequence', $connectionName)) {
                         $values['nearest_distance_on_sequence'] = $distance;
                     }
                 }
