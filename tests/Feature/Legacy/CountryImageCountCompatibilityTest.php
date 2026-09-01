@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
+/** @phpstan-type CountryImageCountRow array{name: string, lon: string, lat: string, iso3: string, image_count: int} */
 class CountryImageCountCompatibilityTest extends TestCase
 {
     protected function setUp(): void
@@ -180,7 +181,10 @@ class CountryImageCountCompatibilityTest extends TestCase
         ]);
     }
 
-    /** @param list<array<string, mixed>> $rows */
+    /**
+     * @param  list<CountryImageCountRow>  $rows
+     * @return array<string, CountryImageCountRow>
+     */
     private function rowsByIso3(array $rows): array
     {
         $indexed = [];
@@ -196,7 +200,7 @@ class CountryImageCountCompatibilityTest extends TestCase
         return $indexed;
     }
 
-    /** @return list<array{name: string, lon: string, lat: string, iso3: string, image_count: int}> */
+    /** @return list<CountryImageCountRow> */
     private function expectedPopulatedRows(): array
     {
         return [
