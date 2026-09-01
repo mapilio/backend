@@ -2724,6 +2724,200 @@
         }
       }
     },
+    "/api/v1/gamification/badges/{userId}": {
+      "get": {
+        "operationId": "getGamificationBadges",
+        "tags": ["Public content"],
+        "summary": "Read a user's public gamification badges",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/gamification/badges/{userId}` with exact success parity. `userId` is constrained only to numeric route values; a nonnumeric path does not match the route (the 404 body is not part of this contract). The optional `locale` query value is omitted by default and then uses the application locale; an empty value, array, or other non-string falls back to `en`. Scalar query strings are passed through verbatim, including unrecognized values; when no translation row matches, the source returns null translation fields and this contract claims no additional translation fallback. User existence checks only the id, so a row with a deleted timestamp remains visible in the badge and next-badge fields. The derived leaderboard lookup excludes deleted users, so this deleted-user branch returns `point` 0 and `next.percentage` `\"0\"`. A known user returns exactly `badges`, `point`, and `next`: badge metadata preserves enabled flags and legacy scalar values, timestamps are normalized to six-digit UTC ISO strings or null, and disabled badges may include a nested disabled image with file, disk, and folder metadata. `next.badge` is nullable and `next.percentage` preserves its string-or-integer legacy type. An unknown user returns HTTP 200 with the exact empty JSON array `[]`, not an object. There is no endpoint authentication, endpoint-specific throttle, response cache, ETag, or 304 behavior. If the optional global API limiter is enabled and enforced by deployment configuration, it may return the documented 429 envelope and headers.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric legacy user identifier.",
+            "schema": {"type": "integer", "format": "int64", "minimum": 0},
+            "example": 10
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional locale. The canonical wire form is one scalar string. PHP bracket syntax such as `locale[]=tr` is tolerated outside this canonical schema, parses as a non-string array, and falls back to `en`. Omission uses the application locale, an empty scalar falls back to `en`, and scalar strings (including unrecognized values) are passed through as-is.",
+            "schema": {"type": "string"},
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Known users return the exact badge envelope; unknown users return the exact empty JSON array.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/GamificationBadgesResponse"},
+                    {"$ref": "#/components/schemas/GamificationBadgesUnknownUserResponse"}
+                  ]
+                },
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic known-user badge payload",
+                    "value": {
+                      "badges": [
+                        {
+                          "id": 5,
+                          "sort_order": 1,
+                          "created_at": "2026-06-05T01:02:03.000000Z",
+                          "created_by_id": 3,
+                          "updated_at": "2026-06-06T01:02:03.000000Z",
+                          "updated_by_id": 4,
+                          "slug": "street_stoller",
+                          "image_id": 100,
+                          "available_level": 1,
+                          "is_custom": true,
+                          "color_code": "#465973",
+                          "disabled_image_id": 101,
+                          "enable": true,
+                          "icon": "https://api.example.test",
+                          "point": 1,
+                          "title": "Street Stroller",
+                          "info": "First steps."
+                        },
+                        {
+                          "id": 6,
+                          "sort_order": 2,
+                          "created_at": "2026-06-07T01:02:03.000000Z",
+                          "created_by_id": 3,
+                          "updated_at": "2026-06-08T01:02:03.000000Z",
+                          "updated_by_id": 4,
+                          "slug": "pathfinder",
+                          "image_id": 100,
+                          "available_level": 2,
+                          "is_custom": true,
+                          "color_code": "#1781ED",
+                          "disabled_image_id": 101,
+                          "enable": false,
+                          "icon": "https://api.example.test",
+                          "point": 1000,
+                          "title": "Pathfinder",
+                          "info": "Keep exploring.",
+                          "disabled_image": {
+                            "id": 101,
+                            "sort_order": 101,
+                            "created_at": "2026-05-07T01:02:03.000000Z",
+                            "created_by_id": 1,
+                            "updated_at": "2026-05-08T01:02:03.000000Z",
+                            "updated_by_id": 2,
+                            "deleted_at": null,
+                            "name": "disabled.png",
+                            "disk_id": 1,
+                            "folder_id": 12,
+                            "extension": "png",
+                            "size": 121,
+                            "mime_type": "image/png",
+                            "entry_id": null,
+                            "entry_type": "FilesEntry",
+                            "keywords": null,
+                            "height": "196",
+                            "width": "237",
+                            "alt_text": null,
+                            "title": null,
+                            "caption": null,
+                            "description": null,
+                            "str_id": "disabled-file",
+                            "disk": {
+                              "id": 1,
+                              "sort_order": 1,
+                              "created_at": "2026-05-01T01:02:03.000000Z",
+                              "created_by_id": null,
+                              "updated_at": "2026-05-02T01:02:03.000000Z",
+                              "updated_by_id": null,
+                              "deleted_at": null,
+                              "slug": "local",
+                              "adapter": "private_storage",
+                              "name": "Local",
+                              "description": "Local private storage."
+                            },
+                            "folder": {
+                              "id": 12,
+                              "sort_order": 12,
+                              "created_at": "2026-05-03T01:02:03.000000Z",
+                              "created_by_id": null,
+                              "updated_at": "2026-05-04T01:02:03.000000Z",
+                              "updated_by_id": null,
+                              "deleted_at": null,
+                              "disk_id": 1,
+                              "slug": "badges",
+                              "allowed_types": "a:1:{i:0;s:3:\"png\";}",
+                              "str_id": "folder-str",
+                              "name": "Badge Images",
+                              "description": "A folder for badge images."
+                            },
+                            "entry": null,
+                            "path": "badges/disabled.png",
+                            "location": "local://badges/disabled.png"
+                          }
+                        }
+                      ],
+                      "point": "97",
+                      "next": {
+                        "badge": {
+                          "id": 5,
+                          "sort_order": 1,
+                          "created_at": "2026-06-05T01:02:03.000000Z",
+                          "created_by_id": 3,
+                          "updated_at": "2026-06-06T01:02:03.000000Z",
+                          "updated_by_id": 4,
+                          "slug": "street_stoller",
+                          "image_id": 100,
+                          "available_level": 1,
+                          "is_custom": true,
+                          "color_code": "#465973",
+                          "disabled_image_id": 101,
+                          "icon": "https://api.example.test",
+                          "title": "Street Stroller",
+                          "info": "First steps."
+                        },
+                        "percentage": "97"
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic unknown-user result",
+                    "value": []
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Whether enforcement is enabled is deployment-configurable and is not asserted for production by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {"success": false, "message": ["Too many requests."], "error_code": 429}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/web/auth/token": {
       "post": {
         "operationId": "issueWebToken",
@@ -4510,6 +4704,150 @@
           "message": {"type": "array", "items": {"const": "Not Found"}},
           "error_code": {"const": 404}
         }
+      },
+      "GamificationBadgeDisk": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "slug", "adapter", "name", "description"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "slug": {"type": "string"},
+          "adapter": {"type": "string"},
+          "name": {"type": ["string", "null"]},
+          "description": {"type": ["string", "null"]}
+        }
+      },
+      "GamificationBadgeFolder": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "disk_id", "slug", "allowed_types", "str_id", "name", "description"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "disk_id": {"type": ["integer", "null"]},
+          "slug": {"type": "string"},
+          "allowed_types": {"type": ["string", "number", "boolean", "null"]},
+          "str_id": {"type": "string"},
+          "name": {"type": ["string", "null"]},
+          "description": {"type": ["string", "null"]}
+        }
+      },
+      "GamificationBadgeFile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "name", "disk_id", "folder_id", "extension", "size", "mime_type", "entry_id", "entry_type", "keywords", "height", "width", "alt_text", "title", "caption", "description", "str_id", "disk", "folder", "entry", "path", "location"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "name": {"type": "string"},
+          "disk_id": {"type": ["integer", "null"]},
+          "folder_id": {"type": ["integer", "null"]},
+          "extension": {"type": "string"},
+          "size": {"type": ["integer", "null"]},
+          "mime_type": {"type": "string"},
+          "entry_id": {"type": ["integer", "null"]},
+          "entry_type": {"type": ["string", "number", "boolean", "null"]},
+          "keywords": {"type": ["string", "number", "boolean", "null"]},
+          "height": {"type": ["string", "number", "boolean", "null"]},
+          "width": {"type": ["string", "number", "boolean", "null"]},
+          "alt_text": {"type": ["string", "number", "boolean", "null"]},
+          "title": {"type": ["string", "number", "boolean", "null"]},
+          "caption": {"type": ["string", "number", "boolean", "null"]},
+          "description": {"type": ["string", "number", "boolean", "null"]},
+          "str_id": {"type": "string"},
+          "disk": {"oneOf": [{"$ref": "#/components/schemas/GamificationBadgeDisk"}, {"type": "null"}]},
+          "folder": {"oneOf": [{"$ref": "#/components/schemas/GamificationBadgeFolder"}, {"type": "null"}]},
+          "entry": {"type": "null"},
+          "path": {"type": "string"},
+          "location": {"type": "string"}
+        }
+      },
+      "GamificationBadge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "slug", "image_id", "available_level", "is_custom", "color_code", "disabled_image_id", "enable", "icon", "point", "title", "info"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "slug": {"type": ["string", "number", "boolean"]},
+          "image_id": {"type": ["integer", "null"]},
+          "available_level": {"type": ["integer", "null"]},
+          "is_custom": {"type": "boolean"},
+          "color_code": {"type": ["string", "number", "boolean", "null"]},
+          "disabled_image_id": {"type": ["integer", "null"]},
+          "enable": {"type": "boolean"},
+          "icon": {"type": "string"},
+          "point": {"type": "integer"},
+          "title": {"type": ["string", "number", "boolean", "null"]},
+          "info": {"type": ["string", "number", "boolean", "null"]},
+          "disabled_image": {"oneOf": [{"$ref": "#/components/schemas/GamificationBadgeFile"}, {"type": "null"}]}
+        }
+      },
+      "GamificationNextBadge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "slug", "image_id", "available_level", "is_custom", "color_code", "disabled_image_id", "icon", "title", "info"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "slug": {"type": ["string", "number", "boolean"]},
+          "image_id": {"type": ["integer", "null"]},
+          "available_level": {"type": ["integer", "null"]},
+          "is_custom": {"type": "boolean"},
+          "color_code": {"type": ["string", "number", "boolean", "null"]},
+          "disabled_image_id": {"type": ["integer", "null"]},
+          "icon": {"type": "string"},
+          "title": {"type": ["string", "number", "boolean", "null"]},
+          "info": {"type": ["string", "number", "boolean", "null"]}
+        }
+      },
+      "GamificationBadgesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["badges", "point", "next"],
+        "properties": {
+          "badges": {"type": "array", "items": {"$ref": "#/components/schemas/GamificationBadge"}},
+          "point": {"type": ["integer", "string"]},
+          "next": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["badge", "percentage"],
+            "properties": {
+              "badge": {"oneOf": [{"$ref": "#/components/schemas/GamificationNextBadge"}, {"type": "null"}]},
+              "percentage": {"type": ["integer", "string"]}
+            }
+          }
+        }
+      },
+      "GamificationBadgesUnknownUserResponse": {
+        "type": "array",
+        "maxItems": 0,
+        "items": false,
+        "description": "Exact HTTP 200 empty JSON array returned when no user row exists."
       },
       "PublicRateLimitError": {
         "type": "object",

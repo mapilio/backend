@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Legacy;
 
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -233,11 +235,92 @@ class GamificationBadgesCompatibilityTest extends TestCase
         $this->assertSame($legacy, $versioned);
     }
 
+    public function test_gamification_badges_locale_uses_app_locale_and_falls_back_to_en_for_empty_or_non_string_values(): void
+    {
+        Schema::getConnection()->table('default_gamification_badge_translations')->insert([
+            ['entry_id' => 5, 'locale' => 'tr', 'title' => 'Sokak Gezginı', 'info' => 'İlk adımlar.'],
+            ['entry_id' => 6, 'locale' => 'tr', 'title' => 'Kaşif', 'info' => 'Keşfetmeye devam et.'],
+        ]);
+        app()->setLocale('tr');
+
+        $this->getJson('/api/v1/gamification/badges/10')
+            ->assertOk()
+            ->assertJsonPath('badges.0.title', 'Sokak Gezginı');
+
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class)
+            ->call('GET', '/api/v1/gamification/badges/10', ['locale' => ''])
+            ->assertOk()
+            ->assertJsonPath('badges.0.title', 'Street Stoller')
+            ->assertJsonPath('badges.1.title', 'Pathfinder');
+
+        $this->getJson('/api/v1/gamification/badges/10?locale[]=tr')
+            ->assertOk()
+            ->assertJsonPath('badges.0.title', 'Street Stoller')
+            ->assertJsonPath('badges.1.title', 'Pathfinder');
+    }
+
+    public function test_gamification_badges_unrecognized_scalar_locale_is_passed_through_without_translation_fallback(): void
+    {
+        $this->getJson('/api/v1/gamification/badges/10?locale=synthetic-unknown')
+            ->assertOk()
+            ->assertJsonPath('badges.0.title', null)
+            ->assertJsonPath('badges.0.info', null)
+            ->assertJsonPath('badges.1.title', null)
+            ->assertJsonPath('badges.1.info', null);
+    }
+
+    public function test_versioned_gamification_badges_requires_numeric_user_id_only(): void
+    {
+        $this->getJson('/api/v1/gamification/badges/not-numeric')
+            ->assertStatus(404);
+    }
+
+    public function test_gamification_badges_does_not_filter_deleted_users(): void
+    {
+        Schema::getConnection()->table('default_users_users')->where('id', 10)->update([
+            'deleted_at' => '2026-08-01 00:00:00',
+        ]);
+
+        $payload = $this->getJson('/api/v1/gamification/badges/10')
+            ->assertOk()
+            ->json();
+        $expected = $this->expectedPayload();
+
+        $this->assertSame($expected['badges'], $payload['badges']);
+        $this->assertSame($expected['next']['badge'], $payload['next']['badge']);
+        $this->assertSame(0, $payload['point']);
+        $this->assertSame('0', $payload['next']['percentage']);
+    }
+
+    public function test_gamification_badges_optional_global_rate_limit_preserves_legacy_error_envelope(): void
+    {
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 1);
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $this->getJson('/api/v1/gamification/badges/10')->assertOk();
+
+        $response = $this->getJson('/api/v1/gamification/badges/10')
+            ->assertStatus(429)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Too many requests.'],
+                'error_code' => 429,
+            ]);
+
+        $this->assertTrue($response->headers->has('Retry-After'));
+        $this->assertSame('1', $response->headers->get('X-RateLimit-Limit'));
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+    }
+
     public function test_gamification_badges_missing_user_preserves_empty_array_response(): void
     {
-        $this->getJson('/api/gamification/badges/999')
-            ->assertOk()
-            ->assertExactJson([]);
+        foreach (['/api/gamification/badges/999', '/api/v1/gamification/badges/999'] as $path) {
+            $this->getJson($path)
+                ->assertOk()
+                ->assertExactJson([]);
+        }
     }
 
     private function seedFixtures(): void
