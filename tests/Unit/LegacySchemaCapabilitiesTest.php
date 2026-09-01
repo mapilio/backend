@@ -22,7 +22,7 @@ class LegacySchemaCapabilitiesTest extends TestCase
         });
     }
 
-    public function test_it_snapshots_a_table_and_reuses_the_complete_column_set(): void
+    public function test_it_caches_table_existence_and_lazily_reuses_the_complete_column_set(): void
     {
         $capabilities = app(LegacySchemaCapabilities::class);
         $metadataReads = 0;
@@ -31,7 +31,9 @@ class LegacySchemaCapabilitiesTest extends TestCase
         });
 
         $this->assertTrue($capabilities->hasTable('legacy_capability_probe'));
+        $this->assertSame(1, $metadataReads);
         $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'MIXEDCASECOLUMN'));
+        $this->assertSame(3, $metadataReads);
         $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'another_column'));
         $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'missing_column'));
         $this->assertSame([
@@ -41,8 +43,7 @@ class LegacySchemaCapabilitiesTest extends TestCase
             'missing_column' => 'drop',
         ]));
 
-        $readsAfterFirstSnapshot = $metadataReads;
-        $this->assertGreaterThan(0, $readsAfterFirstSnapshot);
+        $this->assertSame(3, $metadataReads);
 
         $capabilities->hasTable('legacy_capability_probe');
         $capabilities->hasColumn('legacy_capability_probe', 'mixedcasecolumn');
@@ -52,7 +53,7 @@ class LegacySchemaCapabilitiesTest extends TestCase
             'missing_column' => 'drop',
         ]);
 
-        $this->assertSame($readsAfterFirstSnapshot, $metadataReads);
+        $this->assertSame(3, $metadataReads);
     }
 
     public function test_absent_tables_and_columns_are_cached_within_the_scope(): void
@@ -64,21 +65,20 @@ class LegacySchemaCapabilitiesTest extends TestCase
         });
 
         $this->assertFalse($capabilities->hasTable('missing_legacy_table'));
-        $readsAfterAbsentTable = $metadataReads;
-        $this->assertGreaterThan(0, $readsAfterAbsentTable);
+        $this->assertSame(1, $metadataReads);
         $this->assertFalse($capabilities->hasTable('missing_legacy_table'));
         $this->assertSame([], $capabilities->filterExistingColumns('missing_legacy_table', [
             'missing_column' => 'value',
         ]));
-        $this->assertSame($readsAfterAbsentTable, $metadataReads);
+        $this->assertSame(1, $metadataReads);
 
         $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'missing_column'));
-        $readsAfterAbsentColumn = $metadataReads;
+        $this->assertSame(4, $metadataReads);
         $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'missing_column'));
-        $this->assertSame($readsAfterAbsentColumn, $metadataReads);
+        $this->assertSame(4, $metadataReads);
     }
 
-    public function test_snapshots_are_isolated_by_connection_name(): void
+    public function test_caches_are_isolated_by_connection_name(): void
     {
         $connectionName = 'legacy_schema_secondary';
         $previousConfiguration = config("database.connections.{$connectionName}");
@@ -98,19 +98,37 @@ class LegacySchemaCapabilitiesTest extends TestCase
 
             $capabilities = app(LegacySchemaCapabilities::class);
 
+            $defaultConnectionName = DB::connection()->getName();
+            $defaultMetadataReads = 0;
+            DB::connection()->listen(static function (QueryExecuted $query) use (&$defaultMetadataReads, $defaultConnectionName): void {
+                if ($query->connectionName === $defaultConnectionName) {
+                    $defaultMetadataReads++;
+                }
+            });
+            $secondaryMetadataReads = 0;
+            DB::connection($connectionName)->listen(static function (QueryExecuted $query) use (&$secondaryMetadataReads, $connectionName): void {
+                if ($query->connectionName === $connectionName) {
+                    $secondaryMetadataReads++;
+                }
+            });
+
             $this->assertTrue($capabilities->hasTable('legacy_capability_probe'));
+            $this->assertSame(1, $defaultMetadataReads);
             $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'MixedCaseColumn'));
             $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'secondary_only'));
+            $this->assertSame(3, $defaultMetadataReads);
             $this->assertTrue($capabilities->hasTable('legacy_capability_probe', $connectionName));
+            $this->assertSame(1, $secondaryMetadataReads);
             $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'secondary_only', $connectionName));
             $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'MixedCaseColumn', $connectionName));
+            $this->assertSame(3, $secondaryMetadataReads);
         } finally {
             DB::purge($connectionName);
             config(["database.connections.{$connectionName}" => $previousConfiguration]);
         }
     }
 
-    public function test_metadata_exception_during_column_listing_does_not_publish_a_partial_snapshot(): void
+    public function test_column_listing_failure_retries_only_the_column_listing(): void
     {
         $capabilities = app(LegacySchemaCapabilities::class);
         $metadataQueries = 0;
@@ -131,6 +149,35 @@ class LegacySchemaCapabilitiesTest extends TestCase
 
         $this->assertSame(2, $metadataQueries);
         $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'MixedCaseColumn'));
+        $this->assertSame(4, $metadataQueries);
+        $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'missing_column'));
+        $this->assertSame(4, $metadataQueries);
+    }
+
+    public function test_table_existence_failure_is_not_cached(): void
+    {
+        $capabilities = app(LegacySchemaCapabilities::class);
+        $metadataQueries = 0;
+        DB::connection()->listen(static function (QueryExecuted $query) use (&$metadataQueries): void {
+            $metadataQueries++;
+
+            if ($metadataQueries === 1) {
+                throw new RuntimeException('Synthetic metadata failure.');
+            }
+        });
+
+        try {
+            $capabilities->hasTable('missing_legacy_table');
+            $this->fail('The metadata read should propagate its exception.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Synthetic metadata failure.', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $metadataQueries);
+        $this->assertFalse($capabilities->hasTable('missing_legacy_table'));
+        $this->assertSame(2, $metadataQueries);
+        $this->assertFalse($capabilities->hasTable('missing_legacy_table'));
+        $this->assertSame(2, $metadataQueries);
     }
 
     public function test_forgetting_scoped_instances_exposes_schema_changes_to_a_fresh_service(): void

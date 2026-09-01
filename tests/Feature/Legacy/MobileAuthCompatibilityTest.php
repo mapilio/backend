@@ -4,6 +4,7 @@ namespace Tests\Feature\Legacy;
 
 use App\Domain\IdentityAccess\Queries\MobileProfileQuery;
 use App\Http\Controllers\Legacy\Identity\MobileProfileController;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
@@ -196,26 +197,7 @@ class MobileAuthCompatibilityTest extends TestCase
             'password' => 'correct-password',
         ])->assertOk();
 
-        $expected = [
-            'data' => [[
-                'id' => 10,
-                'username' => 'alice',
-                'email' => 'alice@example.test',
-                'user_profile_photo' => 'https://mapilio.test/default-avatar.png',
-                'display_name' => 'Alice Example',
-                'str_id' => 'alice-key',
-                'hidden_profile' => 0,
-                'user_bio' => 'Mapping roads.',
-                'created_at' => '2026-01-01 00:00:00',
-                'updated_at' => '2026-01-02 00:00:00',
-                'shape_limit' => 100,
-                'isAdmin' => true,
-                'sequences' => 2,
-                'photos' => 3,
-                'meters' => '4.000',
-                'score' => '16',
-            ]],
-        ];
+        $expected = $this->expectedMobileProfileResponse();
 
         foreach (['/api/function/user_profile/profile/getProfile', '/api/v1/mobile/profile'] as $path) {
             $this->withToken($login->json('access_token'))
@@ -223,6 +205,33 @@ class MobileAuthCompatibilityTest extends TestCase
                 ->assertOk()
                 ->assertExactJson($expected);
         }
+    }
+
+    public function test_successful_mobile_profile_request_uses_four_sqlite_schema_metadata_queries(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $metadataQueries = 0;
+        Schema::getConnection()->listen(static function (QueryExecuted $query) use (&$metadataQueries): void {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'sqlite_master') || str_contains($sql, 'pragma_table_')) {
+                $metadataQueries++;
+            }
+        });
+
+        $this->withToken($login->json('access_token'))
+            ->getJson('/api/function/user_profile/profile/getProfile')
+            ->assertOk()
+            ->assertExactJson($this->expectedMobileProfileResponse());
+
+        $this->assertSame(4, $metadataQueries);
     }
 
     public function test_mobile_profile_endpoints_require_valid_bearer(): void
@@ -729,5 +738,32 @@ class MobileAuthCompatibilityTest extends TestCase
             ['sequence_uuid' => 'seq-b', 'created_by_id' => 10, 'sequence_point' => 5.7, 'length_km' => 2.75, 'deleted_at' => null],
             ['sequence_uuid' => 'seq-deleted', 'created_by_id' => 10, 'sequence_point' => 50, 'length_km' => 9, 'deleted_at' => '2026-01-02 00:00:00'],
         ]);
+    }
+
+    /**
+     * @return array{data: list<array<string, mixed>>}
+     */
+    private function expectedMobileProfileResponse(): array
+    {
+        return [
+            'data' => [[
+                'id' => 10,
+                'username' => 'alice',
+                'email' => 'alice@example.test',
+                'user_profile_photo' => 'https://mapilio.test/default-avatar.png',
+                'display_name' => 'Alice Example',
+                'str_id' => 'alice-key',
+                'hidden_profile' => 0,
+                'user_bio' => 'Mapping roads.',
+                'created_at' => '2026-01-01 00:00:00',
+                'updated_at' => '2026-01-02 00:00:00',
+                'shape_limit' => 100,
+                'isAdmin' => true,
+                'sequences' => 2,
+                'photos' => 3,
+                'meters' => '4.000',
+                'score' => '16',
+            ]],
+        ];
     }
 }

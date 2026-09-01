@@ -8,22 +8,44 @@ use RuntimeException;
 final class LegacySchemaCapabilities
 {
     /**
-     * @var array<string, array<string, array{exists: bool, columns: array<string, true>}>>
+     * @var array<string, array<string, bool>>
      */
-    private array $snapshots = [];
+    private array $tableExistence = [];
+
+    /**
+     * @var array<string, array<string, array<string, true>>>
+     */
+    private array $columnSets = [];
 
     public function __construct(private readonly DatabaseManager $connections) {}
 
     public function hasTable(string $table, ?string $connectionName = null): bool
     {
-        return $this->snapshot($table, $connectionName)['exists'];
+        $resolvedConnectionName = $this->resolveConnectionName($connectionName);
+
+        if (array_key_exists($table, $this->tableExistence[$resolvedConnectionName] ?? [])) {
+            return $this->tableExistence[$resolvedConnectionName][$table];
+        }
+
+        $exists = $this->connections->connection($resolvedConnectionName)
+            ->getSchemaBuilder()
+            ->hasTable($table);
+
+        $this->tableExistence[$resolvedConnectionName][$table] = $exists;
+
+        return $exists;
     }
 
     public function hasColumn(string $table, string $column, ?string $connectionName = null): bool
     {
-        $snapshot = $this->snapshot($table, $connectionName);
+        if (! $this->hasTable($table, $connectionName)) {
+            return false;
+        }
 
-        return $snapshot['exists'] && isset($snapshot['columns'][strtolower($column)]);
+        $resolvedConnectionName = $this->resolveConnectionName($connectionName);
+        $columns = $this->columnSet($table, $resolvedConnectionName);
+
+        return array_key_exists(strtolower($column), $columns);
     }
 
     /**
@@ -35,16 +57,16 @@ final class LegacySchemaCapabilities
         array $values,
         ?string $connectionName = null,
     ): array {
-        $snapshot = $this->snapshot($table, $connectionName);
-
-        if (! $snapshot['exists']) {
+        if (! $this->hasTable($table, $connectionName)) {
             return [];
         }
 
+        $resolvedConnectionName = $this->resolveConnectionName($connectionName);
+        $columns = $this->columnSet($table, $resolvedConnectionName);
         $filtered = [];
 
         foreach ($values as $column => $value) {
-            if (isset($snapshot['columns'][strtolower($column)])) {
+            if (array_key_exists(strtolower($column), $columns)) {
                 $filtered[$column] = $value;
             }
         }
@@ -53,28 +75,23 @@ final class LegacySchemaCapabilities
     }
 
     /**
-     * @return array{exists: bool, columns: array<string, true>}
+     * @return array<string, true>
      */
-    private function snapshot(string $table, ?string $connectionName): array
+    private function columnSet(string $table, string $connectionName): array
     {
-        $resolvedConnectionName = $this->resolveConnectionName($connectionName);
-
-        if (isset($this->snapshots[$resolvedConnectionName][$table])) {
-            return $this->snapshots[$resolvedConnectionName][$table];
+        if (array_key_exists($table, $this->columnSets[$connectionName] ?? [])) {
+            return $this->columnSets[$connectionName][$table];
         }
 
-        $schema = $this->connections->connection($resolvedConnectionName)->getSchemaBuilder();
-        $exists = $schema->hasTable($table);
-        $columns = $exists ? $schema->getColumnListing($table) : [];
-        $snapshot = [
-            'exists' => $exists,
-            'columns' => array_fill_keys(array_map(strtolower(...), $columns), true),
-        ];
+        $columns = $this->connections->connection($connectionName)
+            ->getSchemaBuilder()
+            ->getColumnListing($table);
+        $columnSet = array_fill_keys(array_map(strtolower(...), $columns), true);
 
-        // Publish only a complete, successful metadata read to keep failures retryable.
-        $this->snapshots[$resolvedConnectionName][$table] = $snapshot;
+        // Publish only a complete, successful column read to keep failures retryable.
+        $this->columnSets[$connectionName][$table] = $columnSet;
 
-        return $snapshot;
+        return $columnSet;
     }
 
     private function resolveConnectionName(?string $connectionName): string

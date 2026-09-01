@@ -3,11 +3,13 @@
 namespace App\Domain\IdentityAccess\Queries;
 
 use App\Support\Database\LegacyDatabase;
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Database\Connection;
-use Illuminate\Support\Facades\Schema;
 
 class MobileProfileQuery
 {
+    public function __construct(private readonly LegacySchemaCapabilities $schemaCapabilities) {}
+
     /**
      * @return array{
      *     id: mixed,
@@ -150,8 +152,10 @@ class MobileProfileQuery
      */
     private function hasTables(Connection $connection, array $tables): bool
     {
+        $connectionName = $connection->getName();
+
         foreach ($tables as $table) {
-            if (! Schema::connection($connection->getName())->hasTable($table)) {
+            if (! $this->schemaCapabilities->hasTable($table, $connectionName)) {
                 return false;
             }
         }
