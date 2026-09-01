@@ -179,6 +179,22 @@ class MarketplaceCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_marketplaces_malformed_created_timestamps_return_null(): void
+    {
+        Schema::getConnection()->table('default_projects_project')->update([
+            'created_at' => 'not-a-date',
+        ]);
+
+        $response = $this->getJson('/api/get-marketplaces')
+            ->assertOk()
+            ->json();
+        $geojson = json_decode($response['data']['geojson'], true);
+
+        foreach ($geojson['features'] as $feature) {
+            $this->assertNull($feature['properties']['created_at']);
+        }
+    }
+
     public function test_versioned_marketplaces_alias_returns_same_contract(): void
     {
         $legacy = $this->getJson('/api/get-marketplaces')

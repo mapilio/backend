@@ -248,6 +248,32 @@ class BillingPlanCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_billing_malformed_timestamps_return_null(): void
+    {
+        $db = Schema::getConnection();
+
+        $db->table('default_billing_package')->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+        $db->table('default_billing_hosting')->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+
+        $packages = $this->getJson('/api/package-list')->assertOk()->json();
+        foreach ($packages['data'] as $package) {
+            $this->assertNull($package['created_at']);
+            $this->assertNull($package['updated_at']);
+        }
+
+        $hosting = $this->getJson('/api/hosting-list')->assertOk()->json();
+        foreach ($hosting['data'] as $plan) {
+            $this->assertNull($plan['created_at']);
+            $this->assertNull($plan['updated_at']);
+        }
+    }
+
     public function test_empty_billing_pages_return_data_null(): void
     {
         $this->getJson('/api/package-list?page=2')

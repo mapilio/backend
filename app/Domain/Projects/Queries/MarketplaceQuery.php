@@ -173,7 +173,13 @@ FROM
             return null;
         }
 
-        return date('Y-m-d\TH:i:s', strtotime((string) $value));
+        $timestamp = strtotime((string) $value);
+
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return date('Y-m-d\TH:i:s', $timestamp);
     }
 
     private function geometry(?string $value): mixed
