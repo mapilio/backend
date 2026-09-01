@@ -519,6 +519,27 @@ class PublicContentCompatibilityTest extends TestCase
         $this->assertNull($detail['data'][0]['author_detail'][0]['updated_at']);
     }
 
+    public function test_blog_other_authors_substitute_invalid_utf8_on_list_and_detail(): void
+    {
+        Schema::getConnection()->table('default_users_users')->where('id', 502)->update([
+            'username' => "coauthor \xC3\x28 tail",
+        ]);
+
+        foreach (['/api/get-blogs', '/api/get-blog-detail/modern-blog-101-en'] as $endpoint) {
+            $response = $this->getJson($endpoint)
+                ->assertOk()
+                ->json();
+            $otherAuthors = $response['data'][0]['other_authors'];
+
+            $this->assertNotSame('', $otherAuthors);
+
+            $decoded = json_decode($otherAuthors, true);
+
+            $this->assertSame(JSON_ERROR_NONE, json_last_error(), json_last_error_msg());
+            $this->assertSame("coauthor \xEF\xBF\xBD( tail", $decoded[0]['username']);
+        }
+    }
+
     public function test_legacy_get_blogs_empty_results_return_data_null(): void
     {
         $this->getJson('/api/get-blogs?category=999999')

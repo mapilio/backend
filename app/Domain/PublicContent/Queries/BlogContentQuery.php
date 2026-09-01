@@ -311,7 +311,7 @@ class BlogContentQuery
                     ])
                     ->values()
                     ->all(),
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE,
             ))
             ->all();
     }
