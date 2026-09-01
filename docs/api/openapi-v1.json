@@ -36,6 +36,10 @@
     {
       "name": "Identity",
       "description": "First-party authentication contracts for Mapilio clients."
+    },
+    {
+      "name": "Projects",
+      "description": "Versioned, authenticated project membership reads."
     }
   ],
   "paths": {
@@ -916,6 +920,95 @@
                   "success": false,
                   "message": {"user_id": ["The user_id field is required."]}
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/jobs/mine": {
+      "get": {
+        "operationId": "getMobileProjectJobs",
+        "tags": ["Projects"],
+        "summary": "Read the authenticated user's project jobs",
+        "description": "Returns the authenticated user's assigned project jobs through the additive versioned alias for legacy GET `/api/function/projects/job/getMyJobs`. Maintained mobile clients still call the legacy route; this versioned GET is the additive migration path and preserves the same `{data: [...]}` envelope. Rows are ordered by `sort_order` and then `id`. Each timestamp is nullable and, when present, is serialized as a UTC ISO-8601 timestamp with six fractional-second digits. The nested `user_detail` array contains exactly one user object and `project_detail` is one project object. An authenticated user with no active jobs receives the exact empty result `{\"data\":[]}`.",
+        "security": [{"mobileBearer": []}],
+        "responses": {
+          "200": {
+            "description": "The authenticated user's active project jobs, ordered by sort_order and id. The data array is empty when no jobs are assigned to the user.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobsResponse"},
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic assigned jobs",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 10,
+                          "sort_order": 1,
+                          "created_at": "2026-01-01T10:00:00.000000Z",
+                          "created_by_id": 1,
+                          "updated_at": "2026-01-02T10:00:00.000000Z",
+                          "updated_by_id": 1,
+                          "deleted_at": null,
+                          "project_id": 100,
+                          "project_key": "project-synthetic-istanbul",
+                          "assign_id": 10,
+                          "user_detail": [{
+                            "id": 10,
+                            "username": "synthetic-mapper",
+                            "email": "synthetic-mapper@example.test",
+                            "display_name": "Synthetic Mapper"
+                          }],
+                          "project_detail": {
+                            "marketplace_name": "Synthetic Istanbul Capture",
+                            "marketplace_description": "Synthetic street-level imagery project.",
+                            "project_organization_key": "synthetic-org",
+                            "project_key": "project-synthetic-istanbul"
+                          }
+                        },
+                        {
+                          "id": 11,
+                          "sort_order": null,
+                          "created_at": null,
+                          "created_by_id": null,
+                          "updated_at": null,
+                          "updated_by_id": null,
+                          "deleted_at": null,
+                          "project_id": null,
+                          "project_key": null,
+                          "assign_id": 10,
+                          "user_detail": [{
+                            "id": 10,
+                            "username": "synthetic-mapper",
+                            "email": null,
+                            "display_name": null
+                          }],
+                          "project_detail": {
+                            "marketplace_name": null,
+                            "marketplace_description": null,
+                            "project_organization_key": null,
+                            "project_key": null
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {"data": []}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The bearer token is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobsUnauthenticatedError"},
+                "example": {"message": "Unauthenticated."}
               }
             }
           }
@@ -2194,6 +2287,71 @@
               "user_id": {"type": "array", "items": {"const": "The user_id field is required."}}
             }
           }
+        }
+      },
+      "MobileProjectJobUserDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "username", "email", "display_name"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "username": {"type": ["string", "null"]},
+          "email": {"type": ["string", "null"]},
+          "display_name": {"type": ["string", "null"]}
+        }
+      },
+      "MobileProjectJobProjectDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["marketplace_name", "marketplace_description", "project_organization_key", "project_key"],
+        "properties": {
+          "marketplace_name": {"type": ["string", "null"]},
+          "marketplace_description": {"type": ["string", "null"]},
+          "project_organization_key": {"type": ["string", "null"]},
+          "project_key": {"type": ["string", "null"]}
+        }
+      },
+      "MobileProjectJobRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "project_id", "project_key", "assign_id", "user_detail", "project_detail"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"], "format": "int64"},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"], "format": "int64"},
+          "deleted_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "project_id": {"type": ["integer", "null"], "format": "int64"},
+          "project_key": {"type": ["string", "null"]},
+          "assign_id": {"type": ["integer", "null"], "format": "int64"},
+          "user_detail": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"$ref": "#/components/schemas/MobileProjectJobUserDetail"}
+          },
+          "project_detail": {"$ref": "#/components/schemas/MobileProjectJobProjectDetail"}
+        }
+      },
+      "MobileProjectJobsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/MobileProjectJobRow"}
+          }
+        }
+      },
+      "MobileProjectJobsUnauthenticatedError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {
+          "message": {"const": "Unauthenticated."}
         }
       },
       "SequenceDetailItem": {

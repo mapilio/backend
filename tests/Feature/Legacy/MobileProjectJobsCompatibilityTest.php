@@ -95,12 +95,14 @@ class MobileProjectJobsCompatibilityTest extends TestCase
     {
         $login = $this->loginAsLegacyUser('empty_jobs');
 
-        $this->withToken($login->json('access_token'))
-            ->getJson('/api/function/projects/job/getMyJobs')
-            ->assertOk()
-            ->assertExactJson([
-                'data' => [],
-            ]);
+        foreach (['/api/function/projects/job/getMyJobs', '/api/v1/projects/jobs/mine'] as $path) {
+            $this->withToken($login->json('access_token'))
+                ->getJson($path)
+                ->assertOk()
+                ->assertExactJson([
+                    'data' => [],
+                ]);
+        }
     }
 
     public function test_versioned_mobile_get_my_jobs_alias_matches_legacy_contract(): void
@@ -112,10 +114,40 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             ->assertOk()
             ->json();
 
-        $this->withToken($login->json('access_token'))
+        $versioned = $this->withToken($login->json('access_token'))
             ->getJson('/api/v1/projects/jobs/mine')
             ->assertOk()
-            ->assertExactJson($legacy);
+            ->assertExactJson($legacy)
+            ->json();
+
+        $this->assertSame([
+            'id',
+            'sort_order',
+            'created_at',
+            'created_by_id',
+            'updated_at',
+            'updated_by_id',
+            'deleted_at',
+            'project_id',
+            'project_key',
+            'assign_id',
+            'user_detail',
+            'project_detail',
+        ], array_keys($versioned['data'][0]));
+        $this->assertSame('2026-01-01T10:00:00.000000Z', $versioned['data'][0]['created_at']);
+        $this->assertSame('2026-01-02T10:00:00.000000Z', $versioned['data'][0]['updated_at']);
+        $this->assertSame([
+            'id',
+            'username',
+            'email',
+            'display_name',
+        ], array_keys($versioned['data'][0]['user_detail'][0]));
+        $this->assertSame([
+            'marketplace_name',
+            'marketplace_description',
+            'project_organization_key',
+            'project_key',
+        ], array_keys($versioned['data'][0]['project_detail']));
     }
 
     public function test_mobile_create_job_repeat_call_preserves_duplicate_contract_and_creates_one_active_membership(): void
