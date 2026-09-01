@@ -7,9 +7,21 @@
 
 The unfiltered public leaderboard and country image-count endpoints run bounded
 queries whose results change slowly but are requested frequently. Their legacy
-and `v1` routes already share controllers and response contracts. Organization
-leaderboards, filtered leaderboards, and marketplace payloads need more
-payload-size, cardinality, and usage evidence before caching is appropriate.
+and `v1` routes already share controllers and response contracts. A read-only
+PostgreSQL transaction with a 30-second statement timeout measured organization
+score v1 at 3 rows, 469 response bytes, and 4561.389ms, and score v2 at 3 rows,
+475 response bytes, and 3751.461ms. These are diagnostic production read-only
+measurements, not an SLO; the slow, bounded organization queries are cache-worthy.
+
+Marketplace measurements were 20 features, 25,260 response bytes, and
+326.823ms for the default request, and 20 features, 25,540 response bytes, and
+235.043ms for a coordinate-sorted request. Marketplace remains intentionally
+uncached: it is already fast, and coordinate-sorted requests would create
+high-cardinality keys.
+
+Filtered leaderboards remain intentionally uncached because their user and date
+dimensions are high-cardinality. Reconsider that boundary only if production
+telemetry later shows a material regression.
 
 ## Decision
 
@@ -21,6 +33,7 @@ value is environment-configurable within bounded configuration values.
 Cache only plain arrays for:
 
 - leaderboard requests with none of `user_id`, `start_at`, or `finish_at`; and
+- organization leaderboard requests, separated by score version; and
 - the bounded country reference projection returned by country image counts.
 
 The leaderboard query normalizes its effective limit to
@@ -31,8 +44,8 @@ bounded, separates visibility or result-size changes, and never exposes role
 values. Legacy and `v1` aliases with identical inputs intentionally share keys.
 
 Responses, request objects, exceptions, validation failures, credentials, and
-filtered results are never cached. Organization leaderboard and marketplace
-controllers and query callers remain unchanged.
+filtered results are never cached. Marketplace controllers and query callers
+remain unchanged and marketplace responses are never cached.
 
 ## Freshness And Failure Semantics
 
@@ -55,8 +68,12 @@ workers. Stored entries may remain because the disabled helper bypasses them.
 
 ## Consequences
 
-Repeated eligible leaderboard and country-count requests avoid duplicate
-computations during the short cache window while preserving exact wrappers,
-ordering, route defaults, validation behavior, and legacy/`v1` parity. Issue
-`#50` remains open for organization, marketplace, and filtered leaderboard
-caching pending payload-size, cardinality, and usage evidence.
+Repeated eligible leaderboard, organization leaderboard, and country-count
+requests avoid duplicate computations during the short cache window while
+preserving exact wrappers, ordering, route defaults, validation behavior, and
+legacy/`v1` parity. Marketplace remains outside this cache because its measured
+latency does not justify the key cardinality. Filtered leaderboards also remain
+uncached because their user and date dimensions are intentionally
+high-cardinality. Issue `#50` is complete once the organization slice merges;
+either decision should be revisited as a new measured change only if production
+telemetry later shows a material regression.

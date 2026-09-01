@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\ImagerySequences\Queries\CountryImageCountQuery;
 use App\Domain\ImagerySequences\Queries\LeaderboardQuery;
+use App\Domain\Organizations\Queries\OrganizationLeaderboardQuery;
 use App\Support\Cache\PublicAggregateCache;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
@@ -71,6 +72,56 @@ class PublicAggregateCacheTest extends TestCase
             $imageRows,
             Cache::get(app(PublicAggregateCache::class)->leaderboardKey(LeaderboardQuery::SCORE_VERSION_IMAGE)),
         );
+    }
+
+    public function test_organization_leaderboard_aliases_share_one_computation_and_exact_wrapper(): void
+    {
+        $rows = [['organization_key' => 'org-a', 'point' => '200']];
+        $query = $this->createMock(OrganizationLeaderboardQuery::class);
+        $query->expects($this->once())
+            ->method('get')
+            ->with(OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE)
+            ->willReturn($rows);
+        $this->app->instance(OrganizationLeaderboardQuery::class, $query);
+
+        $expected = ['data' => ['leaderboard' => $rows]];
+
+        $this->getJson('/api/leaderboard-organization')->assertOk()->assertExactJson($expected);
+        $this->getJson('/api/v1/organizations/leaderboard')->assertOk()->assertExactJson($expected);
+
+        $this->assertSame(
+            $rows,
+            Cache::get(app(PublicAggregateCache::class)->organizationLeaderboardKey(
+                OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE,
+            )),
+        );
+    }
+
+    public function test_organization_leaderboard_score_versions_use_separate_bounded_keys(): void
+    {
+        $sequenceRows = [['organization_key' => 'org-a', 'point' => '100']];
+        $ukmRows = [['organization_key' => 'org-a', 'point' => '125']];
+        $query = $this->createMock(OrganizationLeaderboardQuery::class);
+        $query->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnCallback(function (int $scoreVersion) use ($sequenceRows, $ukmRows): array {
+                return $scoreVersion === OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE
+                    ? $sequenceRows
+                    : $ukmRows;
+            });
+        $this->app->instance(OrganizationLeaderboardQuery::class, $query);
+
+        $this->getJson('/api/leaderboard-organization')->assertOk();
+        $this->getJson('/api/leaderboard-organization-v2')->assertOk();
+
+        $cache = app(PublicAggregateCache::class);
+        $sequenceKey = $cache->organizationLeaderboardKey(OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE);
+        $ukmKey = $cache->organizationLeaderboardKey(OrganizationLeaderboardQuery::SCORE_VERSION_UKM);
+
+        $this->assertNotSame($sequenceKey, $ukmKey);
+        $this->assertSame($sequenceRows, Cache::get($sequenceKey));
+        $this->assertSame($ukmRows, Cache::get($ukmKey));
+        $this->assertLessThanOrEqual(100, strlen($sequenceKey));
     }
 
     public function test_filtered_leaderboards_bypass_cache_for_each_filter_name(): void
@@ -223,6 +274,24 @@ class PublicAggregateCacheTest extends TestCase
         $this->getJson('/api/leaderboard')->assertExactJson(['data' => ['leaderboard' => $firstRows]]);
         config()->set('mapilio.public_aggregate_cache.enabled', false);
         $this->getJson('/api/leaderboard')->assertExactJson(['data' => ['leaderboard' => $secondRows]]);
+    }
+
+    public function test_disabled_organization_leaderboard_cache_bypasses_an_existing_value(): void
+    {
+        $firstRows = [['organization_key' => 'org-a', 'point' => '100']];
+        $secondRows = [['organization_key' => 'org-b', 'point' => '200']];
+        $query = $this->createMock(OrganizationLeaderboardQuery::class);
+        $query->expects($this->exactly(2))
+            ->method('get')
+            ->with(OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE)
+            ->willReturnOnConsecutiveCalls($firstRows, $secondRows);
+        $this->app->instance(OrganizationLeaderboardQuery::class, $query);
+
+        $this->getJson('/api/leaderboard-organization')
+            ->assertExactJson(['data' => ['leaderboard' => $firstRows]]);
+        config()->set('mapilio.public_aggregate_cache.enabled', false);
+        $this->getJson('/api/v1/organizations/leaderboard')
+            ->assertExactJson(['data' => ['leaderboard' => $secondRows]]);
     }
 
     public function test_failed_deferred_refresh_keeps_the_stale_value(): void

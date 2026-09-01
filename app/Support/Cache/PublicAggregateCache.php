@@ -9,6 +9,8 @@ final class PublicAggregateCache
 {
     public const LEADERBOARD_KEY_PREFIX = 'mapilio:public:v1:imagery:leaderboard:score:';
 
+    public const ORGANIZATION_LEADERBOARD_KEY_PREFIX = 'mapilio:public:v1:organizations:leaderboard:score:';
+
     public const COUNTRY_IMAGE_COUNT_KEY = 'mapilio:public:v1:imagery:country-image-count';
 
     /**
@@ -25,6 +27,20 @@ final class PublicAggregateCache
         return self::LEADERBOARD_KEY_PREFIX.$scoreVersion
             .':limit:'.$this->effectiveLeaderboardLimit()
             .':roles:'.$this->rolePolicyFingerprint();
+    }
+
+    /**
+     * @param  Closure(): list<array<string, mixed>>  $callback
+     * @return list<array<string, mixed>>
+     */
+    public function organizationLeaderboard(int $scoreVersion, Closure $callback): array
+    {
+        return $this->remember($this->organizationLeaderboardKey($scoreVersion), $callback);
+    }
+
+    public function organizationLeaderboardKey(int $scoreVersion): string
+    {
+        return self::ORGANIZATION_LEADERBOARD_KEY_PREFIX.$scoreVersion;
     }
 
     /**
