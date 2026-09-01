@@ -18,6 +18,10 @@
   ],
   "tags": [
     {
+      "name": "AI callbacks",
+      "description": "Versioned, signed AI prediction receipt ingestion. Callback activation remains separately controlled."
+    },
+    {
       "name": "Geospatial features",
       "description": "Versioned reads for canonical detections and geospatial publication data."
     },
@@ -35,6 +39,227 @@
     }
   ],
   "paths": {
+    "/api/v1/ai/predictions/callback": {
+      "post": {
+        "operationId": "receiveAiPredictionCallback",
+        "tags": [
+          "AI callbacks"
+        ],
+        "summary": "Receive a signed AI prediction callback",
+        "description": "Accepts an AI prediction result as a durable receipt and queues asynchronous validation. The receipt boundary checks the JSON envelope, id, status, SUCCESS result object, and optional features array; it does not synchronously validate nested result fields. Nested result validation and optional persistence happen asynchronously and can later mark the receipt as errored. Both 202 and 200 acknowledge a durable receipt only. This endpoint uses custom HMAC request signing, not bearer authentication. Sign the exact raw HTTP request body bytes with HMAC-SHA256 over `timestamp + \".\" + nonce + \".\" + raw_body`; do not parse, reserialize, normalize, or otherwise change the bytes before signing. The timestamp must be fresh relative to the server clock; the production acceptance window is deployment-specific and is not stated in this contract. A nonce can be used only once: replaying the same nonce returns 409, while redelivering the same payload with a fresh nonce is idempotent and returns 200. Callback receipt ingestion is disabled by default until separately activated.",
+        "security": [
+          {
+            "aiCallbackTimestamp": [],
+            "aiCallbackNonce": [],
+            "aiCallbackSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Mapilio-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "Required decimal Unix timestamp in seconds. It must be fresh relative to the server clock; the exact production acceptance window is deployment-specific.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            "example": "1770000000"
+          },
+          {
+            "name": "X-Mapilio-Nonce",
+            "in": "header",
+            "required": true,
+            "description": "Required single-use request nonce.",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]{16,128}$"
+            },
+            "example": "callback.synthetic:nonce-01"
+          },
+          {
+            "name": "X-Mapilio-Signature",
+            "in": "header",
+            "required": true,
+            "description": "HMAC-SHA256 digest as 64 hexadecimal characters, optionally prefixed with `sha256=`. This example is illustrative only and cannot be valid without the deployment signing secret.",
+            "schema": {
+              "type": "string",
+              "pattern": "^(sha256=)?[A-Fa-f0-9]{64}$"
+            },
+            "example": "sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiPredictionCallbackRequest"
+              },
+              "examples": {
+                "success": {
+                  "summary": "Synthetic SUCCESS callback",
+                  "value": {
+                    "id": "prediction-response-synthetic-success",
+                    "status": "SUCCESS",
+                    "result": {
+                      "type": "FeatureCollection",
+                      "features": [
+                        {
+                          "type": "Feature",
+                          "geometry": {
+                            "type": "Point",
+                            "coordinates": [0, 0]
+                          },
+                          "properties": {
+                            "class_code": "stop-sign",
+                            "confidence": 0.95,
+                            "width": 1,
+                            "height": 1,
+                            "area": 1,
+                            "matchedPoints": []
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "error": {
+                  "summary": "Synthetic ERROR callback",
+                  "value": {
+                    "id": "prediction-response-synthetic-error",
+                    "status": "ERROR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "A new callback receipt was durably stored and acknowledged for asynchronous validation. Nested result validation or persistence may later mark the receipt as errored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiPredictionCallbackAcceptedResponse"
+                },
+                "example": {
+                  "status": true,
+                  "receipt_id": 1001,
+                  "duplicate": false
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The same payload was redelivered with a fresh nonce and matched an existing durable receipt. This acknowledgement is idempotent and does not synchronously validate nested result data. It is distinct from replaying a nonce, which returns 409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiPredictionCallbackDuplicateResponse"
+                },
+                "example": {
+                  "status": true,
+                  "receipt_id": 1001,
+                  "duplicate": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The required signing headers are missing or invalid, the signature does not match the exact raw body, or the timestamp is not fresh.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Callback receipt ingestion is disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Not Found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The nonce has already been used. Sending the same payload with a fresh nonce is an idempotent duplicate and returns 200 instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Callback replay rejected."
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The raw request body exceeds the configured callback payload limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Payload Too Large"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The JSON is malformed, the top-level envelope, id, or status is invalid, SUCCESS lacks an object result, features is not an array when present, or the feature count exceeds the deployment-configured ceiling.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "message": "Invalid callback payload."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The callback receipt could not be stored or the accepted receipt could not be queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "storageFailure": {
+                    "summary": "Receipt storage failure",
+                    "value": {
+                      "message": "Callback receipt could not be stored."
+                    }
+                  },
+                  "queueFailure": {
+                    "summary": "Receipt queue failure",
+                    "value": {
+                      "message": "Callback receipt could not be queued."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/accounts": {
       "post": {
         "operationId": "registerMobileAccount",
@@ -1733,6 +1958,63 @@
           "error_code": {"const": 404}
         }
       },
+      "AiPredictionCallbackRequest": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/AiPredictionSuccessCallback"},
+          {"$ref": "#/components/schemas/AiPredictionErrorCallback"}
+        ],
+        "description": "The callback payload accepted by the synchronous receipt boundary. The store requires a non-empty id of at most 255 characters and status SUCCESS or ERROR; SUCCESS also requires a result object. If result.features is present, it must be an array. Receipt ingestion enforces a feature-count ceiling configured by the deployment; exceeding it returns 422. The raw payload is stored before nested result validation or optional persistence runs asynchronously; that later processing can mark the receipt as errored."
+      },
+      "AiPredictionSuccessCallback": {
+        "type": "object",
+        "required": ["id", "status", "result"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 255},
+          "status": {"const": "SUCCESS"},
+          "result": {
+            "type": "object",
+            "description": "Stored as received at the synchronous receipt boundary. Its nested fields are validated asynchronously.",
+            "properties": {
+              "type": {
+                "description": "Raw result discriminator retained for asynchronous validation; the receipt boundary does not validate this value."
+              },
+              "features": {
+                "type": "array",
+                "description": "Optional at receipt ingestion. Receipt ingestion enforces a feature-count ceiling configured by the deployment; exceeding it returns 422.",
+                "items": {"type": "object"}
+              }
+            }
+          }
+        }
+      },
+      "AiPredictionErrorCallback": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 255},
+          "status": {"const": "ERROR"}
+        }
+      },
+      "AiPredictionCallbackAcceptedResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "receipt_id", "duplicate"],
+        "properties": {
+          "status": {"const": true},
+          "receipt_id": {"type": "integer", "format": "int64", "minimum": 1},
+          "duplicate": {"const": false}
+        }
+      },
+      "AiPredictionCallbackDuplicateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "receipt_id", "duplicate"],
+        "properties": {
+          "status": {"const": true},
+          "receipt_id": {"type": "integer", "format": "int64", "minimum": 1},
+          "duplicate": {"const": true}
+        }
+      },
       "ApiMessage": {
         "type": "object",
         "required": [
@@ -1761,6 +2043,24 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "Mapilio signed token"
+      },
+      "aiCallbackTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Mapilio-Timestamp",
+        "description": "Required decimal Unix timestamp in seconds. The timestamp must be fresh relative to the server clock."
+      },
+      "aiCallbackNonce": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Mapilio-Nonce",
+        "description": "Required single-use nonce matching `^[A-Za-z0-9._:-]{16,128}$`."
+      },
+      "aiCallbackSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Mapilio-Signature",
+        "description": "Required HMAC-SHA256 digest: 64 hexadecimal characters, optionally prefixed with `sha256=`."
       }
     }
   }
