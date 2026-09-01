@@ -19,7 +19,7 @@ class UserUploadsCompatibilityTest extends TestCase
     {
         $this->getJson('/api/user-uploads-v2?options[parameters][user_id]=10&options[limit]=2&page=1')
             ->assertOk()
-            ->assertJsonPath('data.0.total', 2)
+            ->assertJsonPath('data.0.total', 3)
             ->assertJsonPath('data.0.uploaded_hash', 'hash-new-a')
             ->assertJsonPath('data.0.capture_time', '2026-05-08 17:09:57')
             ->assertJsonPath('data.0.cover_photo', 'new-a.jpeg')
@@ -32,6 +32,19 @@ class UserUploadsCompatibilityTest extends TestCase
             ->assertJsonPath('pagination.last_page', 1)
             ->assertJsonPath('pagination.per_page', 2)
             ->assertJsonPath('pagination.total', 2);
+    }
+
+    public function test_user_uploads_v2_out_of_range_page_has_null_bounds_and_correct_total(): void
+    {
+        $this->seedAdditionalGroups(8);
+
+        $this->getJson('/api/user-uploads-v2?options[parameters][user_id]=10&options[limit]=10&page=2')
+            ->assertOk()
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('pagination.total', 10)
+            ->assertJsonPath('pagination.last_page', 1)
+            ->assertJsonPath('pagination.from', null)
+            ->assertJsonPath('pagination.to', null);
     }
 
     public function test_user_uploads_v2_empty_results_preserve_data_null(): void
@@ -135,6 +148,16 @@ class UserUploadsCompatibilityTest extends TestCase
                 'anomaly' => false,
                 'deleted_at' => '2026-05-10 00:00:00',
             ],
+            [
+                'id' => 5,
+                'created_by_id' => 10,
+                'sequence_uuid' => 'sequence-new-c',
+                'uploaded_hash' => 'hash-new-c',
+                'filename' => 'new-c.jpeg',
+                'capture_time' => '2026-05-08 17:09:57',
+                'anomaly' => false,
+                'deleted_at' => null,
+            ],
         ]);
 
         Schema::getConnection()->table('default_mapilio_sequence_detail')->insert([
@@ -168,6 +191,49 @@ class UserUploadsCompatibilityTest extends TestCase
                 'anomaly' => false,
                 'deleted_at' => null,
             ],
+            [
+                'id' => 13,
+                'created_by_id' => 10,
+                'sequence_uuid' => 'sequence-new-c',
+                'group_key' => 'group-new',
+                'start_address' => 'Later Street',
+                'last_status' => 'completed',
+                'anomaly' => false,
+                'deleted_at' => null,
+            ],
         ]);
+    }
+
+    private function seedAdditionalGroups(int $count): void
+    {
+        $imagery = [];
+        $details = [];
+
+        for ($group = 1; $group <= $count; $group++) {
+            $number = str_pad((string) $group, 2, '0', STR_PAD_LEFT);
+            $imagery[] = [
+                'id' => 100 + $group,
+                'created_by_id' => 10,
+                'sequence_uuid' => 'sequence-extra-'.$number,
+                'uploaded_hash' => 'hash-extra-'.$number,
+                'filename' => 'extra-'.$number.'.jpeg',
+                'capture_time' => '2026-04-'.str_pad((string) (20 - $group), 2, '0', STR_PAD_LEFT).' 12:00:00',
+                'anomaly' => false,
+                'deleted_at' => null,
+            ];
+            $details[] = [
+                'id' => 200 + $group,
+                'created_by_id' => 10,
+                'sequence_uuid' => 'sequence-extra-'.$number,
+                'group_key' => 'group-extra-'.$number,
+                'start_address' => 'Extra Road '.$number,
+                'last_status' => 'uploaded',
+                'anomaly' => false,
+                'deleted_at' => null,
+            ];
+        }
+
+        Schema::getConnection()->table('default_mapilio_imagery')->insert($imagery);
+        Schema::getConnection()->table('default_mapilio_sequence_detail')->insert($details);
     }
 }

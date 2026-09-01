@@ -22,7 +22,9 @@ fail() {
 repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repository_root}"
 
-vendor/bin/phpunit tests/Integration/PostgisMigrationTest.php \
+vendor/bin/phpunit \
+    tests/Integration/PostgisMigrationTest.php \
+    tests/Integration/PostgresUserUploadsQueryTest.php \
     --stop-on-failure \
     --display-all-issues \
     --fail-on-all-issues
