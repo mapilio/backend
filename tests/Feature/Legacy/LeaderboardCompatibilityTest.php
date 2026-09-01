@@ -183,6 +183,59 @@ class LeaderboardCompatibilityTest extends TestCase
         $this->assertSame($legacy, $versioned);
     }
 
+    public function test_versioned_leaderboard_preserves_filters_and_string_backed_numeric_fields(): void
+    {
+        $this->getJson('/api/v1/imagery/leaderboard?user_id=10&start_at=2026-01-01&finish_at=2026-01-02')
+            ->assertOk()
+            ->assertExactJson([
+                'data' => [
+                    'leaderboard' => [
+                        [
+                            'id' => 10,
+                            'username' => 'alice',
+                            'display_name' => 'Alice',
+                            'user_profile_photo' => 'https://images.example/alice.jpg',
+                            'point' => '200',
+                            'total_length' => '9.67',
+                            'total_images' => 3,
+                            'roles' => '{user}',
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_versioned_leaderboard_preserves_invalid_user_error_shape(): void
+    {
+        $this->getJson('/api/v1/imagery/leaderboard?user_id=invalid')
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ["'user_id' must be an integer!"],
+                'error_code' => 400,
+            ]);
+    }
+
+    public function test_versioned_leaderboard_preserves_invalid_date_error_shape(): void
+    {
+        $this->getJson('/api/v1/imagery/leaderboard?start_at=not-a-date&finish_at=2026-01-31')
+            ->assertStatus(422)
+            ->assertExactJson([
+                'message' => 'The start at field must be a valid date.',
+                'errors' => [
+                    'start_at' => ['The start at field must be a valid date.'],
+                ],
+            ]);
+    }
+
+    public function test_versioned_leaderboard_normalises_reversed_date_windows(): void
+    {
+        $this->getJson('/api/v1/imagery/leaderboard?start_at=2026-01-04&finish_at=2026-01-01')
+            ->assertOk()
+            ->assertJsonPath('data.leaderboard.0.id', 20)
+            ->assertJsonPath('data.leaderboard.1.id', 10);
+    }
+
     public function test_legacy_v2_leaderboard_path_uses_image_score_contract(): void
     {
         $this->getJson('/api/v2/leaderboard')
