@@ -30,6 +30,10 @@
       "description": "Legacy-compatible, read-only sequence and embed result contracts."
     },
     {
+      "name": "Imagery uploads",
+      "description": "Bearer-authenticated imagery metadata ingestion; image bytes are outside this API contract."
+    },
+    {
       "name": "Inventory",
       "description": "Legacy-compatible public inventory metadata."
     },
@@ -2414,6 +2418,185 @@
         }
       }
     },
+    "/api/v1/imagery/uploads": {
+      "post": {
+        "operationId": "createImageryUpload",
+        "tags": ["Imagery uploads"],
+        "summary": "Ingest imagery upload metadata",
+        "description": "Accepts bearer-authenticated JSON metadata for one imagery sequence. This is metadata ingestion, not image-byte upload: the request has no multipart or binary image part, and the response does not provide an image transfer receipt. Clients may send the canonical legacy shape under `options.parameters`, or send the parameters object as the whole JSON body; when `options.parameters` exists, it is used, otherwise the current whole-body fallback is used. A body may validly contain both shapes, and conflicting nested `options.parameters` values take precedence over valid top-level parameter values. `json_data` must be a non-empty array and `summary.Information` must be an object containing a `hash` whose PHP string cast is non-empty: non-empty strings, JSON numbers, and true are accepted, while null, the empty string, and false use the exact hash 400 envelope. Each point must contain `latitude`, `longitude`, `heading`, `altitude`, `orientation`, `captureTime`, `filename`, `deviceMake`, `deviceModel`, `imageSize`, `fov`, `sequenceUuid`, `anomaly`, `roll`, `pitch`, and `yaw`. Required point values are presence-checked only: null and the empty string are rejected, while non-empty strings, numbers, true, and false continue to their field-specific PHP casts. Numeric values become floats, `orientation`, filenames, device fields, image size, and point sequence UUID become strings, `anomaly` becomes a boolean, and `captureTime` is string-cast before Carbon parsing. Optional numeric fields (`car_speed`, `carSpeed`, `vfov`, `focalLength`, `focalLength35`, and `accuracy_level`) are null when absent, null, or the empty string and otherwise float-cast. Optional JSON fields (`gyroscope`, `acceleration`, `accelerometer`, and `velocity`) are null when absent, null, or the empty string; strings are preserved and other JSON values are JSON-encoded. Optional text fields (`capture_address`, `source`, and `sourceUser`) are string-cast, trimmed, and blank values become null. At the parameter level, blank or missing `organization_key` and `project_key` become null. Supplied `summary.Information.sequence_uuid` takes precedence: null falls back to the first point's `sequenceUuid`; non-empty strings, JSON numbers, and true are accepted after PHP string-casting; the empty string and false are rejected instead of falling back. When both aliases are present and non-null, `car_speed` wins over `carSpeed` and `acceleration` wins over `accelerometer`. A successful request returns the exact four-member 200 object and duplicate capture points remain an idempotent 200 upsert; this endpoint does not define a 409 conflict. Only the endpoint-defined 400 validation envelopes and 401 authentication envelope are stable. Uncaught framework, database, Carbon, JSON-encoding, array/object, and exceptional cast failures are not stabilized here and are not documented as endpoint responses. There is no endpoint-specific throttle, response cache, or ETag. The optional global API limiter may return the documented 429 response, with enforcement and limits deployment-configurable. This contract does not promise image transfer, anonymization, AI processing, publication, or downstream completion.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ImageryUploadRequest"},
+              "examples": {
+                "wrapped": {
+                  "summary": "Synthetic legacy-shaped metadata envelope",
+                  "value": {
+                    "options": {
+                      "parameters": {
+                        "organization_key": "synthetic-org-150",
+                        "project_key": "synthetic-project-150",
+                        "json_data": [{
+                          "latitude": 40.991234,
+                          "longitude": 29.025678,
+                          "heading": 180,
+                          "altitude": 12.5,
+                          "orientation": "portrait",
+                          "captureTime": "2026-07-01 12:00:00",
+                          "filename": "synthetic-150-0001.jpg",
+                          "deviceMake": "Synthetic Camera",
+                          "deviceModel": "Model 150",
+                          "imageSize": "1920x1080",
+                          "fov": 67.5,
+                          "sequenceUuid": "synthetic-sequence-point-150",
+                          "anomaly": false,
+                          "roll": 0.1,
+                          "pitch": 0.2,
+                          "yaw": 180.3,
+                          "car_speed": 12.5,
+                          "gyroscope": {"x": 0, "y": 0, "z": 1},
+                          "acceleration": {"x": 0.1, "y": 0.2, "z": 0.3},
+                          "source": "synthetic-fixture"
+                        }],
+                        "summary": {
+                          "Information": {
+                            "sequence_uuid": "synthetic-sequence-summary-150",
+                            "hash": "sha256-synthetic-150",
+                            "count": 1,
+                            "size": 1.25,
+                            "group_key": "synthetic-group-150"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "wholeBodyFallback": {
+                  "summary": "Synthetic parameters sent as the whole body",
+                  "value": {
+                    "json_data": [{
+                      "latitude": 41.012345,
+                      "longitude": 28.987654,
+                      "heading": 90,
+                      "altitude": 8,
+                      "orientation": 1,
+                      "captureTime": "2026-07-02 08:15:00",
+                      "filename": "synthetic-150-fallback.jpg",
+                      "deviceMake": "Synthetic Camera",
+                      "deviceModel": "Fallback 150",
+                      "imageSize": "1280x720",
+                      "fov": 60,
+                      "sequenceUuid": "synthetic-sequence-fallback-150",
+                      "anomaly": 0,
+                      "roll": 0,
+                      "pitch": 0,
+                      "yaw": 90
+                    }],
+                    "summary": {
+                      "Information": {
+                        "hash": "sha256-synthetic-fallback-150"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metadata was accepted. The response is exactly `{status:true,data:true,sequence_uuid,count}`; duplicate capture points are idempotent upserts and also return 200.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ImageryUploadSuccessResponse"},
+                "example": {
+                  "status": true,
+                  "data": true,
+                  "sequence_uuid": "synthetic-sequence-summary-150",
+                  "count": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The exact endpoint-defined validation envelope. Its one-element message names the missing `json_data`, `summary`, `summary.Information.sequence_uuid`, `summary.Information.hash`, a missing point, a missing required point field, or an exceeded deployment-configured point ceiling. The endpoint does not promise a general validation framework envelope.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ImageryUploadValidationError"},
+                "examples": {
+                  "missingJsonData": {
+                    "summary": "Missing metadata points",
+                    "value": {"success": false, "message": ["'json_data' is required!"], "error_code": 400}
+                  },
+                  "missingHash": {
+                    "summary": "Missing upload hash",
+                    "value": {"success": false, "message": ["'summary.Information.hash' is required!"], "error_code": 400}
+                  },
+                  "falseHash": {
+                    "summary": "Upload hash is false and PHP-casts to an empty string",
+                    "value": {"success": false, "message": ["'summary.Information.hash' is required!"], "error_code": 400}
+                  },
+                  "missingSummary": {
+                    "summary": "Missing summary",
+                    "value": {"success": false, "message": ["'summary' is required!"], "error_code": 400}
+                  },
+                  "missingSequenceUuid": {
+                    "summary": "Missing sequence UUID",
+                    "value": {"success": false, "message": ["'summary.Information.sequence_uuid' is required!"], "error_code": 400}
+                  },
+                  "missingPointField": {
+                    "summary": "Missing required point field",
+                    "value": {"success": false, "message": ["'latitude' is required!"], "error_code": 400}
+                  },
+                  "emptyPointField": {
+                    "summary": "Required point field is the empty string",
+                    "value": {"success": false, "message": ["'latitude' is required!"], "error_code": 400}
+                  },
+                  "tooManyPoints": {
+                    "summary": "Configured point ceiling exceeded",
+                    "value": {"success": false, "message": ["'json_data' accepts at most 50000 points, 50001 received!"], "error_code": 400}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The bearer token is missing, invalid, or does not resolve to a usable positive integer mobile user id.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ImageryUploadUnauthenticatedError"},
+                "example": {"message": "Unauthenticated."}
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; this endpoint declares no endpoint-specific throttle.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {"success": false, "message": ["Too many requests."], "error_code": 429}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/jobs/mine": {
       "get": {
         "operationId": "getMobileProjectJobs",
@@ -3143,6 +3326,185 @@
   },
   "components": {
     "schemas": {
+      "ImageryUploadRequest": {
+        "anyOf": [
+          {"$ref": "#/components/schemas/ImageryUploadOptionsEnvelope"},
+          {"$ref": "#/components/schemas/ImageryUploadParameters"}
+        ],
+        "description": "The accepted JSON request shapes: the legacy `options.parameters` envelope, the same parameters object as the whole body, or both at once. When both schemas match, runtime ingestion uses nested `options.parameters` and ignores conflicting top-level parameter values. Unknown input members are tolerated and ignored by the upload action."
+      },
+      "ImageryUploadRequiredPointScalar": {
+        "anyOf": [
+          {"type": "string", "minLength": 1},
+          {"type": "number"},
+          {"type": "boolean"}
+        ],
+        "description": "A required point scalar after the endpoint's presence check: null and the empty string are rejected, while non-empty strings, JSON numbers, true, and false proceed to the field-specific PHP cast."
+      },
+      "ImageryUploadNonEmptyStringCastScalar": {
+        "anyOf": [
+          {"type": "string", "minLength": 1},
+          {"type": "number"},
+          {"const": true}
+        ],
+        "description": "A scalar whose PHP string cast must be non-empty: non-empty strings, JSON numbers, and true are accepted; the empty string, false, and null are rejected."
+      },
+      "ImageryUploadOptionsEnvelope": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["options"],
+        "properties": {
+          "options": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["parameters"],
+            "properties": {
+              "parameters": {"$ref": "#/components/schemas/ImageryUploadParameters"}
+            }
+          }
+        }
+      },
+      "ImageryUploadParameters": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["json_data", "summary"],
+        "properties": {
+          "organization_key": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional parameter-level scalar. PHP string-casts and trims it; missing, null, and blank values become null."
+          },
+          "project_key": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional parameter-level scalar. PHP string-casts and trims it; missing, null, and blank values become null."
+          },
+          "json_data": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Required non-empty point list. The deployment-configured maximum defaults to 50,000; exceeding it uses the exact endpoint-defined 400 envelope.",
+            "items": {"$ref": "#/components/schemas/ImageryUploadPoint"}
+          },
+          "summary": {"$ref": "#/components/schemas/ImageryUploadSummary"}
+        }
+      },
+      "ImageryUploadSummary": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["Information"],
+        "properties": {
+          "Information": {"$ref": "#/components/schemas/ImageryUploadSummaryInformation"}
+        }
+      },
+      "ImageryUploadSummaryInformation": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["hash"],
+        "properties": {
+          "sequence_uuid": {
+            "anyOf": [
+              {"type": "null"},
+              {"$ref": "#/components/schemas/ImageryUploadNonEmptyStringCastScalar"}
+            ],
+            "description": "Optional scalar. Null falls back to the first point's `sequenceUuid`; otherwise this value takes precedence. Non-empty strings, JSON numbers, and true are accepted after PHP string-casting, while the empty string and false are rejected instead of falling back."
+          },
+          "hash": {
+            "$ref": "#/components/schemas/ImageryUploadNonEmptyStringCastScalar",
+            "description": "Required upload hash. Non-empty strings, JSON numbers, and true survive PHP string-casting; null, the empty string, and false use the exact hash 400 envelope."
+          },
+          "count": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional scalar used by the sequence detail row after PHP integer-casting; when absent or null, `total_images` is used, then 0."
+          },
+          "total_images": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Fallback for `count`, after PHP integer-casting."
+          },
+          "size": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional scalar used after PHP float-casting and rounding to two decimal places; absent or null becomes 0."
+          },
+          "start_address": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional scalar trimmed and blank-to-null. When absent or null, `capture_address` is used."
+          },
+          "capture_address": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Fallback start address, trimmed and blank-to-null."
+          },
+          "group_key": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional scalar trimmed and blank-to-null; when null after normalization, the effective sequence UUID is used."
+          },
+          "device_type": {
+            "type": ["string", "number", "boolean", "null"],
+            "description": "Optional scalar trimmed and blank-to-null."
+          }
+        }
+      },
+      "ImageryUploadPoint": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "latitude", "longitude", "heading", "altitude", "orientation", "captureTime", "filename", "deviceMake", "deviceModel", "imageSize", "fov", "sequenceUuid", "anomaly", "roll", "pitch", "yaw"
+        ],
+        "properties": {
+          "latitude": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "longitude": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "heading": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "altitude": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "orientation": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast."},
+          "captureTime": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast before Carbon parsing."},
+          "filename": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast."},
+          "deviceMake": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast."},
+          "deviceModel": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast."},
+          "imageSize": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast for resolution; positive width and height are parsed only from a string containing `x`, otherwise width and height are null."},
+          "fov": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "sequenceUuid": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP string-cast for the point row."},
+          "anomaly": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP boolean-cast."},
+          "roll": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "pitch": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "yaw": {"$ref": "#/components/schemas/ImageryUploadRequiredPointScalar", "description": "Required presence-checked scalar, PHP float-cast."},
+          "car_speed": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar. If non-null, this key wins over `carSpeed`; null or omission allows the alias. Empty string becomes null, otherwise PHP float-cast."},
+          "carSpeed": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar fallback for `car_speed`; empty string becomes null, otherwise PHP float-cast."},
+          "vfov": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar; empty string becomes null, otherwise PHP float-cast."},
+          "focalLength": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar; empty string becomes null, otherwise PHP float-cast."},
+          "focalLength35": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar; empty string becomes null, otherwise PHP float-cast."},
+          "gyroscope": {"type": ["object", "array", "string", "number", "boolean", "null"], "description": "Optional JSON value; null or empty string becomes null, strings are preserved, and other JSON values are JSON-encoded."},
+          "acceleration": {"type": ["object", "array", "string", "number", "boolean", "null"], "description": "Optional JSON value. When non-null, this key wins over `accelerometer`; null or empty string becomes null, strings are preserved, and other JSON values are JSON-encoded."},
+          "accelerometer": {"type": ["object", "array", "string", "number", "boolean", "null"], "description": "Optional JSON value fallback for `acceleration`; null or empty string becomes null, strings are preserved, and other JSON values are JSON-encoded."},
+          "velocity": {"type": ["object", "array", "string", "number", "boolean", "null"], "description": "Optional JSON value; null or empty string becomes null, strings are preserved, and other JSON values are JSON-encoded."},
+          "accuracy_level": {"type": ["string", "number", "boolean", "null"], "description": "Optional nullable scalar; empty string becomes null, otherwise PHP float-cast."},
+          "capture_address": {"type": ["string", "number", "boolean", "null"], "description": "Optional scalar, PHP string-cast and trimmed; blank becomes null."},
+          "source": {"type": ["string", "number", "boolean", "null"], "description": "Optional scalar, PHP string-cast and trimmed; blank becomes null."},
+          "sourceUser": {"type": ["string", "number", "boolean", "null"], "description": "Optional scalar, PHP string-cast and trimmed; blank becomes null."}
+        }
+      },
+      "ImageryUploadSuccessResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "data", "sequence_uuid", "count"],
+        "properties": {
+          "status": {"const": true},
+          "data": {"const": true},
+          "sequence_uuid": {"type": "string"},
+          "count": {"type": "integer", "minimum": 0}
+        }
+      },
+      "ImageryUploadValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "string"}},
+          "error_code": {"const": 400}
+        }
+      },
+      "ImageryUploadUnauthenticatedError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {"message": {"const": "Unauthenticated."}}
+      },
       "MobileGeneralConfigResponse": {
         "type": "object",
         "additionalProperties": false,
