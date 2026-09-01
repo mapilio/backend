@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Legacy;
 
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -12,6 +14,8 @@ class TypeMetadataCompatibilityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
 
         Schema::create('default_types_type', function ($table): void {
             $table->id();
@@ -440,6 +444,190 @@ class TypeMetadataCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_versioned_groups_rows_preserve_exact_order_scalar_types_and_nullability(): void
+    {
+        Schema::getConnection()->table('default_types_groups')->insert([
+            [
+                'id' => 3,
+                'sort_order' => null,
+                'created_at' => 'not-a-date',
+                'created_by_id' => null,
+                'updated_at' => 'not-a-date',
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'slug' => null,
+            ],
+        ]);
+
+        $payload = $this->getJson('/api/v1/inventory/groups')->assertOk()->json();
+        $row = collect($payload['data'])->firstWhere('id', 3);
+
+        $this->assertSame([
+            'id',
+            'sort_order',
+            'created_at',
+            'created_by_id',
+            'updated_at',
+            'updated_by_id',
+            'deleted_at',
+            'slug',
+            'name',
+        ], array_keys($row));
+        $this->assertIsInt($row['id']);
+        $this->assertNull($row['sort_order']);
+        $this->assertNull($row['created_at']);
+        $this->assertNull($row['created_by_id']);
+        $this->assertNull($row['updated_at']);
+        $this->assertNull($row['updated_by_id']);
+        $this->assertNull($row['deleted_at']);
+        $this->assertNull($row['slug']);
+        $this->assertNull($row['name']);
+
+        $firstRow = collect($payload['data'])->firstWhere('id', 2);
+        $this->assertIsInt($firstRow['id']);
+        $this->assertIsInt($firstRow['sort_order']);
+        $this->assertIsString($firstRow['created_at']);
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/',
+            $firstRow['created_at'],
+        );
+        $this->assertIsInt($firstRow['created_by_id']);
+        $this->assertIsString($firstRow['updated_at']);
+        $this->assertIsInt($firstRow['updated_by_id']);
+        $this->assertIsString($firstRow['slug']);
+        $this->assertIsString($firstRow['name']);
+    }
+
+    public function test_groups_use_deployment_locale_and_fall_back_to_en_for_empty_or_non_string_locale(): void
+    {
+        Schema::getConnection()->table('default_types_groups_translations')->insert([
+            ['entry_id' => 1, 'locale' => 'tr', 'name' => 'Trafik Isaretleri'],
+            ['entry_id' => 1, 'locale' => 'tr-TR', 'name' => 'Trafik Isaretleri TR'],
+        ]);
+        Config::set('app.locale', 'tr');
+
+        $this->getJson('/api/v1/inventory/groups')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Trafik Isaretleri');
+
+        $this->getJson('/api/v1/inventory/groups?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Traffic Signs');
+
+        $this->getJson('/api/v1/inventory/groups?locale=tr-TR')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Trafik Isaretleri TR');
+
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class)
+            ->call('GET', '/api/v1/inventory/groups', ['locale' => ''])
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Traffic Signs');
+
+        $this->call('GET', '/api/v1/inventory/groups', ['locale' => ['tr']])
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Traffic Signs');
+    }
+
+    #[DataProvider('pageCoercionProvider')]
+    public function test_groups_scalar_page_is_php_cast_and_minimum_clamped(
+        ?string $page,
+        int $expectedPage,
+        bool $hasRows,
+    ): void {
+        $path = '/api/v1/inventory/groups'.($page === null ? '' : '?page='.urlencode($page));
+        $response = $this->getJson($path)->assertOk();
+
+        if ($hasRows) {
+            $response->assertJsonPath('pagination.current_page', $expectedPage);
+
+            return;
+        }
+
+        $response->assertExactJson(['data' => null]);
+    }
+
+    public function test_groups_filter_deleted_rows_and_empty_pages_omit_pagination(): void
+    {
+        Schema::getConnection()->table('default_types_groups')->insert([
+            [
+                'id' => 99,
+                'sort_order' => 99,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => '2026-02-05 01:02:03',
+                'slug' => 'deleted-group',
+            ],
+        ]);
+
+        $payload = $this->getJson('/api/v1/inventory/groups')->assertOk()->json();
+        $this->assertSame([1, 2], array_column($payload['data'], 'id'));
+        $this->assertSame(2, $payload['pagination']['total']);
+
+        $this->getJson('/api/v1/inventory/groups?page=2')
+            ->assertOk()
+            ->assertExactJson(['data' => null]);
+    }
+
+    public function test_groups_page_two_uses_a_hundred_row_offset_but_fifteen_row_legacy_metadata(): void
+    {
+        $rows = [];
+        for ($id = 10; $id <= 110; $id++) {
+            $rows[] = [
+                'id' => $id,
+                'sort_order' => $id,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'slug' => 'group-'.$id,
+            ];
+        }
+        Schema::getConnection()->table('default_types_groups')->insert($rows);
+
+        $payload = $this->getJson(
+            '/api/v1/inventory/groups?options[parameters][slug]=ignored&options[paginate]=1&per_page=1&locale=en&page=2',
+        )->assertOk()->json();
+
+        $this->assertCount(3, $payload['data']);
+        $this->assertSame(2, $payload['pagination']['current_page']);
+        $this->assertSame(16, $payload['pagination']['from']);
+        $this->assertSame(7, $payload['pagination']['last_page']);
+        $this->assertSame(15, $payload['pagination']['per_page']);
+        $this->assertSame(18, $payload['pagination']['to']);
+        $this->assertSame(103, $payload['pagination']['total']);
+
+        $expectedQuery = 'options%5Bparameters%5D%5Bslug%5D=ignored&options%5Bpaginate%5D=1&per_page=1&locale=en';
+        $this->assertSame('/api/get-groups?'.$expectedQuery.'&page=1', $payload['pagination']['first_page_url']);
+        $this->assertSame('/api/get-groups?'.$expectedQuery.'&page=3', $payload['pagination']['next_page_url']);
+        $this->assertSame('/api/get-groups', $payload['pagination']['path']);
+        $this->assertSame('/api/get-groups?'.$expectedQuery.'&page=7', $payload['pagination']['last_page_url']);
+        $this->assertSame('/api/get-groups?'.$expectedQuery.'&page=2', $payload['pagination']['links'][2]['url']);
+    }
+
+    public function test_groups_optional_global_rate_limit_preserves_legacy_error_envelope(): void
+    {
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 1);
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $this->getJson('/api/v1/inventory/groups')->assertOk();
+
+        $this->getJson('/api/v1/inventory/groups')
+            ->assertStatus(429)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Too many requests.'],
+                'error_code' => 429,
+            ])
+            ->assertHeader('Retry-After')
+            ->assertHeader('X-RateLimit-Limit', '1')
+            ->assertHeader('X-RateLimit-Remaining', '0');
     }
 
     public function test_sprite_metadata_paths_return_public_sprite_maps(): void
