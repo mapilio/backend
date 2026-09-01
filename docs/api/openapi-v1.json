@@ -647,6 +647,131 @@
         }
       }
     },
+    "/api/v1/imagery/leaderboard": {
+      "get": {
+        "operationId": "getImageryLeaderboard",
+        "tags": ["Imagery reads"],
+        "summary": "Read the public imagery leaderboard",
+        "description": "Returns the exact legacy-compatible `{data: {leaderboard: [...]}}` envelope. The versioned route uses sequence-point scoring and does not return pagination metadata. Each filter is optional; `user_id` restricts results to one positive user id, and `start_at` and `finish_at` define an inclusive date window only when both values are non-empty. Invalid user ids retain the legacy 400 envelope; an invalid complete date window uses the framework's standard 422 validation response. If the date values are reversed, the backend silently normalizes the window into chronological order. Unfiltered requests with none of `user_id`, `start_at`, or `finish_at` use the short-lived public aggregate cache; any of those query keys bypasses it, including an empty value. Legacy and versioned aliases share the same score-versioned cache semantics.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional positive integer user id. Supplying the key, including an empty value, bypasses the public aggregate cache.",
+            "schema": {"type": "integer", "format": "int64", "minimum": 1},
+            "example": 10
+          },
+          {
+            "name": "start_at",
+            "in": "query",
+            "required": false,
+            "description": "Optional date-window start. Applied with finish_at when both values are non-empty; the backend normalizes the window to day boundaries. Supplying the key bypasses the public aggregate cache.",
+            "schema": {"type": "string"},
+            "example": "2026-07-01"
+          },
+          {
+            "name": "finish_at",
+            "in": "query",
+            "required": false,
+            "description": "Optional date-window end. Applied with start_at when both values are non-empty; the backend normalizes the window to day boundaries. Supplying the key bypasses the public aggregate cache.",
+            "schema": {"type": "string"},
+            "example": "2026-07-31"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The legacy-compatible leaderboard envelope. Numeric score and length values are decimal strings, not JSON numbers; roles may be null.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/LeaderboardResponse"},
+                "examples": {
+                  "default": {
+                    "summary": "Synthetic leaderboard rows",
+                    "value": {
+                      "data": {
+                        "leaderboard": [
+                          {
+                            "id": 20,
+                            "username": "bob",
+                            "display_name": "Bob",
+                            "user_profile_photo": null,
+                            "point": "350",
+                            "total_length": "2.00",
+                            "total_images": 1,
+                            "roles": null
+                          },
+                          {
+                            "id": 10,
+                            "username": "alice",
+                            "display_name": "Alice",
+                            "user_profile_photo": "https://images.example/alice.jpg",
+                            "point": "200",
+                            "total_length": "9.67",
+                            "total_images": 3,
+                            "roles": "{user}"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "filtered": {
+                    "summary": "Synthetic filtered result",
+                    "value": {
+                      "data": {
+                        "leaderboard": [
+                          {
+                            "id": 10,
+                            "username": "alice",
+                            "display_name": "Alice",
+                            "user_profile_photo": "https://images.example/alice.jpg",
+                            "point": "200",
+                            "total_length": "9.67",
+                            "total_images": 3,
+                            "roles": "{user}"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {"data": {"leaderboard": []}}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A non-empty user_id query value is not a positive integer.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/LeaderboardValidationError"},
+                "example": {
+                  "success": false,
+                  "message": ["'user_id' must be an integer!"],
+                  "error_code": 400
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A complete date window contains a value rejected by the backend date validator.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ValidationError"},
+                "example": {
+                  "message": "The start at field must be a valid date.",
+                  "errors": {"start_at": ["The start at field must be a valid date."]}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imagery/sequence-detail": {
       "get": {
         "operationId": "getSequenceDetail",
@@ -1803,6 +1928,49 @@
           "current_page": {"type": "integer", "minimum": 1},
           "per_page": {"type": "integer", "minimum": 1, "maximum": 1000},
           "has_more": {"type": "boolean"}
+        }
+      },
+      "LeaderboardResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["leaderboard"],
+            "properties": {
+              "leaderboard": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/LeaderboardRow"}
+              }
+            }
+          }
+        }
+      },
+      "LeaderboardRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "username", "display_name", "user_profile_photo", "point", "total_length", "total_images", "roles"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "username": {"type": ["string", "null"]},
+          "display_name": {"type": ["string", "null"]},
+          "user_profile_photo": {"type": ["string", "null"]},
+          "point": {"type": "string", "description": "Rounded leaderboard score serialized as a decimal string."},
+          "total_length": {"type": "string", "description": "Rounded total length in kilometers serialized with two decimal places."},
+          "total_images": {"type": "integer", "format": "int64", "minimum": 0},
+          "roles": {"type": ["string", "null"], "description": "Legacy PostgreSQL-array-compatible role string, or null when no public role is present."}
+        }
+      },
+      "LeaderboardValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {"type": "array", "items": {"type": "string"}},
+          "error_code": {"const": 400}
         }
       },
       "SequenceDetailItem": {

@@ -147,6 +147,23 @@ class PublicAggregateCacheTest extends TestCase
         $this->assertFalse(Cache::has(app(PublicAggregateCache::class)->leaderboardKey(LeaderboardQuery::SCORE_VERSION_SEQUENCE)));
     }
 
+    public function test_empty_leaderboard_user_filter_bypasses_cache(): void
+    {
+        $rows = [['id' => 10, 'point' => '200']];
+        $query = $this->createMock(LeaderboardQuery::class);
+        $query->expects($this->exactly(2))
+            ->method('get')
+            ->with(['user_id' => ''], null, LeaderboardQuery::SCORE_VERSION_SEQUENCE)
+            ->willReturn($rows);
+        $this->app->instance(LeaderboardQuery::class, $query);
+
+        $expected = ['data' => ['leaderboard' => $rows]];
+        $this->getJson('/api/v1/imagery/leaderboard?user_id=')->assertOk()->assertExactJson($expected);
+        $this->getJson('/api/v1/imagery/leaderboard?user_id=')->assertOk()->assertExactJson($expected);
+
+        $this->assertFalse(Cache::has(app(PublicAggregateCache::class)->leaderboardKey(LeaderboardQuery::SCORE_VERSION_SEQUENCE)));
+    }
+
     public function test_leaderboard_role_policy_changes_use_new_keys_while_aliases_share(): void
     {
         config()->set('mapilio.leaderboard.excluded_role_slugs', ['internal']);

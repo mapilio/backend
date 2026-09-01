@@ -11,7 +11,7 @@
     "scripts": {
         "build": "vite build",
         "build:api-docs": "node scripts/docs/build-api-reference.mjs",
-        "validate:api-examples": "node --test scripts/docs/validate-openapi-example-coverage.test.mjs && node scripts/docs/validate-openapi-example-coverage.mjs",
+        "validate:api-examples": "node --test scripts/docs/validate-openapi-example-coverage.test.mjs scripts/docs/leaderboard-contract.test.mjs && node scripts/docs/validate-openapi-example-coverage.mjs",
         "audit:public-content": "node --test scripts/security/audit-public-content.test.mjs && node scripts/security/audit-public-content.mjs --scope=all",
         "validate:geojson": "node scripts/geospatial/validate-geojson.mjs",
         "test:geojson-validator": "node --test scripts/geospatial/validate-geojson.test.mjs",
