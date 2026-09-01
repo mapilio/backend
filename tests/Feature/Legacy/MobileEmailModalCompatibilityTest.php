@@ -166,6 +166,42 @@ class MobileEmailModalCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_mobile_check_email_modal_rejects_token_after_user_is_unactivated(): void
+    {
+        $login = $this->loginAsLegacyUser('alice');
+
+        Schema::getConnection()->table('default_users_users')->where('id', 10)->update([
+            'activated' => false,
+        ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/profile/email-modal')
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+
+        $this->assertSame(0, Schema::getConnection()->table('default_user_profile_profile')->count());
+    }
+
+    public function test_versioned_mobile_check_email_modal_rejects_token_after_user_is_disabled(): void
+    {
+        $login = $this->loginAsLegacyUser('alice');
+
+        Schema::getConnection()->table('default_users_users')->where('id', 10)->update([
+            'enabled' => false,
+        ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/profile/email-modal')
+            ->assertUnauthorized()
+            ->assertExactJson([
+                'message' => 'Unauthenticated.',
+            ]);
+
+        $this->assertSame(0, Schema::getConnection()->table('default_user_profile_profile')->count());
+    }
+
     private function createTables(): void
     {
         $this->createLegacyUsersTable();

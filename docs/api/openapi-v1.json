@@ -516,6 +516,71 @@
         }
       }
     },
+    "/api/v1/mobile/profile/email-modal": {
+      "post": {
+        "operationId": "checkMobileEmailModal",
+        "tags": ["Identity"],
+        "summary": "Check whether the mobile email modal was shown",
+        "description": "Accepts an empty POST body and preserves the exact behavior of legacy `POST /api/function/user_profile/profile/checkIsModalShown`. The first call for an authenticated user returns exactly `{status: false}` and atomically inserts one profile row; a repeat call returns exactly `{status: true}` without inserting another row. The endpoint uses the existing mobile bearer security boundary. The published contract contains no inactive/disabled-user exception serialization. No endpoint-specific throttle, response cache, ETag, or conditional request handling is part of this contract. The optional global API limiter may return the documented 429 response when deployment-configurable enforcement is enabled; production enforcement and its limits are not asserted by this contract.",
+        "security": [{"mobileBearer": []}],
+        "responses": {
+          "200": {
+            "description": "The exact modal status. The first call is false and creates the single profile-row marker; subsequent calls are true.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileEmailModalResponse"},
+                "examples": {
+                  "firstCall": {
+                    "summary": "Synthetic first call",
+                    "value": {"status": false}
+                  },
+                  "repeatCall": {
+                    "summary": "Synthetic repeat call",
+                    "value": {"status": true}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The bearer token is missing, invalid, or no longer represents an active, enabled, non-deleted user.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileEmailModalUnauthenticatedError"},
+                "example": {"message": "Unauthenticated."}
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/account": {
       "delete": {
         "operationId": "deleteMobileAccount",
@@ -2677,6 +2742,22 @@
         "required": ["email"],
         "properties": {
           "email": {"type": "string", "format": "email", "maxLength": 255}
+        }
+      },
+      "MobileEmailModalResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": {
+          "status": {"type": "boolean"}
+        }
+      },
+      "MobileEmailModalUnauthenticatedError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {
+          "message": {"const": "Unauthenticated."}
         }
       },
       "MobileAccountDeleteRequest": {
