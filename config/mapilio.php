@@ -80,6 +80,16 @@ return [
         'slow_request_ms' => max(1, (int) env('MAPILIO_API_SLOW_REQUEST_MS', 1000)),
     ],
 
+    'public_aggregate_cache' => [
+        'enabled' => env('MAPILIO_PUBLIC_AGGREGATE_CACHE_ENABLED', true),
+        'fresh_seconds' => max(1, min(300, (int) env('MAPILIO_PUBLIC_AGGREGATE_CACHE_FRESH_SECONDS', 60))),
+        'stale_through_seconds' => max(
+            max(1, min(300, (int) env('MAPILIO_PUBLIC_AGGREGATE_CACHE_FRESH_SECONDS', 60))),
+            min(3600, (int) env('MAPILIO_PUBLIC_AGGREGATE_CACHE_STALE_THROUGH_SECONDS', 300)),
+        ),
+        'refresh_lock_seconds' => max(1, min(60, (int) env('MAPILIO_PUBLIC_AGGREGATE_CACHE_REFRESH_LOCK_SECONDS', 10))),
+    ],
+
     'backup_readiness' => [
         'evidence_path' => env('MAPILIO_BACKUP_EVIDENCE_PATH'),
         'expected_environment' => env('MAPILIO_BACKUP_EXPECTED_ENVIRONMENT'),
