@@ -18,6 +18,8 @@ The legacy `/api/v2/login` and versioned mobile token route continue requiring c
 
 The web client now uses the versioned endpoint for login and refresh, correctly persists the rotated token pair, and rejects non-401 interceptor failures instead of swallowing them. Legacy social verification no longer receives a client id or secret. Its provider access token is sent in the POST body instead of the query string.
 
+All four password-grant routes (`/api/v2/login`, `/api/v1/mobile/auth/token`, `/api/v1/mobile/auth/public-token`, and `/api/v1/web/auth/token`) perform one password-hash verification for both known and unknown accounts. Unknown accounts use a fixed, non-secret dummy hash configured for the active hashing driver and work factor. Startup configuration/cache boot fails safely when that hash is missing or stale; it must be deliberately regenerated when the hashing policy changes. This equalizes password-verification work, not exact end-to-end request timing. Responses, client contracts, refresh grants, and rate limits are unchanged. Rate limiting remains a separate layer; credentials and account identifiers are not logged, and no authentication-specific or comparative timing instrumentation was added.
+
 The generic frontend `CLIENT_ID` and `CLIENT_SECRET` variables are removed from source configuration and tracked environment files. Provider application identifiers such as Google, Facebook, Apple, and OpenStreetMap client ids remain public by design and are not treated as confidential credentials.
 
 ## Release Gates

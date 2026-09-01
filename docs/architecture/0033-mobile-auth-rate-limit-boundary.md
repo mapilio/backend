@@ -14,6 +14,8 @@ Both mobile authentication POST routes use one named Laravel limiter, `mobile-au
 
 The limit response is a stable legacy-shaped JSON 429 with a generic message array. Laravel rate-limit headers, including `Retry-After`, remain present. No email, username, password, client credential, token, route, URL, or request body is used in the limiter key or emitted by the limiter response.
 
+Password verification is a separate layer from this limiter. All four password-grant routes (`/api/v2/login`, `/api/v1/mobile/auth/token`, `/api/v1/mobile/auth/public-token`, and `/api/v1/web/auth/token`) perform one hash verification for known and unknown accounts; unknown accounts use the fixed, non-secret configured dummy hash. The active hashing driver and work factor must match that hash: configuration/cache boot fails safely on a missing or stale value, and a policy change requires deliberate regeneration. This does not promise exact timing equality, and it does not change responses, client contracts, refresh grants, or rate limits. Credentials and account identifiers are not logged, and no authentication-specific or comparative timing instrumentation was added.
+
 ## Consequences
 
 Alias switching shares the same IP/grant bucket, while separate resolved client IPs and grant classes remain independent. Trusted-proxy configuration continues to determine the resolved IP; direct callers cannot spoof forwarded addresses. The limiter protects both compatibility surfaces without changing controller success or ordinary error contracts.

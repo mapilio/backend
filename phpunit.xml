@@ -22,6 +22,7 @@
         <env name="APP_KEY" value="base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="MAPILIO_MOBILE_AUTH_DUMMY_PASSWORD_HASH" value="$2y$04$VJg/P/IuTC4o6LfG1BCX8ep9diSfxrQczCCfIzmSvilyk43QE/l3a"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
