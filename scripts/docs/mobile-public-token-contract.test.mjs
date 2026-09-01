@@ -121,15 +121,13 @@ test('freezes the exact current auth error envelopes', () => {
     ]);
 });
 
-test('guards route, limiter, controller, source precedence, callers, PHP behavior tests, and package registration', async () => {
-    const [routes, limiter, controller, auth, exception, userCaller, refreshCaller, phpTest, packageSource] = await Promise.all([
+test('guards repository-local route, limiter, controller, source precedence, PHP behavior tests, and package registration', async () => {
+    const [routes, limiter, controller, auth, exception, phpTest, packageSource] = await Promise.all([
         readText('routes/api.php'),
         readText('app/Providers/AppServiceProvider.php'),
         readText('app/Http/Controllers/Api/V1/Mobile/MobilePublicTokenController.php'),
         readText('app/Domain/IdentityAccess/LegacyMobileAuth.php'),
         readText('app/Domain/IdentityAccess/LegacyMobileAuthException.php'),
-        readText('../mobile-apps-clean-release/helper/user.js'),
-        readText('../mobile-apps-clean-release/util/helpers/api/RefreshToken.js'),
         readText('tests/Feature/Security/MobilePublicClientAuthTest.php'),
         readText('package.json'),
     ]);
@@ -157,11 +155,6 @@ test('guards route, limiter, controller, source precedence, callers, PHP behavio
     assert.match(exception, /return new self\(\$errors, 400\)/);
     assert.match(exception, /public function legacyMessage\(\): array\|string/);
 
-    assert.match(userCaller, /publicApi\.post\('\/api\/v1\/mobile\/auth\/public-token'/);
-    assert.match(userCaller, /data\.append\('grant_type', 'password'\)/);
-    assert.match(userCaller, /'Content-Type': 'multipart\/form-data'/);
-    assert.match(refreshCaller, /publicApi\.post\('\/api\/v1\/mobile\/auth\/public-token'/);
-    assert.match(refreshCaller, /grant_type: 'refresh_token'/);
     assert.match(phpTest, /test_public_client_missing_password_identifier_uses_the_legacy_400_shape/);
     assert.match(phpTest, /test_public_client_form_password_login_issues_tokens/);
     assert.match(phpTest, /test_public_client_form_refresh_grant_rotates_tokens/);
