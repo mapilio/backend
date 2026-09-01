@@ -177,6 +177,28 @@ class TypeMetadataCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_type_metadata_malformed_timestamps_return_null(): void
+    {
+        $db = Schema::getConnection();
+
+        $db->table('default_types_type')->where('id', 1)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+        $db->table('default_types_groups')->where('id', 1)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+
+        $types = $this->getJson('/api/get-types')->assertOk()->json();
+        $this->assertNull($types['data'][0]['created_at']);
+        $this->assertNull($types['data'][0]['updated_at']);
+
+        $groups = $this->getJson('/api/get-groups')->assertOk()->json();
+        $this->assertNull($groups['data'][0]['created_at']);
+        $this->assertNull($groups['data'][0]['updated_at']);
+    }
+
     public function test_legacy_get_types_empty_page_omits_pagination(): void
     {
         $this->getJson('/api/get-types?page=2')

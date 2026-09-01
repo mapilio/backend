@@ -175,6 +175,51 @@ class GamificationBadgesCompatibilityTest extends TestCase
             ->assertExactJson($this->expectedPayload());
     }
 
+    public function test_gamification_malformed_timestamps_return_null(): void
+    {
+        $db = Schema::getConnection();
+
+        $db->table('default_gamification_badge')->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+        $db->table('default_files_files')->where('id', 101)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+            'deleted_at' => 'not-a-date',
+        ]);
+        $db->table('default_files_disks')->where('id', 1)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+            'deleted_at' => 'not-a-date',
+        ]);
+        $db->table('default_files_folders')->where('id', 12)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+            'deleted_at' => 'not-a-date',
+        ]);
+
+        $payload = $this->getJson('/api/gamification/badges/10')->assertOk()->json();
+
+        foreach ($payload['badges'] as $badge) {
+            $this->assertNull($badge['created_at']);
+            $this->assertNull($badge['updated_at']);
+        }
+
+        $disabledImage = $payload['badges'][1]['disabled_image'];
+        $this->assertNull($disabledImage['created_at']);
+        $this->assertNull($disabledImage['updated_at']);
+        $this->assertNull($disabledImage['deleted_at']);
+        $this->assertNull($disabledImage['disk']['created_at']);
+        $this->assertNull($disabledImage['disk']['updated_at']);
+        $this->assertNull($disabledImage['disk']['deleted_at']);
+        $this->assertNull($disabledImage['folder']['created_at']);
+        $this->assertNull($disabledImage['folder']['updated_at']);
+        $this->assertNull($disabledImage['folder']['deleted_at']);
+        $this->assertNull($payload['next']['badge']['created_at']);
+        $this->assertNull($payload['next']['badge']['updated_at']);
+    }
+
     public function test_versioned_gamification_badges_alias_returns_same_contract(): void
     {
         $legacy = $this->getJson('/api/gamification/badges/10')

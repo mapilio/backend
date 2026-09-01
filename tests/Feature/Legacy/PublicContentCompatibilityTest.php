@@ -478,6 +478,47 @@ class PublicContentCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_public_content_malformed_timestamps_return_null(): void
+    {
+        $db = Schema::getConnection();
+
+        $db->table('default_posts_categories')->where('id', 10)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+        $db->table('default_posts_posts')->where('id', 101)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+            'publish_at' => 'not-a-date',
+        ]);
+        $db->table('default_users_users')->where('id', 501)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+        $db->table('default_posts_posts_translations')->where('id', 1001)->update([
+            'created_at' => 'not-a-date',
+            'updated_at' => 'not-a-date',
+        ]);
+
+        $categories = $this->getJson('/api/get-categories')->assertOk()->json();
+        $this->assertNull($categories['data'][0]['created_at']);
+        $this->assertNull($categories['data'][0]['updated_at']);
+
+        $blogs = $this->getJson('/api/get-blogs')->assertOk()->json();
+        $this->assertNull($blogs['data'][0]['created_at']);
+        $this->assertNull($blogs['data'][0]['updated_at']);
+        $this->assertNull($blogs['data'][0]['publish_at']);
+        $this->assertNull($blogs['data'][0]['author_detail'][0]['created_at']);
+        $this->assertNull($blogs['data'][0]['author_detail'][0]['updated_at']);
+
+        $detail = $this->getJson('/api/get-blog-detail/modern-blog-101-en')->assertOk()->json();
+        $this->assertNull($detail['data'][0]['created_at']);
+        $this->assertNull($detail['data'][0]['updated_at']);
+        $this->assertNull($detail['data'][0]['publish_at']);
+        $this->assertNull($detail['data'][0]['author_detail'][0]['created_at']);
+        $this->assertNull($detail['data'][0]['author_detail'][0]['updated_at']);
+    }
+
     public function test_legacy_get_blogs_empty_results_return_data_null(): void
     {
         $this->getJson('/api/get-blogs?category=999999')

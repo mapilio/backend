@@ -444,7 +444,13 @@ class BlogContentQuery
             return null;
         }
 
-        return date('Y-m-d\TH:i:s.000000\Z', strtotime((string) $value));
+        $timestamp = strtotime((string) $value);
+
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return date('Y-m-d\TH:i:s.000000\Z', $timestamp);
     }
 
     private function databaseTimestamp(mixed $value): ?string
@@ -453,7 +459,13 @@ class BlogContentQuery
             return null;
         }
 
-        return date('Y-m-d H:i:s', strtotime((string) $value));
+        $timestamp = strtotime((string) $value);
+
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 
     /** @return Pagination */
