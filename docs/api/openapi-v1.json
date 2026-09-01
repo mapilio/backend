@@ -1114,6 +1114,75 @@
         }
       }
     },
+    "/api/v1/inventory/sprites-2x": {
+      "get": {
+        "operationId": "getInventorySprites2x",
+        "tags": ["Inventory"],
+        "summary": "Read public retina inventory sprite metadata",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/get-sprites2x` with exact legacy JSON parity. There are no request parameters. The top-level JSON object is keyed dynamically by sprite code; each value contains exactly `x`, `y`, `height`, `width`, `visible`, and `pixelRatio`, and existing active callers index by sprite code and read `x`/`y`/`width`/`height`. Success requires checked-in/readable `public/sprites/sprites@2x.json` asset metadata that parses into this shape. Missing-file and malformed-JSON exceptional behavior is outside this contract. There is no endpoint authentication, endpoint-specific response cache, or ETag. The optional global API limiter may return the documented 429 response when deployment-configurable enforcement is enabled; enforcement and limits are deployment-configurable and production enforcement is not asserted by this contract.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible dynamic retina sprite metadata map.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/InventorySpritesResponse"},
+                "examples": {
+                  "synthetic": {
+                    "summary": "Synthetic retina sprite metadata map",
+                    "value": {
+                      "sprite-synthetic-retina-primary": {
+                        "x": 5,
+                        "y": 9,
+                        "height": 32,
+                        "width": 24,
+                        "visible": true,
+                        "pixelRatio": 2
+                      },
+                      "sprite-synthetic-retina-secondary": {
+                        "x": 1,
+                        "y": 48,
+                        "height": 17,
+                        "width": 19,
+                        "visible": false,
+                        "pixelRatio": 3
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/marketplaces": {
       "get": {
         "operationId": "getProjectMarketplaces",

@@ -540,4 +540,71 @@ class TypeMetadataCompatibilityTest extends TestCase
 
         $this->assertSame($legacyRetina, $versionedRetina);
     }
+
+    public function test_retina_sprite_metadata_has_exact_legacy_shape_and_scalar_constraints(): void
+    {
+        $legacy = $this->getJson('/api/get-sprites2x')
+            ->assertOk()
+            ->json();
+
+        $versioned = $this->getJson('/api/v1/inventory/sprites-2x')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame($legacy, $versioned);
+        $fields = ['x', 'y', 'height', 'width', 'visible', 'pixelRatio'];
+        $expectedFields = $fields;
+        sort($expectedFields);
+        $violations = [];
+
+        if (! is_array($versioned)) {
+            $violations['<response>'] = 'top-level response is not an object map';
+        } else {
+            foreach ($versioned as $code => $sprite) {
+                $reasons = [];
+
+                if (! is_array($sprite)) {
+                    $violations[(string) $code] = 'value is not an object';
+
+                    continue;
+                }
+
+                $actualFields = array_keys($sprite);
+                sort($actualFields);
+                if ($actualFields !== $expectedFields) {
+                    $reasons[] = 'fields '.json_encode($actualFields).' do not match the required set';
+                }
+
+                foreach (['x' => 0, 'y' => 0, 'height' => 1, 'width' => 1, 'pixelRatio' => 1] as $field => $minimum) {
+                    if (! array_key_exists($field, $sprite)) {
+                        $reasons[] = $field.' is missing';
+
+                        continue;
+                    }
+
+                    if (! is_int($sprite[$field])) {
+                        $reasons[] = $field.' is not an integer';
+
+                        continue;
+                    }
+
+                    if ($sprite[$field] < $minimum) {
+                        $reasons[] = $field.' is below '.$minimum;
+                    }
+                }
+
+                if (! array_key_exists('visible', $sprite)) {
+                    $reasons[] = 'visible is missing';
+                } elseif (! is_bool($sprite['visible'])) {
+                    $reasons[] = 'visible is not a boolean';
+                }
+
+                if ($reasons !== []) {
+                    $violations[(string) $code] = implode('; ', $reasons);
+                }
+            }
+        }
+
+        $this->assertSame([], $violations, 'Invalid retina sprite metadata: '.json_encode($violations, JSON_UNESCAPED_SLASHES));
+    }
 }
