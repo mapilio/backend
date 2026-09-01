@@ -97,6 +97,33 @@ class PublicAggregateCacheTest extends TestCase
         );
     }
 
+    public function test_organization_leaderboard_v1_ignores_unrelated_query_keys_and_reuses_cache(): void
+    {
+        $rows = [['organization_key' => 'org-a', 'point' => '200']];
+        $query = $this->createMock(OrganizationLeaderboardQuery::class);
+        $query->expects($this->once())
+            ->method('get')
+            ->with(OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE)
+            ->willReturn($rows);
+        $this->app->instance(OrganizationLeaderboardQuery::class, $query);
+
+        $expected = ['data' => ['leaderboard' => $rows]];
+
+        $this->getJson('/api/v1/organizations/leaderboard?start_at=2026-01-01&finish_at=2026-01-31&limit=1&page=9&score_version=2')
+            ->assertOk()
+            ->assertExactJson($expected);
+        $this->getJson('/api/v1/organizations/leaderboard?per_page=1&pagination=true')
+            ->assertOk()
+            ->assertExactJson($expected);
+
+        $this->assertSame(
+            $rows,
+            Cache::get(app(PublicAggregateCache::class)->organizationLeaderboardKey(
+                OrganizationLeaderboardQuery::SCORE_VERSION_SEQUENCE,
+            )),
+        );
+    }
+
     public function test_organization_leaderboard_score_versions_use_separate_bounded_keys(): void
     {
         $sequenceRows = [['organization_key' => 'org-a', 'point' => '100']];
