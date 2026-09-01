@@ -75,6 +75,23 @@ class PublicUserProfileCompatibilityTest extends TestCase
             ->assertJsonPath('data.0.photos', $legacy['data'][0]['photos']);
     }
 
+    public function test_malformed_legacy_timestamps_are_null_on_both_public_profile_endpoints(): void
+    {
+        Schema::getConnection()->table('default_users_users')
+            ->where('id', 210)
+            ->update([
+                'created_at' => 'not-a-timestamp',
+                'updated_at' => 'also-not-a-timestamp',
+            ]);
+
+        foreach (['/api/search-user', '/api/v1/users/profile'] as $endpoint) {
+            $this->getJson($endpoint.'?options[parameters][id]=210')
+                ->assertOk()
+                ->assertJsonPath('data.0.created_at', null)
+                ->assertJsonPath('data.0.updated_at', null);
+        }
+    }
+
     private function createTables(): void
     {
         Schema::create('default_users_users', function ($table): void {
