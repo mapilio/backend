@@ -550,6 +550,219 @@
         }
       }
     },
+    "/api/v1/mobile/auth/public-token": {
+      "post": {
+        "operationId": "issueMobilePublicToken",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Issue or refresh a public-client mobile bearer token",
+        "description": "A shipped mobile application is a public client and does not send a client id or client secret. The password grant accepts either an email or username with a password; when both email and username are supplied, the current backend gives email precedence. The refresh_token grant exchanges a previously issued refresh token for a new bearer-token pair. Both application/json and multipart/form-data are accepted. Examples use synthetic credentials and tokens only.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobilePublicTokenRequest"
+              },
+              "examples": {
+                "passwordEmail": {
+                  "summary": "Password grant with synthetic email",
+                  "value": {
+                    "grant_type": "password",
+                    "email": "mapper@example.test",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "passwordUsername": {
+                  "summary": "Password grant with synthetic username",
+                  "value": {
+                    "grant_type": "password",
+                    "username": "synthetic-mapper",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "passwordEmailPrecedence": {
+                  "summary": "Email takes precedence when both identifiers are supplied",
+                  "value": {
+                    "grant_type": "password",
+                    "email": "mapper@example.test",
+                    "username": "synthetic-fallback-username",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "refresh": {
+                  "summary": "Refresh grant with a synthetic token",
+                  "value": {
+                    "grant_type": "refresh_token",
+                    "refresh_token": "synthetic-refresh-token-not-a-credential"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MobilePublicTokenRequest"
+              },
+              "examples": {
+                "passwordEmail": {
+                  "summary": "Multipart password grant",
+                  "value": {
+                    "grant_type": "password",
+                    "email": "mapper@example.test",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "passwordUsername": {
+                  "summary": "Multipart password grant with synthetic username",
+                  "value": {
+                    "grant_type": "password",
+                    "username": "synthetic-mapper",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "passwordEmailPrecedence": {
+                  "summary": "Multipart email takes precedence when both identifiers are supplied",
+                  "value": {
+                    "grant_type": "password",
+                    "email": "mapper@example.test",
+                    "username": "synthetic-fallback-username",
+                    "password": "synthetic-password-for-example"
+                  }
+                },
+                "refresh": {
+                  "summary": "Multipart refresh grant",
+                  "value": {
+                    "grant_type": "refresh_token",
+                    "refresh_token": "synthetic-refresh-token-not-a-credential"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A new bearer and refresh token pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebTokenResponse"
+                },
+                "examples": {
+                  "password": {
+                    "summary": "Password grant response",
+                    "value": {
+                      "id": 10,
+                      "success": true,
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "access_token": "synthetic-access-token-not-a-credential",
+                      "refresh_token": "synthetic-refresh-token-not-a-credential"
+                    }
+                  },
+                  "refresh": {
+                    "summary": "Refresh grant response",
+                    "value": {
+                      "id": 10,
+                      "success": true,
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "access_token": "synthetic-refreshed-access-token-not-a-credential",
+                      "refresh_token": "synthetic-refreshed-refresh-token-not-a-credential"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The supplied password or refresh credentials were rejected, or a password grant omitted both email and username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePublicTokenError"
+                },
+                "examples": {
+                  "invalidCredentials": {
+                    "summary": "Invalid synthetic credentials",
+                    "value": {
+                      "success": false,
+                      "message": [
+                        "Email or password is invalid."
+                      ]
+                    }
+                  },
+                  "missingIdentifier": {
+                    "summary": "Password grant without an identifier",
+                    "value": {
+                      "success": false,
+                      "message": {
+                        "username": [
+                          "username or email parameter is required!"
+                        ],
+                        "email": [
+                          "username or email parameter is required!"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Laravel rejected the request because required fields or size limits failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The grant type field is required.",
+                  "errors": {
+                    "grant_type": [
+                      "The grant type field is required."
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The shared mobile-auth rate limit was exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": [
+                    "Too many authentication attempts. Please try again later."
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The authentication service is temporarily unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAuthError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Authentication service is temporarily unavailable."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/auth/social-token": {
       "post": {
         "operationId": "mobileSocialToken",
@@ -2925,6 +3138,131 @@
             }
           }
         ]
+      },
+      "MobilePublicTokenRequest": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grant_type",
+              "password"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  }
+                }
+              },
+              {
+                "required": [
+                  "username"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "maxLength": 254
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "password"
+              },
+              "email": {
+                "type": "string",
+                "maxLength": 254
+              },
+              "username": {
+                "type": "string",
+                "maxLength": 254
+              },
+              "password": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grant_type",
+              "refresh_token"
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "refresh_token"
+              },
+              "refresh_token": {
+                "type": "string",
+                "maxLength": 4096
+              }
+            }
+          }
+        ]
+      },
+      "MobilePublicTokenError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "$ref": "#/components/schemas/MobilePublicTokenMissingIdentifierMessage"
+              }
+            ]
+          }
+        }
+      },
+      "MobilePublicTokenMissingIdentifierMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "email"
+        ],
+        "properties": {
+          "username": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "const": "username or email parameter is required!"
+            }
+          },
+          "email": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "const": "username or email parameter is required!"
+            }
+          }
+        }
       },
       "MobileSocialTokenRequest": {
         "type": "object",
