@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\DataMigration\JsonPublisher;
 use App\Domain\DataMigration\PrivateJsonPublisher;
+use App\Support\Database\LegacySchemaCapabilities;
 use App\Support\Queue\QueueRuntimeConfiguration;
 use App\Support\Queue\QueueWorkerPoolConfiguration;
 use App\Support\Security\MobileAuthPasswordTimingConfiguration;
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(JsonPublisher::class, PrivateJsonPublisher::class);
+        $this->app->scoped(LegacySchemaCapabilities::class);
     }
 
     /**

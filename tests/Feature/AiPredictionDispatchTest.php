@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\AiJobsPredictions\Actions\DispatchSequencePrediction;
 use App\Domain\AiJobsPredictions\Actions\PredictionDispatchException;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -93,8 +94,13 @@ class AiPredictionDispatchTest extends TestCase
     {
         Config::set('mapilio.ai_prediction.enabled', false);
         Http::fake();
+        $metadataReads = 0;
+        Schema::getConnection()->listen(static function (QueryExecuted $query) use (&$metadataReads): void {
+            $metadataReads++;
+        });
 
         $result = app(DispatchSequencePrediction::class)->dispatch('sequence-ai-1');
+        $metadataReadsAfterAction = $metadataReads;
 
         $this->assertSame([
             'dispatched' => false,
@@ -103,6 +109,28 @@ class AiPredictionDispatchTest extends TestCase
         ], $result);
         $this->assertSame(0, Schema::getConnection()->table('default_mapilio_processing')->count());
         Http::assertNothingSent();
+        $this->assertSame(0, $metadataReadsAfterAction);
+    }
+
+    public function test_prediction_dispatch_uses_fallback_when_project_config_column_is_absent(): void
+    {
+        Schema::table('default_projects_projects', function ($table): void {
+            $table->dropColumn('config_url');
+        });
+        Http::fake([
+            'https://ai.example.test/prediction' => Http::response(['id' => 'prediction-fallback'], 202),
+        ]);
+
+        $result = app(DispatchSequencePrediction::class)->dispatch('sequence-ai-1');
+
+        $this->assertSame([
+            'dispatched' => true,
+            'status' => 'pending',
+            'response_id' => 'prediction-fallback',
+        ], $result);
+        Http::assertSent(function (Request $request): bool {
+            return $request['config_url'] === 'https://config.example.test/default.json';
+        });
     }
 
     public function test_stale_dispatch_reservation_is_expired_before_retry(): void

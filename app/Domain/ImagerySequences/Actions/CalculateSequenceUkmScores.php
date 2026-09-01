@@ -3,10 +3,10 @@
 namespace App\Domain\ImagerySequences\Actions;
 
 use App\Support\Database\LegacyDatabase;
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -15,6 +15,8 @@ class CalculateSequenceUkmScores
     private const STATUS_ERROR = 1;
 
     private const STATUS_COMPLETED = 2;
+
+    public function __construct(private readonly LegacySchemaCapabilities $schemaCapabilities) {}
 
     /**
      * @return array{status: string, processed: int, no_neighbor: int}
@@ -105,15 +107,13 @@ class CalculateSequenceUkmScores
 
     private function assertSchema(Connection $connection): void
     {
-        $connectionName = config('mapilio.legacy_database_connection');
-        $schema = Schema::connection($connectionName);
-
-        if (! $schema->hasTable('default_mapilio_sequence_detail') || ! $schema->hasTable('default_mapilio_imagery')) {
+        if (! $this->schemaCapabilities->hasTable('default_mapilio_sequence_detail')
+            || ! $this->schemaCapabilities->hasTable('default_mapilio_imagery')) {
             throw new UkmScoringException('UKM scoring tables are not available.');
         }
 
         foreach (['sequence_uuid', 'deleted_at', 'anomaly'] as $column) {
-            if (! $schema->hasColumn('default_mapilio_sequence_detail', $column)) {
+            if (! $this->schemaCapabilities->hasColumn('default_mapilio_sequence_detail', $column)) {
                 throw new UkmScoringException("UKM sequence column {$column} is not available.");
             }
         }
@@ -140,7 +140,7 @@ class CalculateSequenceUkmScores
         }
 
         foreach ($required as $column) {
-            if (! $schema->hasColumn('default_mapilio_imagery', $column)) {
+            if (! $this->schemaCapabilities->hasColumn('default_mapilio_imagery', $column)) {
                 throw new UkmScoringException("UKM scoring column {$column} is not available.");
             }
         }
@@ -392,12 +392,10 @@ class CalculateSequenceUkmScores
 
     private function markFailed(Connection $connection, string $sequenceUuid, string $message): void
     {
-        $schema = Schema::connection(config('mapilio.legacy_database_connection'));
-
         if (
-            ! $schema->hasTable('default_mapilio_imagery')
-            || ! $schema->hasColumn('default_mapilio_imagery', 'ukm_status')
-            || ! $schema->hasColumn('default_mapilio_imagery', 'ukm_status_message')
+            ! $this->schemaCapabilities->hasTable('default_mapilio_imagery')
+            || ! $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'ukm_status')
+            || ! $this->schemaCapabilities->hasColumn('default_mapilio_imagery', 'ukm_status_message')
         ) {
             return;
         }
