@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Legacy;
 
-use App\Domain\IdentityAccess\LegacyMobileAuth;
+use App\Domain\Projects\Actions\CreateMobileProjectJob;
+use App\Domain\Projects\Queries\MobileUserJobsQuery;
+use App\Http\Controllers\Legacy\Projects\CreateMobileProjectJobController;
+use App\Http\Controllers\Legacy\Projects\MobileUserJobsController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
@@ -44,11 +48,47 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_get_my_jobs_requires_valid_bearer_token(): void
     {
-        $this->getJson('/api/function/projects/job/getMyJobs')
-            ->assertUnauthorized()
-            ->assertExactJson([
-                'message' => 'Unauthenticated.',
-            ]);
+        foreach (['/api/function/projects/job/getMyJobs', '/api/v1/projects/jobs/mine'] as $path) {
+            $this->getJson($path)
+                ->assertUnauthorized()
+                ->assertExactJson([
+                    'message' => 'Unauthenticated.',
+                ]);
+        }
+    }
+
+    public function test_mobile_project_job_aliases_use_mobile_auth_middleware(): void
+    {
+        foreach ([
+            'api.legacy.projects.jobs.mine',
+            'api.legacy.projects.jobs.create',
+            'api.v1.projects.jobs.mine',
+            'api.v1.projects.jobs.create',
+        ] as $name) {
+            $route = app('router')->getRoutes()->getByName($name);
+
+            $this->assertNotNull($route);
+            $this->assertContains('mobile.auth', $route->middleware());
+        }
+    }
+
+    public function test_mobile_get_my_jobs_controller_fails_closed_without_usable_authenticated_user(): void
+    {
+        $query = $this->createMock(MobileUserJobsQuery::class);
+        $query->expects($this->never())->method('get');
+
+        foreach ([null, 'not-a-user', (object) [], (object) ['id' => 0], (object) ['id' => 'not-an-id']] as $user) {
+            $request = Request::create('/api/v1/projects/jobs/mine', 'GET');
+
+            if ($user !== null) {
+                $request->attributes->set('mapilio_mobile_user', $user);
+            }
+
+            $response = app(MobileUserJobsController::class)($request, $query);
+
+            $this->assertSame(401, $response->getStatusCode());
+            $this->assertSame(['message' => 'Unauthenticated.'], $response->getData(true));
+        }
     }
 
     public function test_mobile_get_my_jobs_returns_empty_array_for_no_jobs(): void
@@ -128,37 +168,53 @@ class MobileProjectJobsCompatibilityTest extends TestCase
 
     public function test_mobile_create_job_requires_valid_bearer_token(): void
     {
-        $this->postJson('/api/function/projects/job/createJob', [
-            'options' => [
-                'parameters' => [
-                    'id' => 100,
+        foreach (['/api/function/projects/job/createJob', '/api/v1/projects/jobs'] as $path) {
+            $this->postJson($path, [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
                 ],
-            ],
-        ])
-            ->assertUnauthorized()
-            ->assertExactJson([
-                'message' => 'Unauthenticated.',
+            ])
+                ->assertUnauthorized()
+                ->assertExactJson([
+                    'message' => 'Unauthenticated.',
+                ]);
+        }
+    }
+
+    public function test_mobile_create_job_controller_fails_closed_without_usable_authenticated_user(): void
+    {
+        $jobs = $this->createMock(CreateMobileProjectJob::class);
+        $jobs->expects($this->never())->method('create');
+
+        foreach ([null, 'not-a-user', (object) [], (object) ['id' => 0], (object) ['id' => 'not-an-id']] as $user) {
+            $request = Request::create('/api/v1/projects/jobs', 'POST', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
             ]);
+
+            if ($user !== null) {
+                $request->attributes->set('mapilio_mobile_user', $user);
+            }
+
+            $response = app(CreateMobileProjectJobController::class)($request, $jobs);
+
+            $this->assertSame(401, $response->getStatusCode());
+            $this->assertSame(['message' => 'Unauthenticated.'], $response->getData(true));
+        }
     }
 
     public function test_mobile_create_job_rejects_stale_auth_after_user_is_disabled(): void
     {
         $login = $this->loginAsLegacyUser('empty_jobs');
-        $staleUser = Schema::getConnection()->table('default_users_users')->where('id', 20)->first();
 
         Schema::getConnection()->table('default_users_users')->where('id', 20)->update([
             'enabled' => false,
         ]);
-
-        $this->app->instance(LegacyMobileAuth::class, new class($staleUser) extends LegacyMobileAuth
-        {
-            public function __construct(private readonly object $staleUser) {}
-
-            public function userFromBearer(?string $authorizationHeader): object
-            {
-                return $this->staleUser;
-            }
-        });
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/projects/job/createJob', [

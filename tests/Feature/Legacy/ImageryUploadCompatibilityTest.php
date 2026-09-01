@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Domain\ImageryUploads\Actions\CreateImageryUpload;
+use App\Http\Controllers\Legacy\Imagery\ImageryUploadController;
 use App\Jobs\CalculateSequenceUkmScores;
 use App\Jobs\DispatchSequencePrediction;
 use App\Jobs\ResolveSequenceAddress;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
@@ -192,11 +195,42 @@ class ImageryUploadCompatibilityTest extends TestCase
 
     public function test_upload_metadata_requires_valid_bearer_token(): void
     {
-        $this->postJson('/api/function/mapilio/imagery/upload', $this->mobilePayload())
-            ->assertUnauthorized()
-            ->assertExactJson([
-                'message' => 'Unauthenticated.',
-            ]);
+        foreach (['/api/function/mapilio/imagery/upload', '/api/v1/imagery/uploads'] as $path) {
+            $this->postJson($path, $this->mobilePayload())
+                ->assertUnauthorized()
+                ->assertExactJson([
+                    'message' => 'Unauthenticated.',
+                ]);
+        }
+    }
+
+    public function test_mobile_imagery_upload_aliases_use_mobile_auth_middleware(): void
+    {
+        foreach (['api.legacy.imagery.uploads', 'api.v1.imagery.uploads'] as $name) {
+            $route = app('router')->getRoutes()->getByName($name);
+
+            $this->assertNotNull($route);
+            $this->assertContains('mobile.auth', $route->middleware());
+        }
+    }
+
+    public function test_mobile_imagery_upload_controller_fails_closed_without_usable_authenticated_user(): void
+    {
+        $uploads = $this->createMock(CreateImageryUpload::class);
+        $uploads->expects($this->never())->method('create');
+
+        foreach ([null, 'not-a-user', (object) [], (object) ['id' => 0], (object) ['id' => 'not-an-id']] as $user) {
+            $request = Request::create('/api/v1/imagery/uploads', 'POST', $this->mobilePayload());
+
+            if ($user !== null) {
+                $request->attributes->set('mapilio_mobile_user', $user);
+            }
+
+            $response = app(ImageryUploadController::class)($request, $uploads);
+
+            $this->assertSame(401, $response->getStatusCode());
+            $this->assertSame(['message' => 'Unauthenticated.'], $response->getData(true));
+        }
     }
 
     public function test_upload_metadata_preserves_validation_error_shape(): void

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Legacy\Projects;
 
-use App\Domain\IdentityAccess\LegacyMobileAuth;
 use App\Domain\Projects\Actions\CreateMobileProjectJob;
 use App\Domain\Projects\Actions\MobileProjectJobException;
 use App\Http\Controllers\Controller;
@@ -13,12 +12,19 @@ class CreateMobileProjectJobController extends Controller
 {
     public function __invoke(
         Request $request,
-        LegacyMobileAuth $auth,
         CreateMobileProjectJob $jobs,
     ): JsonResponse {
-        $user = $auth->userFromBearer($request->header('Authorization'));
+        $user = $request->attributes->get('mapilio_mobile_user');
 
-        if ($user === null) {
+        if (! is_object($user) || ! isset($user->id)) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $userId = filter_var($user->id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        if ($userId === false) {
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);

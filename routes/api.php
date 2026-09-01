@@ -92,8 +92,10 @@ Route::get('hosting-list', [BillingPlanController::class, 'hosting'])
 Route::get('get-marketplaces', MarketplaceController::class)
     ->name('api.legacy.projects.marketplaces');
 Route::get('function/projects/job/getMyJobs', MobileUserJobsController::class)
+    ->middleware('mobile.auth')
     ->name('api.legacy.projects.jobs.mine');
 Route::post('function/projects/job/createJob', CreateMobileProjectJobController::class)
+    ->middleware('mobile.auth')
     ->name('api.legacy.projects.jobs.create');
 Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
     ->whereNumber('userId')
@@ -134,6 +136,7 @@ Route::post('function/user_profile/profile/delete-account', [MobileAccountContro
     ->middleware(['mobile.auth', 'throttle:mobile-account-delete'])
     ->name('api.legacy.mobile-account.delete');
 Route::post('function/user_profile/profile/checkIsModalShown', CheckMobileEmailModalController::class)
+    ->middleware('mobile.auth')
     ->name('api.legacy.mobile-profile.email-modal');
 Route::post('onesignal/identity-verification', OneSignalIdentityVerificationController::class)
     ->defaults('identity_verification_failure_status', 500)
@@ -144,6 +147,7 @@ Route::post('image-report', ImageReportController::class)
     ->middleware('throttle:imagery-reports')
     ->name('api.legacy.imagery.reports');
 Route::post('function/mapilio/imagery/upload', ImageryUploadController::class)
+    ->middleware('mobile.auth')
     ->name('api.legacy.imagery.uploads');
 
 Route::prefix('v1')->name('api.v1.')->group(function (): void {
@@ -197,6 +201,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware(['mobile.auth', 'throttle:mobile-account-delete'])
         ->name('mobile.account.delete');
     Route::post('mobile/profile/email-modal', CheckMobileEmailModalController::class)
+        ->middleware('mobile.auth')
         ->name('mobile.profile.email-modal');
     Route::post('mobile/onesignal/identity-verification', OneSignalIdentityVerificationController::class)
         ->defaults('identity_verification_failure_status', 401)
@@ -229,6 +234,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware('throttle:imagery-reports')
         ->name('imagery.reports');
     Route::post('imagery/uploads', ImageryUploadController::class)
+        ->middleware('mobile.auth')
         ->name('imagery.uploads');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
         ->defaults('pagination_enabled', true)
@@ -266,8 +272,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('projects/marketplaces', MarketplaceController::class)
         ->name('projects.marketplaces');
     Route::get('projects/jobs/mine', MobileUserJobsController::class)
+        ->middleware('mobile.auth')
         ->name('projects.jobs.mine');
     Route::post('projects/jobs', CreateMobileProjectJobController::class)
+        ->middleware('mobile.auth')
         ->name('projects.jobs.create');
     Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
         ->whereNumber('userId')

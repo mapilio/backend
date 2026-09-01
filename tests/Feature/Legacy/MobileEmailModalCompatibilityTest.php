@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Domain\IdentityAccess\Actions\CheckMobileEmailModal;
 use App\Domain\IdentityAccess\LegacyMobileAuth;
+use App\Http\Controllers\Legacy\Identity\CheckMobileEmailModalController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
@@ -83,24 +86,42 @@ class MobileEmailModalCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_mobile_check_email_modal_aliases_use_mobile_auth_middleware(): void
+    {
+        foreach (['api.legacy.mobile-profile.email-modal', 'api.v1.mobile.profile.email-modal'] as $name) {
+            $route = app('router')->getRoutes()->getByName($name);
+
+            $this->assertNotNull($route);
+            $this->assertContains('mobile.auth', $route->middleware());
+        }
+    }
+
+    public function test_mobile_check_email_modal_controller_fails_closed_without_usable_authenticated_user(): void
+    {
+        $modal = $this->createMock(CheckMobileEmailModal::class);
+        $modal->expects($this->never())->method('check');
+
+        foreach ([null, 'not-a-user', (object) [], (object) ['id' => 0], (object) ['id' => 'not-an-id']] as $user) {
+            $request = Request::create('/api/v1/mobile/profile/email-modal', 'POST');
+
+            if ($user !== null) {
+                $request->attributes->set('mapilio_mobile_user', $user);
+            }
+
+            $response = app(CheckMobileEmailModalController::class)($request, $modal);
+
+            $this->assertSame(401, $response->getStatusCode());
+            $this->assertSame(['message' => 'Unauthenticated.'], $response->getData(true));
+        }
+    }
+
     public function test_mobile_check_email_modal_rejects_stale_auth_after_user_is_deleted(): void
     {
         $login = $this->loginAsLegacyUser('alice');
-        $staleUser = Schema::getConnection()->table('default_users_users')->where('id', 10)->first();
 
         Schema::getConnection()->table('default_users_users')->where('id', 10)->update([
             'deleted_at' => '2026-01-02 00:00:00',
         ]);
-
-        $this->app->instance(LegacyMobileAuth::class, new class($staleUser) extends LegacyMobileAuth
-        {
-            public function __construct(private readonly object $staleUser) {}
-
-            public function userFromBearer(?string $authorizationHeader): object
-            {
-                return $this->staleUser;
-            }
-        });
 
         $this->withToken($login->json('access_token'))
             ->postJson('/api/function/user_profile/profile/checkIsModalShown')
@@ -110,6 +131,27 @@ class MobileEmailModalCompatibilityTest extends TestCase
             ]);
 
         $this->assertSame(0, Schema::getConnection()->table('default_user_profile_profile')->count());
+    }
+
+    public function test_authenticated_email_modal_route_resolves_bearer_once(): void
+    {
+        $login = $this->loginAsLegacyUser('alice');
+        $token = $login->json('access_token');
+        $user = Schema::getConnection()->table('default_users_users')->where('id', 10)->first();
+
+        $auth = $this->createMock(LegacyMobileAuth::class);
+        $auth->expects($this->once())
+            ->method('userFromBearer')
+            ->with('Bearer '.$token)
+            ->willReturn($user);
+        $this->app->instance(LegacyMobileAuth::class, $auth);
+
+        $this->withToken($token)
+            ->postJson('/api/function/user_profile/profile/checkIsModalShown')
+            ->assertOk()
+            ->assertExactJson([
+                'status' => false,
+            ]);
     }
 
     public function test_versioned_mobile_check_email_modal_alias_matches_legacy_contract(): void
