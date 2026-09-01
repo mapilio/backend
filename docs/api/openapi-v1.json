@@ -47,7 +47,7 @@
     },
     {
       "name": "Projects",
-      "description": "Versioned, authenticated project membership reads."
+      "description": "Versioned, authenticated project membership reads and writes."
     }
   ],
   "paths": {
@@ -2686,6 +2686,120 @@
         }
       }
     },
+    "/api/v1/projects/jobs": {
+      "post": {
+        "operationId": "createMobileProjectJob",
+        "tags": ["Projects"],
+        "summary": "Create an authenticated mobile project job",
+        "description": "Creates one active legacy project-job row for the authenticated mobile user. This versioned POST is an additive alias for legacy `POST /api/function/projects/job/createJob`. The request is synchronous: the action opens one database transaction, locks the active authenticated user row for update, checks the non-deleted project and its marketplace eligibility, checks for an existing non-deleted job for this user and project, then inserts the legacy row before returning. It does not enqueue work. A soft-deleted project is treated as not found; a soft-deleted existing job does not count as membership. There is no endpoint-specific throttle, response cache, ETag, conditional-request handling, idempotency key, or unique constraint in this contract. The project id is read from `options.parameters.id` first. If that nested key is present, its value is used even when it is null or invalid, so it blocks a top-level `id` fallback; the top-level `id` is consulted only when the nested key is absent. The selected value must pass PHP `is_numeric`, is cast to integer, and must be positive after the cast, so numeric strings and fractional numeric values can be accepted and truncated by the runtime. Endpoint-defined 500 responses are limited to `This project is not eligible.` and `You are a member of this project`; generic database or runtime 500 responses are outside this contract. The deployment-optional global API limiter may return the documented 429 response when enforcement is enabled; its limits and production enforcement are not asserted here.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobileProjectJobCreateRequest"},
+              "examples": {
+                "nestedId": {
+                  "summary": "Synthetic nested project id",
+                  "value": {"options": {"parameters": {"id": 7001}}}
+                },
+                "topLevelFallback": {
+                  "summary": "Synthetic top-level fallback id",
+                  "value": {"id": "7002"}
+                },
+                "nestedNullWins": {
+                  "summary": "Synthetic null nested id blocks fallback",
+                  "value": {"id": 7002, "options": {"parameters": {"id": null}}}
+                },
+                "numericStringCast": {
+                  "summary": "Synthetic numeric string cast",
+                  "value": {"options": {"parameters": {"id": "7003.9"}}}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The legacy project-job row was inserted synchronously.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobCreateResponse"},
+                "example": {"data": true}
+              }
+            }
+          },
+          "400": {
+            "description": "The selected nested or top-level id is missing, null, non-numeric, or not positive after PHP integer casting.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobValidationError"},
+                "example": {"success": false, "message": ["'id' is required!"], "error_code": 400}
+              }
+            }
+          },
+          "401": {
+            "description": "The bearer token is missing, invalid, stale, or does not identify an active, activated, enabled, non-deleted mobile user.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobUnauthenticatedError"},
+                "example": {"message": "Unauthenticated."}
+              }
+            }
+          },
+          "403": {
+            "description": "The selected project does not exist as a non-deleted legacy project.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobProjectNotFoundError"},
+                "example": {"success": false, "message": ["Project not found!"], "error_code": 403}
+              }
+            }
+          },
+          "500": {
+            "description": "An endpoint-defined project eligibility or duplicate-membership error occurred. Other database or runtime 500 responses are not part of this published contract.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileProjectJobDomainError"},
+                "examples": {
+                  "notEligible": {
+                    "summary": "Synthetic ineligible project",
+                    "value": {"success": false, "message": ["This project is not eligible."], "error_code": 500}
+                  },
+                  "alreadyMember": {
+                    "summary": "Synthetic duplicate membership",
+                    "value": {"success": false, "message": ["You are a member of this project"], "error_code": 500}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. This is not an endpoint-specific limiter; enforcement and limits are deployment-configurable, and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {"success": false, "message": ["Too many requests."], "error_code": 429}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imagery/sequence-detail": {
       "get": {
         "operationId": "getSequenceDetail",
@@ -5009,6 +5123,84 @@
         "required": ["message"],
         "properties": {
           "message": {"const": "Unauthenticated."}
+        }
+      },
+      "MobileProjectJobCreateRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "The legacy-compatible JSON body. The runtime reads `options.parameters.id` before top-level `id`; both id values use PHP is_numeric, integer casting, and a positive-after-cast requirement.",
+        "properties": {
+          "id": {
+            "description": "Top-level fallback project id, consulted only when `options.parameters.id` is absent.",
+            "type": ["integer", "number", "string", "null"]
+          },
+          "options": {
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "properties": {
+              "parameters": {
+                "type": ["object", "null"],
+                "additionalProperties": true,
+                "properties": {
+                  "id": {
+                    "description": "Authoritative nested project id when this key is present, including when its value is null or invalid.",
+                    "type": ["integer", "number", "string", "null"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "MobileProjectJobCreateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {"const": true}
+        }
+      },
+      "MobileProjectJobUnauthenticatedError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {
+          "message": {"const": "Unauthenticated."}
+        }
+      },
+      "MobileProjectJobValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"const": "'id' is required!"}},
+          "error_code": {"const": 400}
+        }
+      },
+      "MobileProjectJobProjectNotFoundError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"const": "Project not found!"}},
+          "error_code": {"const": 403}
+        }
+      },
+      "MobileProjectJobDomainError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"oneOf": [{"const": "This project is not eligible."}, {"const": "You are a member of this project"}]}
+          },
+          "error_code": {"const": 500}
         }
       },
       "SequenceDetailItem": {

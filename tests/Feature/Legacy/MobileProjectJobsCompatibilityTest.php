@@ -7,6 +7,8 @@ use App\Domain\Projects\Queries\MobileUserJobsQuery;
 use App\Http\Controllers\Legacy\Projects\CreateMobileProjectJobController;
 use App\Http\Controllers\Legacy\Projects\MobileUserJobsController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\LegacyMobileAuthFixtures;
 use Tests\TestCase;
@@ -354,6 +356,219 @@ class MobileProjectJobsCompatibilityTest extends TestCase
             'project_key' => 'project-ankara',
             'assign_id' => 20,
         ]);
+    }
+
+    public function test_versioned_mobile_create_job_preserves_nested_precedence_and_php_numeric_coercion(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', [
+                'id' => 100,
+                'options' => [
+                    'parameters' => [
+                        'id' => 101,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson(['data' => true]);
+
+        $this->assertDatabaseHas('default_projects_job', [
+            'project_id' => 101,
+            'assign_id' => 20,
+        ]);
+
+        foreach ([
+            ['id' => 100, 'options' => ['parameters' => ['id' => null]]],
+            ['id' => 100, 'options' => ['parameters' => ['id' => 'not-numeric']]],
+        ] as $payload) {
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/projects/jobs', $payload)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'id' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', ['id' => '100.9'])
+            ->assertOk()
+            ->assertExactJson(['data' => true]);
+
+        $this->assertDatabaseHas('default_projects_job', [
+            'project_id' => 100,
+            'assign_id' => 20,
+        ]);
+    }
+
+    public function test_versioned_mobile_create_job_requires_a_positive_cast_project_id(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+
+        foreach ([null, 0, -1, '0', 'not-numeric'] as $id) {
+            $payload = $id === null ? [] : ['id' => $id];
+
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/projects/jobs', $payload)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'id' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        $this->assertSame(0, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('assign_id', 20)
+            ->count());
+    }
+
+    public function test_versioned_mobile_create_job_ignores_soft_deleted_project_and_job_rows(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+
+        Schema::getConnection()->table('default_projects_job')->insert([
+            'id' => 15,
+            'sort_order' => null,
+            'created_at' => '2026-01-01 10:00:05',
+            'created_by_id' => 20,
+            'updated_at' => '2026-01-02 10:00:05',
+            'updated_by_id' => 20,
+            'deleted_at' => '2026-01-03 00:00:00',
+            'project_id' => 100,
+            'project_key' => 'project-istanbul',
+            'assign_id' => 20,
+        ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson(['data' => true]);
+
+        $this->assertSame(1, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('project_id', 100)
+            ->where('assign_id', 20)
+            ->whereNull('deleted_at')
+            ->count());
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 102,
+                    ],
+                ],
+            ])
+            ->assertStatus(403)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Project not found!'],
+                'error_code' => 403,
+            ]);
+
+        $this->assertSame(0, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('project_id', 102)
+            ->where('assign_id', 20)
+            ->count());
+    }
+
+    public function test_versioned_mobile_create_job_duplicate_returns_500_without_a_second_active_row(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+        $payload = [
+            'options' => [
+                'parameters' => [
+                    'id' => 100,
+                ],
+            ],
+        ];
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', $payload)
+            ->assertOk()
+            ->assertExactJson(['data' => true]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', $payload)
+            ->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['You are a member of this project'],
+                'error_code' => 500,
+            ]);
+
+        $this->assertSame(1, Schema::getConnection()
+            ->table('default_projects_job')
+            ->where('project_id', 100)
+            ->where('assign_id', 20)
+            ->whereNull('deleted_at')
+            ->count());
+    }
+
+    public function test_versioned_mobile_create_job_optional_global_rate_limit_preserves_exact_envelope_and_headers(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 1);
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $payload = [
+            'options' => [
+                'parameters' => [
+                    'id' => 100,
+                ],
+            ],
+        ];
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', $payload)
+            ->assertOk();
+
+        $response = $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', $payload)
+            ->assertStatus(429)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Too many requests.'],
+                'error_code' => 429,
+            ]);
+
+        $this->assertTrue($response->headers->has('Retry-After'));
+        $this->assertSame('1', $response->headers->get('X-RateLimit-Limit'));
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+    }
+
+    public function test_versioned_mobile_create_job_does_not_emit_an_etag_for_conditional_requests(): void
+    {
+        $login = $this->loginAsLegacyUser('empty_jobs');
+
+        $response = $this->withHeaders(['If-None-Match' => '"synthetic-project-job-etag"'])
+            ->withToken($login->json('access_token'))
+            ->postJson('/api/v1/projects/jobs', [
+                'options' => [
+                    'parameters' => [
+                        'id' => 100,
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson(['data' => true]);
+
+        $this->assertFalse($response->headers->has('ETag'));
     }
 
     private function createTables(): void
