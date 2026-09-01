@@ -5,6 +5,7 @@ namespace Tests\Feature\Security;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ApiRateLimitTest extends TestCase
@@ -140,5 +141,62 @@ class ApiRateLimitTest extends TestCase
 
         $this->getJson('/api/v1/geo/ai-features/1')
             ->assertStatus($response->getStatusCode());
+    }
+
+    #[DataProvider('callbackRoutes')]
+    public function test_callback_routes_are_rate_limited_before_signature_verification(string $path): void
+    {
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 2);
+        Config::set('mapilio.ai_callback.enabled', true);
+        Config::set('mapilio.ai_callback.signing_secret', str_repeat('s', 32));
+
+        $rawBody = json_encode([
+            'id' => 'rate-limit-regression',
+            'status' => 'ERROR',
+        ], JSON_THROW_ON_ERROR);
+        $timestamp = (string) now()->timestamp;
+
+        foreach (['rate-limit-regression-01', 'rate-limit-regression-02'] as $nonce) {
+            $this->call('POST', $path, server: [
+                'CONTENT_TYPE' => 'application/json',
+                'CONTENT_LENGTH' => strlen($rawBody),
+                'HTTP_X_MAPILIO_TIMESTAMP' => $timestamp,
+                'HTTP_X_MAPILIO_NONCE' => $nonce,
+                'HTTP_X_MAPILIO_SIGNATURE' => str_repeat('0', 64),
+            ], content: $rawBody)
+                ->assertUnauthorized()
+                ->assertExactJson(['message' => 'Unauthorized']);
+        }
+
+        $response = $this->call('POST', $path, server: [
+            'CONTENT_TYPE' => 'application/json',
+            'CONTENT_LENGTH' => strlen($rawBody),
+            'HTTP_X_MAPILIO_TIMESTAMP' => $timestamp,
+            'HTTP_X_MAPILIO_NONCE' => 'rate-limit-regression-03',
+            'HTTP_X_MAPILIO_SIGNATURE' => str_repeat('0', 64),
+        ], content: $rawBody);
+
+        $response->assertStatus(429)->assertExactJson([
+            'success' => false,
+            'message' => ['Too many requests.'],
+            'error_code' => 429,
+        ]);
+
+        $this->assertTrue($response->headers->has('Retry-After'));
+        $this->assertSame('2', $response->headers->get('X-RateLimit-Limit'));
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function callbackRoutes(): array
+    {
+        return [
+            'versioned callback' => ['/api/v1/ai/predictions/callback'],
+            'legacy callback' => ['/webhook/response-prediction'],
+        ];
     }
 }
