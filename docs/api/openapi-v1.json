@@ -30,6 +30,10 @@
       "description": "Legacy-compatible, read-only sequence and embed result contracts."
     },
     {
+      "name": "Inventory",
+      "description": "Legacy-compatible public inventory metadata."
+    },
+    {
       "name": "Public content",
       "description": "Public content and server-side subscription operations."
     },
@@ -877,6 +881,142 @@
           },
           "429": {
             "description": "The optional global API limiter rejected the request when enforcement is enabled. Whether enforcement is enabled is deployment-configurable and is not asserted for production by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/types": {
+      "get": {
+        "operationId": "getInventoryTypes",
+        "tags": ["Inventory"],
+        "summary": "Read public inventory type metadata",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/get-types` and preserves its legacy response contract. The populated response is exactly `{data: [...], pagination: {...}}`; an empty or out-of-range page is exactly `{data: null}` with no pagination member. Rows are emitted in this order: `id`, `sort_order`, `created_at`, `created_by_id`, `updated_at`, `updated_by_id`, `deleted_at`, `code`, `group_id`, `icon`, `name`. Selected rows are non-deleted, so `deleted_at` is always null. IDs and nullable numeric metadata are JSON integers, timestamp strings use six fractional digits and a trailing `Z`, and code, icon, and name preserve string-or-null output. Ordering is ascending by id, except `code` equal to `end-of-pedestrians` uses synthetic sort 464.5, after id 464 and before id 465. The scalar `page` query value is PHP-int-cast and minimum-clamped to 1; omitted page is 1. The nonempty string `locale` is used, while an empty or non-string locale falls back to `en`; omitted locale uses the deployment application locale. Data fetching uses a limit and offset of 100, while legacy pagination reports `per_page` 15, 15-based page/link math, row-count-based `to`, and the total active row count. Pagination URLs and `path` always use `/api/get-types`, even for this v1 route, and preserve unrecognized or nested query keys through `http_build_query`; such keys, including `options[parameters][group_id]`, `options[paginate]`, and `per_page`, do not filter rows or change the fetch size. This contract does not define malformed array or extreme scalar page behavior. There is no endpoint authentication, response cache, or ETag. The optional global API limiter may return the documented 429 response when deployment-configurable enforcement is enabled; production enforcement and its limits are not asserted by this contract.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional scalar legacy page query value. It is PHP-int-cast and minimum-clamped to 1; omission uses 1. Malformed arrays and extreme values are outside this contract.",
+            "schema": {"type": "string"},
+            "example": "2"
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional locale. A nonempty string is used; an empty or non-string value falls back to `en`, while omission uses the deployment application locale.",
+            "schema": {"type": "string"},
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible populated or empty inventory type response.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/InventoryTypesResponse"},
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic populated inventory type response",
+                    "value": {
+                      "data": [
+                        {
+                          "id": 464,
+                          "sort_order": 12,
+                          "created_at": "2026-07-15T10:00:00.000000Z",
+                          "created_by_id": 10,
+                          "updated_at": "2026-07-16T10:00:00.000000Z",
+                          "updated_by_id": 11,
+                          "deleted_at": null,
+                          "code": "crossing",
+                          "group_id": 7,
+                          "icon": "crossing.svg",
+                          "name": "Crossing"
+                        },
+                        {
+                          "id": 500,
+                          "sort_order": null,
+                          "created_at": null,
+                          "created_by_id": null,
+                          "updated_at": null,
+                          "updated_by_id": null,
+                          "deleted_at": null,
+                          "code": "end-of-pedestrians",
+                          "group_id": null,
+                          "icon": null,
+                          "name": null
+                        },
+                        {
+                          "id": 465,
+                          "sort_order": 13,
+                          "created_at": "2026-07-17T10:00:00.000000Z",
+                          "created_by_id": 10,
+                          "updated_at": "2026-07-18T10:00:00.000000Z",
+                          "updated_by_id": 11,
+                          "deleted_at": null,
+                          "code": "pedestrian-crossing",
+                          "group_id": 7,
+                          "icon": "pedestrian-crossing.svg",
+                          "name": "Pedestrian Crossing"
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "first_page_url": "/api/get-types?page=1",
+                        "from": 1,
+                        "last_page": 1,
+                        "last_page_url": "/api/get-types?page=1",
+                        "links": [
+                          {"url": null, "label": "&laquo; Previous", "active": false},
+                          {"url": "/api/get-types?page=1", "label": "1", "active": true},
+                          {"url": null, "label": "Next &raquo;", "active": false}
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/get-types",
+                        "per_page": 15,
+                        "prev_page_url": null,
+                        "to": 3,
+                        "total": 3
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty or out-of-range response",
+                    "value": {"data": null}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",
             "headers": {
               "Retry-After": {
                 "description": "Decimal number of seconds until another request may be attempted.",
@@ -2954,6 +3094,78 @@
         "properties": {
           "data": {"oneOf": [{"type": "array", "items": {"$ref": "#/components/schemas/UploadedRoad"}}, {"type": "null"}]},
           "pagination": {"$ref": "#/components/schemas/PublicReadPagination"}
+        }
+      },
+      "InventoryTypeRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "code", "group_id", "icon", "name"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": "null"},
+          "code": {"type": ["string", "null"]},
+          "group_id": {"type": ["integer", "null"]},
+          "icon": {"type": ["string", "null"]},
+          "name": {"type": ["string", "null"]}
+        }
+      },
+      "InventoryTypesPaginationLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "label", "active"],
+        "properties": {
+          "url": {"type": ["string", "null"]},
+          "label": {"type": "string"},
+          "active": {"type": "boolean"}
+        }
+      },
+      "InventoryTypesPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "first_page_url", "from", "last_page", "last_page_url", "links", "next_page_url", "path", "per_page", "prev_page_url", "to", "total"],
+        "properties": {
+          "current_page": {"type": "integer", "minimum": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": "integer", "minimum": 1},
+          "last_page": {"type": "integer", "minimum": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/InventoryTypesPaginationLink"}},
+          "next_page_url": {"type": ["string", "null"]},
+          "path": {"type": "string", "const": "/api/get-types"},
+          "per_page": {"type": "integer", "const": 15},
+          "prev_page_url": {"type": ["string", "null"]},
+          "to": {"type": "integer", "minimum": 1},
+          "total": {"type": "integer", "minimum": 1}
+        }
+      },
+      "InventoryTypesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "oneOf": [
+          {
+            "required": ["data", "pagination"],
+            "properties": {
+              "data": {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/InventoryTypeRow"}},
+              "pagination": {"$ref": "#/components/schemas/InventoryTypesPagination"}
+            }
+          },
+          {
+            "maxProperties": 1,
+            "properties": {
+              "data": {"type": "null"},
+              "pagination": {"$ref": "#/components/schemas/InventoryTypesPagination"}
+            }
+          }
+        ],
+        "properties": {
+          "data": {"oneOf": [{"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/InventoryTypeRow"}}, {"type": "null"}]},
+          "pagination": {"$ref": "#/components/schemas/InventoryTypesPagination"}
         }
       },
       "PublicReadTooLargeError": {

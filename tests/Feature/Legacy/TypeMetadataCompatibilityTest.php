@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Legacy;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TypeMetadataCompatibilityTest extends TestCase
@@ -177,6 +179,192 @@ class TypeMetadataCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_types_rows_preserve_exact_order_scalar_types_and_nullability(): void
+    {
+        Schema::getConnection()->table('default_types_type')->insert([
+            [
+                'id' => 4,
+                'sort_order' => null,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'code' => null,
+                'group_id' => null,
+                'icon' => null,
+            ],
+        ]);
+        Schema::getConnection()->table('default_types_type_translations')->insert([
+            ['entry_id' => 4, 'locale' => 'en', 'name' => null],
+        ]);
+
+        $payload = $this->getJson('/api/v1/inventory/types')->assertOk()->json();
+        $row = $payload['data'][2];
+
+        $this->assertSame([
+            'id',
+            'sort_order',
+            'created_at',
+            'created_by_id',
+            'updated_at',
+            'updated_by_id',
+            'deleted_at',
+            'code',
+            'group_id',
+            'icon',
+            'name',
+        ], array_keys($row));
+        $this->assertSame(4, $row['id']);
+        $this->assertIsInt($row['id']);
+        $this->assertNull($row['sort_order']);
+        $this->assertNull($row['created_at']);
+        $this->assertNull($row['created_by_id']);
+        $this->assertNull($row['updated_at']);
+        $this->assertNull($row['updated_by_id']);
+        $this->assertNull($row['deleted_at']);
+        $this->assertNull($row['code']);
+        $this->assertNull($row['group_id']);
+        $this->assertNull($row['icon']);
+        $this->assertNull($row['name']);
+
+        $this->assertIsString($payload['data'][0]['created_at']);
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/',
+            $payload['data'][0]['created_at'],
+        );
+        $this->assertIsInt($payload['data'][0]['sort_order']);
+        $this->assertIsInt($payload['data'][0]['created_by_id']);
+        $this->assertIsInt($payload['data'][0]['updated_by_id']);
+        $this->assertIsInt($payload['data'][0]['group_id']);
+        $this->assertIsString($payload['data'][0]['code']);
+        $this->assertIsString($payload['data'][0]['name']);
+    }
+
+    public function test_types_use_deployment_locale_and_fall_back_to_en_for_empty_or_non_string_locale(): void
+    {
+        Config::set('app.locale', 'tr');
+
+        $this->getJson('/api/v1/inventory/types')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Dur');
+
+        $this->getJson('/api/v1/inventory/types?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Stop');
+
+        Config::set('app.locale', 'en');
+
+        $this->getJson('/api/v1/inventory/types?locale=')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Stop');
+
+        $this->getJson('/api/v1/inventory/types?locale[]=tr')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Stop');
+    }
+
+    #[DataProvider('pageCoercionProvider')]
+    public function test_scalar_page_is_php_cast_and_minimum_clamped(
+        ?string $page,
+        int $expectedPage,
+        bool $hasRows,
+    ): void {
+        $path = '/api/v1/inventory/types'.($page === null ? '' : '?page='.urlencode($page));
+        $response = $this->getJson($path)->assertOk();
+
+        if ($hasRows) {
+            $response->assertJsonPath('pagination.current_page', $expectedPage);
+
+            return;
+        }
+
+        $response->assertExactJson(['data' => null]);
+    }
+
+    /**
+     * @return iterable<string, array{0: ?string, 1: int, 2: bool}>
+     */
+    public static function pageCoercionProvider(): iterable
+    {
+        yield 'omitted' => [null, 1, true];
+        yield 'zero' => ['0', 1, true];
+        yield 'negative' => ['-2', 1, true];
+        yield 'fractional' => ['2.9', 2, false];
+        yield 'non numeric' => ['not-a-page', 1, true];
+        yield 'empty' => ['', 1, true];
+    }
+
+    public function test_ignored_web_options_do_not_change_fetch_or_metadata_and_are_echoed_in_legacy_urls(): void
+    {
+        $response = $this->getJson(
+            '/api/v1/inventory/types?options[parameters][group_id]=999&options[paginate]=1&per_page=1&locale=en',
+        )->assertOk();
+        $payload = $response->json();
+        $expectedQuery = 'options%5Bparameters%5D%5Bgroup_id%5D=999&options%5Bpaginate%5D=1&per_page=1&locale=en&page=1';
+
+        $this->assertCount(2, $payload['data']);
+        $this->assertSame('/api/get-types?'.$expectedQuery, $payload['pagination']['first_page_url']);
+        $this->assertSame('/api/get-types?'.$expectedQuery, $payload['pagination']['last_page_url']);
+        $this->assertSame('/api/get-types', $payload['pagination']['path']);
+        $this->assertSame(15, $payload['pagination']['per_page']);
+        $this->assertSame('/api/get-types?'.$expectedQuery, $payload['pagination']['links'][1]['url']);
+    }
+
+    public function test_end_of_pedestrians_uses_464_point_5_sort_position(): void
+    {
+        $rows = [];
+        foreach ([463 => 'before-special', 464 => 'id-464', 465 => 'id-465', 500 => 'end-of-pedestrians'] as $id => $code) {
+            $rows[] = [
+                'id' => $id,
+                'sort_order' => null,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'code' => $code,
+                'group_id' => null,
+                'icon' => null,
+            ];
+        }
+        Schema::getConnection()->table('default_types_type')->insert($rows);
+
+        $payload = $this->getJson('/api/v1/inventory/types')->assertOk()->json();
+
+        $this->assertSame([463, 464, 500, 465], array_slice(array_column($payload['data'], 'id'), -4));
+    }
+
+    public function test_page_two_uses_a_hundred_row_offset_but_fifteen_row_legacy_metadata(): void
+    {
+        $rows = [];
+        for ($id = 10; $id <= 110; $id++) {
+            $rows[] = [
+                'id' => $id,
+                'sort_order' => null,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'code' => 'type-'.$id,
+                'group_id' => null,
+                'icon' => null,
+            ];
+        }
+        Schema::getConnection()->table('default_types_type')->insert($rows);
+
+        $payload = $this->getJson('/api/v1/inventory/types?page=2')->assertOk()->json();
+
+        $this->assertSame([108, 109, 110], array_column($payload['data'], 'id'));
+        $this->assertSame(2, $payload['pagination']['current_page']);
+        $this->assertSame(16, $payload['pagination']['from']);
+        $this->assertSame(7, $payload['pagination']['last_page']);
+        $this->assertSame(15, $payload['pagination']['per_page']);
+        $this->assertSame(18, $payload['pagination']['to']);
+        $this->assertSame(103, $payload['pagination']['total']);
+    }
+
     public function test_type_metadata_malformed_timestamps_return_null(): void
     {
         $db = Schema::getConnection();
@@ -194,6 +382,9 @@ class TypeMetadataCompatibilityTest extends TestCase
         $this->assertNull($types['data'][0]['created_at']);
         $this->assertNull($types['data'][0]['updated_at']);
 
+        $versionedTypes = $this->getJson('/api/v1/inventory/types')->assertOk()->json();
+        $this->assertSame($types, $versionedTypes);
+
         $groups = $this->getJson('/api/get-groups')->assertOk()->json();
         $this->assertNull($groups['data'][0]['created_at']);
         $this->assertNull($groups['data'][0]['updated_at']);
@@ -202,6 +393,12 @@ class TypeMetadataCompatibilityTest extends TestCase
     public function test_legacy_get_types_empty_page_omits_pagination(): void
     {
         $this->getJson('/api/get-types?page=2')
+            ->assertOk()
+            ->assertExactJson([
+                'data' => null,
+            ]);
+
+        $this->getJson('/api/v1/inventory/types?page=2')
             ->assertOk()
             ->assertExactJson([
                 'data' => null,
