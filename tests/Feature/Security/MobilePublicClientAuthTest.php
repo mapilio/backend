@@ -50,6 +50,66 @@ class MobilePublicClientAuthTest extends TestCase
         ])->assertOk()->assertJsonPath('id', 10);
     }
 
+    public function test_public_client_missing_password_identifier_uses_the_legacy_400_shape(): void
+    {
+        $this->postJson('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'password' => 'correct-password',
+        ])
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => [
+                    'username' => ['username or email parameter is required!'],
+                    'email' => ['username or email parameter is required!'],
+                ],
+            ]);
+    }
+
+    public function test_public_client_form_password_login_issues_tokens(): void
+    {
+        $this->post('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])
+            ->assertOk()
+            ->assertJsonPath('id', 10)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('token_type', 'Bearer')
+            ->assertJsonStructure(['access_token', 'refresh_token']);
+    }
+
+    public function test_public_client_form_refresh_grant_rotates_tokens(): void
+    {
+        $login = $this->postJson('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $this->post('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $login->json('refresh_token'),
+        ])
+            ->assertOk()
+            ->assertJsonPath('id', 10)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['access_token', 'refresh_token']);
+    }
+
+    public function test_public_client_form_email_takes_precedence_over_username(): void
+    {
+        $this->post('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'email' => 'email-wins@example.test',
+            'username' => 'username-wins',
+            'password' => 'correct-password',
+        ])
+            ->assertOk()
+            ->assertJsonPath('id', 20);
+    }
+
     public function test_public_client_refresh_grant_rotates_the_token_pair(): void
     {
         $login = $this->postJson('/api/v1/mobile/auth/public-token', [
@@ -204,14 +264,36 @@ class MobilePublicClientAuthTest extends TestCase
         });
 
         Schema::getConnection()->table('default_users_users')->insert([
-            'id' => 10,
-            'email' => 'alice@example.test',
-            'username' => 'alice',
-            'password' => Hash::make('correct-password'),
-            'activated' => true,
-            'enabled' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
+            [
+                'id' => 10,
+                'email' => 'alice@example.test',
+                'username' => 'alice',
+                'password' => Hash::make('correct-password'),
+                'activated' => true,
+                'enabled' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 20,
+                'email' => 'email-wins@example.test',
+                'username' => 'email-wins',
+                'password' => Hash::make('correct-password'),
+                'activated' => true,
+                'enabled' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 21,
+                'email' => 'username-wins@example.test',
+                'username' => 'username-wins',
+                'password' => Hash::make('correct-password'),
+                'activated' => true,
+                'enabled' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 }
