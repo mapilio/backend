@@ -281,6 +281,163 @@ class ImageryUploadCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_upload_accepts_whole_body_parameters_fallback_and_returns_exact_success_envelope(): void
+    {
+        $parameters = $this->mobilePayload()['options']['parameters'];
+        $uploads = $this->createMock(CreateImageryUpload::class);
+        $uploads->expects($this->once())
+            ->method('create')
+            ->with(
+                $this->identicalTo($parameters),
+                $this->callback(static fn (object $user): bool => (int) $user->id === 10),
+            )
+            ->willReturn([
+                'status' => true,
+                'data' => true,
+                'sequence_uuid' => 'synthetic-sequence-150',
+                'count' => 2,
+            ]);
+
+        $request = Request::create('/api/v1/imagery/uploads', 'POST', $parameters);
+        $request->attributes->set('mapilio_mobile_user', (object) ['id' => 10]);
+
+        $response = app(ImageryUploadController::class)($request, $uploads);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([
+            'status' => true,
+            'data' => true,
+            'sequence_uuid' => 'synthetic-sequence-150',
+            'count' => 2,
+        ], $response->getData(true));
+    }
+
+    public function test_versioned_upload_prefers_nested_parameters_when_both_request_shapes_are_valid(): void
+    {
+        $topLevelParameters = $this->kitPayload()['options']['parameters'];
+        $nestedParameters = $this->mobilePayload()['options']['parameters'];
+        $topLevelParameters['organization_key'] = 'top-level-organization-150';
+        $nestedParameters['organization_key'] = 'nested-organization-150';
+        $requestBody = $topLevelParameters;
+        $requestBody['options'] = ['parameters' => $nestedParameters];
+
+        $uploads = $this->createMock(CreateImageryUpload::class);
+        $uploads->expects($this->once())
+            ->method('create')
+            ->with(
+                $this->identicalTo($nestedParameters),
+                $this->callback(static fn (object $user): bool => (int) $user->id === 10),
+            )
+            ->willReturn([
+                'status' => true,
+                'data' => true,
+                'sequence_uuid' => 'nested-sequence-150',
+                'count' => 2,
+            ]);
+
+        $request = Request::create('/api/v1/imagery/uploads', 'POST', $requestBody);
+        $request->attributes->set('mapilio_mobile_user', (object) ['id' => 10]);
+
+        $response = app(ImageryUploadController::class)($request, $uploads);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([
+            'status' => true,
+            'data' => true,
+            'sequence_uuid' => 'nested-sequence-150',
+            'count' => 2,
+        ], $response->getData(true));
+    }
+
+    public function test_versioned_upload_rejects_false_or_empty_hash_and_empty_required_point(): void
+    {
+        $login = $this->login();
+
+        foreach (['', false] as $hash) {
+            $payload = $this->mobilePayload();
+            data_set($payload, 'options.parameters.summary.Information.hash', $hash);
+
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/imagery/uploads', $payload)
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ["'summary.Information.hash' is required!"],
+                    'error_code' => 400,
+                ]);
+        }
+
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.json_data.0.latitude', '');
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/imagery/uploads', $payload)
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ["'latitude' is required!"],
+                'error_code' => 400,
+            ]);
+    }
+
+    public function test_upload_metadata_preserves_php_coercions_alias_precedence_and_blank_scope(): void
+    {
+        Queue::fake();
+        $login = $this->login();
+        $payload = $this->mobilePayload();
+        data_set($payload, 'options.parameters.organization_key', '   ');
+        data_set($payload, 'options.parameters.project_key', '');
+        data_set($payload, 'options.parameters.summary.Information.sequence_uuid', 'summary-sequence-150');
+        data_set($payload, 'options.parameters.summary.Information.hash', 'synthetic-hash-150');
+        data_set($payload, 'options.parameters.json_data', [$this->point([
+            'latitude' => '40.1234',
+            'longitude' => '29.9876',
+            'heading' => '181.5',
+            'altitude' => '12',
+            'orientation' => 7,
+            'fov' => '67.5',
+            'sequenceUuid' => 'point-sequence-150',
+            'car_speed' => '12.5',
+            'carSpeed' => '99',
+            'acceleration' => ['x' => 1],
+            'accelerometer' => ['x' => 9],
+            'capture_address' => '   ',
+            'source' => ' road ',
+            'sourceUser' => '',
+        ])]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/imagery/uploads', $payload)
+            ->assertOk()
+            ->assertExactJson([
+                'status' => true,
+                'data' => true,
+                'sequence_uuid' => 'summary-sequence-150',
+                'count' => 1,
+            ]);
+
+        $row = Schema::getConnection()
+            ->table('default_mapilio_imagery')
+            ->where('filename', 'IMG_0001.jpg')
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertSame(40.1234, (float) $row->latitude);
+        $this->assertSame(7.0, (float) $row->orientation);
+        $this->assertSame(12.5, (float) $row->car_speed);
+        $this->assertSame(json_encode(['x' => 1]), $row->acceleration);
+        $this->assertNull($row->organization_key);
+        $this->assertNull($row->project_key);
+        $this->assertNull($row->capture_address);
+        $this->assertSame('road', $row->source);
+        $this->assertNull($row->sourceUser);
+        $this->assertDatabaseHas('default_mapilio_sequence_detail', [
+            'sequence_uuid' => 'summary-sequence-150',
+            'organization_key' => null,
+            'project_key' => null,
+        ]);
+    }
+
     public function test_upload_rejects_payloads_above_the_configured_point_ceiling(): void
     {
         Queue::fake();
