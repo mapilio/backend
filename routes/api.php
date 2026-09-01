@@ -214,12 +214,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('imagery/user-points', GetPointByUserController::class)
         ->name('imagery.user-points');
     Route::get('imagery/sequence-detail', SequenceDetailController::class)
+        ->defaults('pagination_enabled', true)
         ->name('imagery.sequence-detail');
     Route::get('imagery/user-uploads', UserUploadsController::class)
         ->name('imagery.user-uploads');
     Route::get('imagery/user-upload-details', UserUploadDetailsController::class)
         ->name('imagery.user-upload-details');
     Route::get('imagery/embed/{sequenceUuid}', EmbedImageController::class)
+        ->defaults('pagination_enabled', true)
         ->name('imagery.embed-image');
     Route::post('imagery/reports', ImageReportController::class)
         ->middleware('throttle:imagery-reports')
@@ -227,6 +229,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('imagery/uploads', ImageryUploadController::class)
         ->name('imagery.uploads');
     Route::get('geo/uploaded-roads-group', UploadedRoadsByGroupController::class)
+        ->defaults('pagination_enabled', true)
         ->name('geo.uploaded-roads-group');
     Route::get('geo/ai-features/{featureId}', AiFeatureDetailController::class)
         ->whereNumber('featureId')

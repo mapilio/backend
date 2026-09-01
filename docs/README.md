@@ -8,6 +8,7 @@
 - [Domain boundaries](../app/Domain/README.md)
 - [Modern OpenAPI contract](api/openapi-v1.json)
 - [Public API message compatibility and localization readiness](api/public-message-compatibility.md)
+- [Bounded public read results](architecture/0039-bounded-public-read-results.md)
 - [Synthetic local API cookbook](api/local-api-cookbook.md)
 - [Synthetic GeoJSON fixtures and local validator](geospatial/synthetic-geojson-fixtures.md)
 - [Generated API reference](../public/docs/api/index.html)
@@ -59,6 +60,7 @@
 - [0036: Reviewed linear main](architecture/0036-reviewed-linear-main.md)
 - [0037: Mobile account lifecycle](architecture/0037-mobile-account-lifecycle.md)
 - [0038: Short-lived leaderboard and country aggregate cache](architecture/0038-short-lived-public-aggregate-cache.md)
+- [0039: Bounded public read results](architecture/0039-bounded-public-read-results.md)
 
 ## Database
 
@@ -83,6 +85,7 @@
 - [Disposable PostGIS migration gate](operations/postgis-migration-gate.md)
 - [Scheduled jobs and geospatial summary](operations/scheduled-jobs-and-geospatial-summary.md)
 - [GeoServer map points recovery](operations/geoserver-map-points-recovery.md)
+- [Hardening rollout](operations/hardening-rollout.md)
 
 ## Security And Governance
 

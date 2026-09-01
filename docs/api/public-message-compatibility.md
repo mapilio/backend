@@ -8,6 +8,21 @@ Repository-evidence-only inventory of messages and envelopes reachable from expl
 - **Future version** — add a stable machine-readable code while retaining current text/envelope during the compatibility window.
 - **Keep internal** — do not expose or expand it as a public contract.
 
+## Bounded public read errors
+
+The following exact envelopes are part of the compatibility contract for the
+three imagery/road-group reads documented in [ADR 0039](../architecture/0039-bounded-public-read-results.md):
+
+| Condition | Status | Exact envelope | Scope |
+|---|---:|---|---|
+| Invalid explicitly supplied `page` or `per_page` | 422 | `{"success":false,"message":["'page' and 'per_page' must be positive integers within the supported range."],"error_code":422}` | Existing `/api/v1` aliases only; parameter-free legacy/default-v1 reads remain unchanged |
+| Full-read row or encoded-item bound exceeded | 413 | `{"success":false,"message":["Payload Too Large"],"error_code":413}` | Legacy and parameter-free v1 reads while `MAPILIO_PUBLIC_READ_BOUNDS_ENABLED=true` |
+| Unknown embed sequence | 404 | `{"success":false,"message":["Not Found"],"error_code":404}` | Legacy and v1 embed paths, with or without pagination |
+
+The pagination envelope is intentionally not a Laravel paginator: it has only
+`current_page`, `per_page`, and `has_more`, with no total or count. The exact
+success wrappers and ordering remain those listed below.
+
 ## Modern explicit surfaces
 
 | Route(s) | Status | Current message/envelope | Assertion status | Recommendation | Evidence |
@@ -47,6 +62,52 @@ Rows are grouped only where status, envelope, and recommendation match. Routes a
 | `GET /api/get-marketplaces`, `GET /api/v1/projects/marketplaces` | 400 | `{success:false,message:["'lat' and 'lon' must be numeric coordinates."],error_code:400}` or valid-coordinate text | Numeric branch asserted; range branch implemented | Preserve now; future code | [routes/controller](../../routes/api.php#L87), [test](../../tests/Feature/Legacy/MarketplaceCompatibilityTest.php#L220) |
 | `GET /api/search-user`, `POST /api/search-user`, `GET /api/v1/users/profile` | 404 | `{ "message": "Not Found" }` for invalid/missing public profile identifier | Legacy and versioned profile assertions | Preserve now; future code | [route/controller](../../routes/api.php#L106), [test](../../tests/Feature/Legacy/PublicUserProfileCompatibilityTest.php#L45) |
 | `GET /api/error/{code}`, `GET /api/v1/system/errors/{code}` | `<code>` or 500 invalid | `{success:false,message:[mapped HTTP name or "streams::error.<code>.name"],error_code:<code>}` | Mapping, unknown 418, invalid fallback asserted; aliases share controller | Preserve mapping; future code must retain `error_code` during window | [route/controller](../../routes/api.php#L96), [test](../../tests/Feature/Legacy/LegacyErrorCompatibilityTest.php#L8) |
+
+## Bounded public reads and additive pagination
+
+Issue `#87` adds a default-enabled, rollbackable full-read guard to the three
+public imagery/road reads. The production read-only measurements that informed
+it are diagnostic, not an SLO: the largest active sequence was 2,091 rows;
+sequence-detail measured 718,277 bytes / 662.607ms; embed measured 1,001,456
+bytes / 572.895ms; and the largest road group was 3,196 rows / 631,467 bytes /
+433.118ms. A historical legitimate upload contained 18,824 images.
+
+The guard is enabled by `MAPILIO_PUBLIC_READ_BOUNDS_ENABLED=true`. It caps
+sequence/embed at 25,000 rows, road groups at 10,000 rows, and the encoded-item
+budget at 16 MiB. Legacy routes and parameter-free v1 aliases retain their
+exact existing behavior under those limits. Overflow is always the exact
+legacy-shaped `413` envelope:
+
+```json
+{"success":false,"message":["Payload Too Large"],"error_code":413}
+```
+
+Only explicit v1 alias requests containing `page` or `per_page` paginate:
+
+| Alias | Pagination success | Invalid pagination | Other preserved behavior |
+|---|---|---|---|
+| `GET /api/v1/imagery/sequence-detail` | `{data: rows-or-null, pagination: {current_page,per_page,has_more}}` | Exact `422` legacy-shaped envelope below | Missing `sequence_uuid` remains exact `400`; default response remains unpaginated |
+| `GET /api/v1/imagery/embed/{sequenceUuid}` | `{data: {info,entries}, pagination: {current_page,per_page,has_more}}` | Exact `422` legacy-shaped envelope below | Unknown sequence remains exact `404`; default response remains unpaginated |
+| `GET /api/v1/geo/uploaded-roads-group` | `{data: rows-or-null, pagination: {current_page,per_page,has_more}}` | Exact `422` legacy-shaped envelope below | Missing `group_key` remains exact `400`; default response remains unpaginated |
+
+`page` and `per_page` are strict positive canonical integers. The defaults are
+`page=1` and `per_page=500`; the maximum `per_page` is 1,000. Invalid values,
+including zero, signs, decimals, whitespace, non-canonical forms, and values
+outside the integer range, return exactly:
+
+```json
+{"success":false,"message":["'page' and 'per_page' must be positive integers within the supported range."],"error_code":422}
+```
+
+Pagination uses a `per_page + 1` sentinel, deterministic endpoint ordering,
+and no total count. Offset work cannot exceed each endpoint's row ceiling. A
+page beyond that ceiling is an empty/null data page with `has_more: false`.
+The full contract and rollback procedure are recorded in [ADR 0039](../architecture/0039-bounded-public-read-results.md).
+
+Repository inspection found active clients using the legacy routes and no
+inspected client using these v1 aliases. This is repository evidence, not a
+claim that all external clients have been identified; consumers should keep
+the legacy routes unchanged and opt into pagination only on the v1 aliases.
 
 ## Internal and privacy-safe boundary
 
