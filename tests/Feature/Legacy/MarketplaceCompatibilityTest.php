@@ -3,6 +3,7 @@
 namespace Tests\Feature\Legacy;
 
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class MarketplaceCompatibilityTest extends TestCase
@@ -114,88 +115,79 @@ class MarketplaceCompatibilityTest extends TestCase
         ]);
     }
 
-    public function test_legacy_marketplaces_preserves_geojson_string_contract(): void
+    public function test_versioned_marketplaces_preserves_exact_default_geojson_string_contract(): void
     {
-        $expectedGeojson = json_encode([
-            'type' => 'FeatureCollection',
-            'features' => [
-                [
-                    'type' => 'Feature',
-                    'properties' => [
-                        'marketplace_name' => 'Istanbul Capture',
-                        'marketplace_description' => 'Collect street-level imagery in Istanbul.',
-                        'id' => 2,
-                        'project_key' => 'project-istanbul',
-                        'organization_key' => 'org-main',
-                        'created_at' => '2026-07-01T10:11:12',
-                        'owner' => 'Mapilio Official',
-                        'project_camera_type' => 'phone',
-                        'distance_km' => '0',
-                    ],
-                    'geometry' => [
-                        'type' => 'Polygon',
-                        'coordinates' => [[
-                            [29, 41],
-                            [30, 41],
-                            [30, 42],
-                            [29, 42],
-                            [29, 41],
-                        ]],
-                    ],
-                ],
-                [
-                    'type' => 'Feature',
-                    'properties' => [
-                        'marketplace_name' => 'Near Equator Capture',
-                        'marketplace_description' => 'Collect a compact sample area.',
-                        'id' => 3,
-                        'project_key' => 'project-equator',
-                        'organization_key' => 'org-main',
-                        'created_at' => '2026-07-02T11:12:13',
-                        'owner' => 'Mapilio Official',
-                        'project_camera_type' => 'dashcam',
-                        'distance_km' => '0',
-                    ],
-                    'geometry' => [
-                        'type' => 'Polygon',
-                        'coordinates' => [[
-                            [1, 1],
-                            [2, 1],
-                            [2, 2],
-                            [1, 2],
-                            [1, 1],
-                        ]],
-                    ],
-                ],
-            ],
-        ], JSON_UNESCAPED_SLASHES);
+        $legacy = $this->marketplaces('/api/get-marketplaces');
+        $versioned = $this->marketplaces('/api/v1/projects/marketplaces');
 
-        $this->getJson('/api/get-marketplaces')
-            ->assertOk()
-            ->assertExactJson([
-                'data' => [
-                    'geojson' => $expectedGeojson,
-                ],
-            ]);
+        $this->assertSame($legacy, $versioned);
+        $this->assertSame(['data'], array_keys($versioned));
+        $this->assertSame(['geojson'], array_keys($versioned['data']));
+        $this->assertIsString($versioned['data']['geojson']);
+
+        $geojson = $this->decodeGeojson($versioned);
+        $this->assertSame(['type', 'features'], array_keys($geojson));
+        $this->assertSame('FeatureCollection', $geojson['type']);
+        $this->assertIsArray($geojson['features']);
+        $this->assertEqualsCanonicalizing([2, 3], array_map(
+            static fn (array $feature): int => $feature['properties']['id'],
+            $geojson['features'],
+        ));
+
+        foreach ($geojson['features'] as $feature) {
+            $this->assertMarketplaceFeature($feature);
+            $this->assertIsString($feature['properties']['distance_km']);
+            $this->assertSame('0', $feature['properties']['distance_km']);
+        }
     }
 
-    public function test_marketplaces_malformed_created_timestamps_return_null(): void
+    public function test_versioned_marketplaces_preserves_nullable_fields_and_null_geometry(): void
+    {
+        Schema::getConnection()->table('default_projects_project')->where('id', 3)->update([
+            'marketplace_name' => null,
+            'marketplace_description' => null,
+            'project_key' => null,
+            'project_organization_key' => null,
+            'created_at' => null,
+            'project_shape_id' => null,
+            'project_entry_id' => null,
+        ]);
+
+        $geojson = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces'));
+        $feature = $this->featureById($geojson, 3);
+        $properties = $feature['properties'];
+
+        $this->assertMarketplaceFeature($feature);
+        $this->assertSame([
+            'marketplace_name' => null,
+            'marketplace_description' => null,
+            'id' => 3,
+            'project_key' => null,
+            'organization_key' => null,
+            'created_at' => null,
+            'owner' => null,
+            'project_camera_type' => null,
+            'distance_km' => '0',
+        ], $properties);
+        $this->assertNull($feature['geometry']);
+    }
+
+    public function test_versioned_marketplaces_malformed_created_timestamps_match_legacy(): void
     {
         Schema::getConnection()->table('default_projects_project')->update([
             'created_at' => 'not-a-date',
         ]);
 
-        $response = $this->getJson('/api/get-marketplaces')
-            ->assertOk()
-            ->json();
-        $geojson = json_decode($response['data']['geojson'], true);
+        $legacy = $this->decodeGeojson($this->marketplaces('/api/get-marketplaces'));
+        $versioned = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces'));
 
-        foreach ($geojson['features'] as $feature) {
+        $this->assertSame($legacy, $versioned);
+        foreach ($versioned['features'] as $feature) {
             $this->assertNull($feature['properties']['created_at']);
         }
     }
 
-    public function test_marketplaces_substitute_invalid_utf8_in_geojson(): void
+    public function test_versioned_marketplaces_substitute_invalid_utf8_like_legacy(): void
     {
         $description = "Before \xC3\x28 after";
 
@@ -203,68 +195,248 @@ class MarketplaceCompatibilityTest extends TestCase
             'marketplace_description' => $description,
         ]);
 
-        $response = $this->getJson('/api/get-marketplaces')
-            ->assertOk()
-            ->json();
-        $geojson = $response['data']['geojson'];
+        $legacy = $this->marketplaces('/api/get-marketplaces');
+        $versioned = $this->marketplaces('/api/v1/projects/marketplaces');
 
-        $this->assertNotSame('', $geojson);
-
-        $decoded = json_decode($geojson, true);
-
-        $this->assertSame(JSON_ERROR_NONE, json_last_error(), json_last_error_msg());
+        $this->assertSame($legacy, $versioned);
+        $decoded = $this->decodeGeojson($versioned);
         $this->assertSame(
             "Before \xEF\xBF\xBD( after",
-            $decoded['features'][0]['properties']['marketplace_description'],
+            $this->featureById($decoded, 2)['properties']['marketplace_description'],
         );
     }
 
-    public function test_versioned_marketplaces_alias_returns_same_contract(): void
+    public function test_versioned_marketplaces_coordinates_match_legacy_order_and_types(): void
     {
-        $legacy = $this->getJson('/api/get-marketplaces')
-            ->assertOk()
-            ->json();
+        $legacy = $this->decodeGeojson($this->marketplaces('/api/get-marketplaces?lat=1&lon=1'));
+        $versioned = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces?lat=1&lon=1'));
 
-        $versioned = $this->getJson('/api/v1/projects/marketplaces')
-            ->assertOk()
-            ->json();
+        $this->assertSame($legacy, $versioned);
+        $this->assertSame([
+            'project-equator',
+            'project-istanbul',
+        ], array_map(
+            static fn (array $feature): string => $feature['properties']['project_key'],
+            $versioned['features'],
+        ));
+        foreach ($versioned['features'] as $feature) {
+            $this->assertIsFloat($feature['properties']['distance_km']);
+        }
+    }
 
+    #[DataProvider('inactiveCoordinateQueryProvider')]
+    public function test_versioned_marketplaces_inactive_or_partial_coordinate_strings_match_legacy(string $query): void
+    {
+        $legacy = $this->marketplaces('/api/get-marketplaces'.$query);
+        $versioned = $this->marketplaces('/api/v1/projects/marketplaces'.$query);
+
+        $this->assertSame($legacy, $versioned);
+        $geojson = $this->decodeGeojson($versioned);
+        foreach ($geojson['features'] as $feature) {
+            $this->assertSame('0', $feature['properties']['distance_km']);
+        }
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function inactiveCoordinateQueryProvider(): array
+    {
+        return [
+            'missing coordinates' => [''],
+            'zero pair' => ['?lat=0&lon=0'],
+            'zero latitude' => ['?lat=0&lon=1'],
+            'zero longitude' => ['?lat=1&lon=0'],
+            'empty latitude' => ['?lat=&lon=1'],
+            'empty longitude' => ['?lat=1&lon='],
+        ];
+    }
+
+    public function test_versioned_marketplaces_decimal_zero_strings_remain_active(): void
+    {
+        $legacy = $this->decodeGeojson($this->marketplaces('/api/get-marketplaces?lat=0.0&lon=0.0'));
+        $versioned = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces?lat=0.0&lon=0.0'));
+
+        $this->assertSame($legacy, $versioned);
+        $this->assertSame([
+            'project-equator',
+            'project-istanbul',
+        ], array_map(
+            static fn (array $feature): string => $feature['properties']['project_key'],
+            $versioned['features'],
+        ));
+        foreach ($versioned['features'] as $feature) {
+            $this->assertIsFloat($feature['properties']['distance_km']);
+        }
+    }
+
+    public function test_versioned_marketplaces_exact_centroid_zero_distance_is_numeric(): void
+    {
+        $legacy = $this->decodeGeojson($this->marketplaces('/api/get-marketplaces?lat=1.5&lon=1.5'));
+        $versioned = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces?lat=1.5&lon=1.5'));
+
+        $this->assertSame($legacy, $versioned);
+        $distance = $this->featureById($versioned, 3)['properties']['distance_km'];
+
+        $this->assertIsInt($distance);
+        $this->assertSame(0, $distance);
+        $this->assertNotSame('0', $distance);
+    }
+
+    public function test_versioned_marketplaces_active_coordinates_with_missing_geometry_match_legacy(): void
+    {
+        Schema::getConnection()->table('default_projects_project')->where('id', 3)->update([
+            'project_shape_id' => null,
+        ]);
+
+        $this->assertSame('sqlite', Schema::getConnection()->getDriverName());
+        $legacy = $this->decodeGeojson($this->marketplaces('/api/get-marketplaces?lat=1&lon=1'));
+        $versioned = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces?lat=1&lon=1'));
+
+        $this->assertSame($legacy, $versioned);
+        $missingGeometry = $this->featureById($versioned, 3);
+        $this->assertNull($missingGeometry['geometry']);
+        $this->assertSame('0', $missingGeometry['properties']['distance_km']);
+    }
+
+    #[DataProvider('invalidCoordinateQueryProvider')]
+    public function test_versioned_marketplaces_coordinate_400_envelopes_match_legacy(string $query, string $message): void
+    {
+        $expected = [
+            'success' => false,
+            'message' => [$message],
+            'error_code' => 400,
+        ];
+
+        $legacy = $this->getJson('/api/get-marketplaces'.$query)->assertStatus(400)->json();
+        $versioned = $this->getJson('/api/v1/projects/marketplaces'.$query)->assertStatus(400)->json();
+
+        $this->assertSame($expected, $legacy);
         $this->assertSame($legacy, $versioned);
     }
 
-    public function test_marketplaces_coordinates_sort_by_distance_and_return_numeric_distance(): void
+    /**
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function invalidCoordinateQueryProvider(): array
     {
-        $response = $this->getJson('/api/get-marketplaces?lat=1&lon=1')
-            ->assertOk()
-            ->json();
-
-        $geojson = json_decode($response['data']['geojson'], true);
-
-        $this->assertSame('project-equator', $geojson['features'][0]['properties']['project_key']);
-        $this->assertSame('project-istanbul', $geojson['features'][1]['properties']['project_key']);
-        $this->assertIsFloat($geojson['features'][0]['properties']['distance_km']);
+        return [
+            'non numeric longitude' => [
+                '?lat=1&lon=not-a-number',
+                "'lat' and 'lon' must be numeric coordinates.",
+            ],
+            'non numeric latitude' => [
+                '?lat=not-a-number&lon=1',
+                "'lat' and 'lon' must be numeric coordinates.",
+            ],
+            'latitude above range' => [
+                '?lat=91&lon=1',
+                "'lat' and 'lon' must be valid coordinates.",
+            ],
+            'longitude above range' => [
+                '?lat=1&lon=181',
+                "'lat' and 'lon' must be valid coordinates.",
+            ],
+            'latitude below range' => [
+                '?lat=-91&lon=1',
+                "'lat' and 'lon' must be valid coordinates.",
+            ],
+            'longitude below range' => [
+                '?lat=1&lon=-181',
+                "'lat' and 'lon' must be valid coordinates.",
+            ],
+        ];
     }
 
-    public function test_zero_coordinates_preserve_legacy_empty_parameter_behavior(): void
+    public function test_versioned_marketplaces_empty_features_are_null(): void
     {
-        $response = $this->getJson('/api/get-marketplaces?lat=0&lon=0')
-            ->assertOk()
-            ->json();
+        Schema::getConnection()->table('default_projects_project')->update([
+            'is_marketplace' => false,
+        ]);
 
-        $geojson = json_decode($response['data']['geojson'], true);
+        $geojson = $this->decodeGeojson($this->marketplaces('/api/v1/projects/marketplaces'));
 
-        $this->assertSame('project-istanbul', $geojson['features'][0]['properties']['project_key']);
-        $this->assertSame('0', $geojson['features'][0]['properties']['distance_km']);
+        $this->assertSame(['type', 'features'], array_keys($geojson));
+        $this->assertSame('FeatureCollection', $geojson['type']);
+        $this->assertNull($geojson['features']);
     }
 
-    public function test_marketplaces_rejects_invalid_active_coordinates_before_sql(): void
+    /**
+     * @return array<string, mixed>
+     */
+    private function marketplaces(string $path): array
     {
-        $this->getJson('/api/get-marketplaces?lat=1&lon=not-a-number')
-            ->assertStatus(400)
-            ->assertExactJson([
-                'success' => false,
-                'message' => ["'lat' and 'lon' must be numeric coordinates."],
-                'error_code' => 400,
-            ]);
+        return $this->getJson($path)->assertOk()->json();
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     * @return array<string, mixed>
+     */
+    private function decodeGeojson(array $response): array
+    {
+        $this->assertIsString($response['data']['geojson']);
+        $decoded = json_decode($response['data']['geojson'], true);
+
+        $this->assertSame(JSON_ERROR_NONE, json_last_error(), json_last_error_msg());
+        $this->assertIsArray($decoded);
+
+        return $decoded;
+    }
+
+    /**
+     * @param  array<string, mixed>  $geojson
+     * @return array<string, mixed>
+     */
+    private function featureById(array $geojson, int $id): array
+    {
+        foreach ($geojson['features'] as $feature) {
+            if ($feature['properties']['id'] === $id) {
+                return $feature;
+            }
+        }
+
+        $this->fail("Marketplace feature {$id} was not found.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $feature
+     */
+    private function assertMarketplaceFeature(array $feature): void
+    {
+        $this->assertSame(['type', 'properties', 'geometry'], array_keys($feature));
+        $this->assertSame('Feature', $feature['type']);
+        $this->assertSame([
+            'marketplace_name',
+            'marketplace_description',
+            'id',
+            'project_key',
+            'organization_key',
+            'created_at',
+            'owner',
+            'project_camera_type',
+            'distance_km',
+        ], array_keys($feature['properties']));
+        $this->assertIsInt($feature['properties']['id']);
+
+        foreach ([
+            'marketplace_name',
+            'marketplace_description',
+            'project_key',
+            'organization_key',
+            'created_at',
+            'owner',
+            'project_camera_type',
+        ] as $field) {
+            $this->assertTrue($feature['properties'][$field] === null || is_string($feature['properties'][$field]));
+        }
+
+        $this->assertTrue($feature['geometry'] === null || is_array($feature['geometry']));
+        $this->assertTrue(
+            $feature['properties']['distance_km'] === null
+                || $feature['properties']['distance_km'] === '0'
+                || is_int($feature['properties']['distance_km'])
+                || is_float($feature['properties']['distance_km']),
+        );
     }
 }
