@@ -1458,6 +1458,162 @@
         }
       }
     },
+    "/api/v1/imagery/user-upload-details": {
+      "get": {
+        "operationId": "getUserUploadDetails",
+        "tags": ["Imagery reads"],
+        "summary": "Read a contributor's uploaded imagery details",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/user-uploads-detail-v2` with exact legacy JSON parity. The required nested scalar query values are `options[parameters][user_id]` and `options[parameters][group_key]`; missing `user_id` is reported before `group_key`. `user_id` must pass PHP `is_numeric`, is integer-cast with decimals truncated, and the result must be greater than zero. `group_key` rejects only null and the empty string, then scalar-casts to a string. `options[limit]` defaults to 15, is integer-cast, and is clamped to a minimum of 1 with no maximum; `page` defaults to 1, is integer-cast, and is clamped to a minimum of 1. Arrays, overflow, generic database failures, and invalid stored timestamps are outside this contract. Rows are selected from non-anomalous imagery joined to the requested group, ordered ascending by `imagery.id`, and contain exactly the documented eleven fields; there are no image URL, geometry, GeoJSON, organization, or project fields. `created_at` is formatted as a six-digit UTC ISO timestamp and `capture_time` as `Y-m-d H:i:s`, with nullable values preserved. A populated result is `{data: [...], pagination: {...}}`; an empty or out-of-range page is exactly `{data: null}`. Pagination is the legacy shape with `path` `/api/user-uploads-detail-v2`, `per_page` equal to the effective limit, and every URL built by re-encoding Laravel's parsed query keys with PHP `http_build_query` after overwriting `page`; nested `options` keys are serialized together before later top-level keys. The links contain Previous, a legacy bounded numeric/ellipsis window, and Next. Runtime bounds and performance, database indexes, duplicate joins, privacy/auth policy, clients and migration, and external services are outside this contract. There is no endpoint authentication, endpoint-specific response cache, or ETag.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "options[parameters][user_id]",
+            "in": "query",
+            "required": true,
+            "description": "Required numeric scalar contributor id. PHP `is_numeric` is applied before integer-casting; decimal values are accepted and truncated, and the cast result must be greater than zero. Missing, non-numeric, zero, and negative values use the exact `user_id` 400 envelope.",
+            "schema": {"type": ["number", "string"], "minimum": 1},
+            "example": 10
+          },
+          {
+            "name": "options[parameters][group_key]",
+            "in": "query",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "Required scalar group key. Only null and the empty string are rejected; other scalar values are string-cast by PHP. Missing or empty values use the exact `group_key` 400 envelope.",
+            "schema": {"type": ["string", "number", "boolean"]},
+            "example": "group-new"
+          },
+          {
+            "name": "options[limit]",
+            "in": "query",
+            "required": false,
+            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 15 and there is no maximum. Arrays, overflow, and other exceptional behavior are outside this contract.",
+            "schema": {"type": ["number", "string"], "default": 15},
+            "example": 2
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 1. Arrays, overflow, and other exceptional behavior are outside this contract.",
+            "schema": {"type": ["number", "string"], "default": 1},
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible populated detail response or the exact `{data: null}` empty/out-of-range response.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/UserUploadDetailsResponse"},
+                "examples": {
+                  "pageWithRows": {
+                    "summary": "Synthetic populated detail page",
+                    "value": {
+                      "data": [
+                        {
+                          "filename": "synthetic-first.jpeg",
+                          "last_status": "completed",
+                          "sequence_uuid": "sequence-synthetic-a",
+                          "id": 101,
+                          "img_code": "synthetic-hash-a",
+                          "latitude": "41.073179701381",
+                          "longitude": "-81.517028929742",
+                          "heading": 200.0390625,
+                          "created_by_id": 10,
+                          "created_at": "2026-07-07T19:46:30.000000Z",
+                          "capture_time": "2026-05-08 17:09:11"
+                        },
+                        {
+                          "filename": null,
+                          "last_status": null,
+                          "sequence_uuid": "sequence-synthetic-b",
+                          "id": 102,
+                          "img_code": null,
+                          "latitude": null,
+                          "longitude": null,
+                          "heading": null,
+                          "created_by_id": null,
+                          "created_at": null,
+                          "capture_time": null
+                        }
+                      ],
+                      "pagination": {
+                        "current_page": 1,
+                        "first_page_url": "/api/user-uploads-detail-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Bparameters%5D%5Bgroup_key%5D=group-new&options%5Blimit%5D=2&options%5Bextra%5D%5Bflag%5D=x&ignored=hello+world&page=1",
+                        "from": 1,
+                        "last_page": 1,
+                        "last_page_url": "/api/user-uploads-detail-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Bparameters%5D%5Bgroup_key%5D=group-new&options%5Blimit%5D=2&options%5Bextra%5D%5Bflag%5D=x&ignored=hello+world&page=1",
+                        "links": [
+                          {"url": null, "label": "&laquo; Previous", "active": false},
+                          {"url": "/api/user-uploads-detail-v2?options%5Bparameters%5D%5Buser_id%5D=10&options%5Bparameters%5D%5Bgroup_key%5D=group-new&options%5Blimit%5D=2&options%5Bextra%5D%5Bflag%5D=x&ignored=hello+world&page=1", "label": "1", "active": true},
+                          {"url": null, "label": "Next &raquo;", "active": false}
+                        ],
+                        "next_page_url": null,
+                        "path": "/api/user-uploads-detail-v2",
+                        "per_page": 2,
+                        "prev_page_url": null,
+                        "to": 2,
+                        "total": 2
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {"data": null}
+                  },
+                  "outOfRange": {
+                    "summary": "Synthetic out-of-range result",
+                    "value": {"data": null}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The exact legacy required-parameter error. Missing `user_id` takes precedence over missing `group_key`; the response always includes `success`, a one-element `message` array, and `error_code: 400`.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/UserUploadDetailsValidationError"},
+                "examples": {
+                  "missingUserId": {
+                    "summary": "Missing user id",
+                    "value": {"success": false, "message": ["'user_id' is required!"], "error_code": 400}
+                  },
+                  "missingGroupKey": {
+                    "summary": "Missing group key",
+                    "value": {"success": false, "message": ["'group_key' is required!"], "error_code": 400}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {"success": false, "message": ["Too many requests."], "error_code": 429}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/jobs/mine": {
       "get": {
         "operationId": "getMobileProjectJobs",
@@ -2975,6 +3131,87 @@
               "user_id": {"type": "array", "items": {"const": "The user_id field is required."}}
             }
           }
+        }
+      },
+      "UserUploadDetailsRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["filename", "last_status", "sequence_uuid", "id", "img_code", "latitude", "longitude", "heading", "created_by_id", "created_at", "capture_time"],
+        "properties": {
+          "filename": {"type": ["string", "null"]},
+          "last_status": {"type": ["string", "null"]},
+          "sequence_uuid": {"type": ["string", "null"]},
+          "id": {"type": "integer", "format": "int64"},
+          "img_code": {"type": ["string", "null"]},
+          "latitude": {"type": ["string", "null"]},
+          "longitude": {"type": ["string", "null"]},
+          "heading": {"type": ["number", "null"]},
+          "created_by_id": {"type": ["integer", "null"], "format": "int64"},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "capture_time": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"}
+        }
+      },
+      "UserUploadDetailsPaginationLink": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "label", "active"],
+        "properties": {
+          "url": {"type": ["string", "null"]},
+          "label": {"type": "string"},
+          "active": {"type": "boolean"}
+        }
+      },
+      "UserUploadDetailsPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "first_page_url", "from", "last_page", "last_page_url", "links", "next_page_url", "path", "per_page", "prev_page_url", "to", "total"],
+        "properties": {
+          "current_page": {"type": "integer", "minimum": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": "integer", "minimum": 1},
+          "last_page": {"type": "integer", "minimum": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/UserUploadDetailsPaginationLink"}},
+          "next_page_url": {"type": ["string", "null"]},
+          "path": {"type": "string", "const": "/api/user-uploads-detail-v2"},
+          "per_page": {"type": "integer", "minimum": 1},
+          "prev_page_url": {"type": ["string", "null"]},
+          "to": {"type": "integer", "minimum": 1},
+          "total": {"type": "integer", "minimum": 1}
+        }
+      },
+      "UserUploadDetailsResponse": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["data", "pagination"],
+            "properties": {
+              "data": {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/UserUploadDetailsRow"}},
+              "pagination": {"$ref": "#/components/schemas/UserUploadDetailsPagination"}
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["data"],
+            "properties": {"data": {"type": "null"}}
+          }
+        ]
+      },
+      "UserUploadDetailsValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"oneOf": [{"const": "'user_id' is required!"}, {"const": "'group_key' is required!"}]}
+          },
+          "error_code": {"const": 400}
         }
       },
       "MobileProjectJobUserDetail": {
