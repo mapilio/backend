@@ -18,7 +18,13 @@ class ValidatePredictionCallbackReceipt
         }
 
         try {
-            if (AiPredictionCallbackReceiptRow::processingStatusFromDatabaseRow($receipt) !== 'received') {
+            $processingStatus = AiPredictionCallbackReceiptRow::processingStatusFromDatabaseRow($receipt);
+
+            if ($processingStatus === 'validated') {
+                return true;
+            }
+
+            if ($processingStatus !== 'received') {
                 return false;
             }
 
