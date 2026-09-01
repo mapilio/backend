@@ -195,6 +195,30 @@ class MarketplaceCompatibilityTest extends TestCase
         }
     }
 
+    public function test_marketplaces_substitute_invalid_utf8_in_geojson(): void
+    {
+        $description = "Before \xC3\x28 after";
+
+        Schema::getConnection()->table('default_projects_project')->where('id', 2)->update([
+            'marketplace_description' => $description,
+        ]);
+
+        $response = $this->getJson('/api/get-marketplaces')
+            ->assertOk()
+            ->json();
+        $geojson = $response['data']['geojson'];
+
+        $this->assertNotSame('', $geojson);
+
+        $decoded = json_decode($geojson, true);
+
+        $this->assertSame(JSON_ERROR_NONE, json_last_error(), json_last_error_msg());
+        $this->assertSame(
+            "Before \xEF\xBF\xBD( after",
+            $decoded['features'][0]['properties']['marketplace_description'],
+        );
+    }
+
     public function test_versioned_marketplaces_alias_returns_same_contract(): void
     {
         $legacy = $this->getJson('/api/get-marketplaces')

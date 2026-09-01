@@ -128,7 +128,7 @@ FROM
         return json_encode([
             'type' => 'FeatureCollection',
             'features' => $features === [] ? null : $features,
-        ], JSON_UNESCAPED_SLASHES);
+        ], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     /**
