@@ -905,6 +905,124 @@
         }
       }
     },
+    "/api/v1/projects/marketplaces": {
+      "get": {
+        "operationId": "getProjectMarketplaces",
+        "tags": ["Public content"],
+        "summary": "Read public marketplace projects",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/get-marketplaces` without changing the legacy response contract. The response is exactly `{data: {geojson: string}}`; `data.geojson` is a JSON-encoded string containing a GeoJSON FeatureCollection, not an object. Optional `lat` and `lon` query values are inspected with the legacy filled rules: coordinate validation and distance sorting activate only when both values are filled. A missing value, empty string, or exact query string `\"0\"` on either coordinate disables validation and sorting and emits `distance_km` as the string \"0\". Other filled query strings enter the active branch and must be numeric; active latitude must be in [-90, 90] and longitude in [-180, 180]. Numeric-distance rows are ordered ascending when available, but a missing-distance value and its placement are database-dependent: PostgreSQL can emit null when geometry is missing, while the portable path can retain the string \"0\" when geometry or its centroid is missing. The decoded inner object has `type: \"FeatureCollection\"` and `features` as an array or null when empty. Feature and property key order is part of the legacy JSON output; default PostgreSQL row ordering is not guaranteed. Text fields preserve nullable runtime output, `id` is an integer, and geometry is an object or null. No pagination metadata, response cache, or ETag is part of this contract. The optional global API limiter may return the documented 429 response when deployment-configurable enforcement is enabled; production enforcement is not asserted by this contract.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional legacy latitude query string. It participates in validation and distance sorting only when both lat and lon are legacy-filled; a missing value, empty string, or exact string \"0\" disables the coordinate branch.",
+            "schema": {"type": "string"},
+            "example": "41"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional legacy longitude query string. It participates in validation and distance sorting only when both lon and lat are legacy-filled; a missing value, empty string, or exact string \"0\" disables the coordinate branch.",
+            "schema": {"type": "string"},
+            "example": "29"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible marketplace envelope. The geojson member is a JSON-encoded FeatureCollection string.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MarketplaceResponse"},
+                "examples": {
+                  "default": {
+                    "summary": "Synthetic default response",
+                    "value": {
+                      "data": {
+                        "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"marketplace_name\":\"Synthetic Market\",\"marketplace_description\":\"Synthetic description\",\"id\":701,\"project_key\":\"synthetic-project\",\"organization_key\":\"synthetic-org\",\"created_at\":\"2026-07-01T10:11:12\",\"owner\":\"Synthetic Owner\",\"project_camera_type\":\"phone\",\"distance_km\":\"0\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[29,41],[30,41],[30,42],[29,42],[29,41]]]}}]}"
+                      }
+                    }
+                  },
+                  "coordinates": {
+                    "summary": "Synthetic coordinate-sorted response",
+                    "value": {
+                      "data": {
+                        "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"marketplace_name\":\"Nearest Synthetic Market\",\"marketplace_description\":null,\"id\":702,\"project_key\":\"synthetic-near\",\"organization_key\":\"synthetic-org\",\"created_at\":null,\"owner\":null,\"project_camera_type\":null,\"distance_km\":12.5},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[29,41],[29.1,41],[29.1,41.1],[29,41.1],[29,41]]]}},{\"type\":\"Feature\",\"properties\":{\"marketplace_name\":null,\"marketplace_description\":\"Synthetic missing geometry\",\"id\":703,\"project_key\":null,\"organization_key\":null,\"created_at\":\"2026-07-02T11:12:13\",\"owner\":\"Synthetic Owner\",\"project_camera_type\":\"dashcam\",\"distance_km\":null},\"geometry\":null}]}"
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty response",
+                    "value": {
+                      "data": {
+                        "geojson": "{\"type\":\"FeatureCollection\",\"features\":null}"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Both coordinates were legacy-filled, but a coordinate was non-numeric or outside the runtime latitude/longitude ranges.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MarketplaceCoordinateError"},
+                "examples": {
+                  "non-numeric": {
+                    "summary": "Synthetic non-numeric coordinate error",
+                    "value": {
+                      "success": false,
+                      "message": ["'lat' and 'lon' must be numeric coordinates."],
+                      "error_code": 400
+                    }
+                  },
+                  "out-of-range": {
+                    "summary": "Synthetic out-of-range coordinate error",
+                    "value": {
+                      "success": false,
+                      "message": ["'lat' and 'lon' must be valid coordinates."],
+                      "error_code": 400
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response body wording is stable in the current middleware and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations/leaderboard": {
       "get": {
         "operationId": "getOrganizationLeaderboard",
@@ -2445,6 +2563,96 @@
           "total_length": {"type": "string", "description": "Rounded total length in kilometers serialized with two decimal places."},
           "total_images": {"type": "integer", "format": "int64", "minimum": 0},
           "roles": {"type": ["string", "null"], "description": "Legacy PostgreSQL-array-compatible role string, or null when no public role is present."}
+        }
+      },
+      "MarketplaceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["geojson"],
+            "properties": {
+              "geojson": {
+                "type": "string",
+                "description": "A JSON-encoded GeoJSON FeatureCollection string, not a nested JSON object.",
+                "contentMediaType": "application/json",
+                "contentSchema": {"$ref": "#/components/schemas/MarketplaceFeatureCollection"}
+              }
+            }
+          }
+        }
+      },
+      "MarketplaceFeatureCollection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "features"],
+        "properties": {
+          "type": {"const": "FeatureCollection"},
+          "features": {
+            "type": ["array", "null"],
+            "items": {"$ref": "#/components/schemas/MarketplaceFeature"},
+            "description": "Marketplace features, or null when no marketplace rows are returned."
+          }
+        }
+      },
+      "MarketplaceFeature": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "properties", "geometry"],
+        "properties": {
+          "type": {"const": "Feature"},
+          "properties": {"$ref": "#/components/schemas/MarketplaceProperties"},
+          "geometry": {"$ref": "#/components/schemas/MarketplaceGeometry"}
+        }
+      },
+      "MarketplaceProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["marketplace_name", "marketplace_description", "id", "project_key", "organization_key", "created_at", "owner", "project_camera_type", "distance_km"],
+        "properties": {
+          "marketplace_name": {"type": ["string", "null"]},
+          "marketplace_description": {"type": ["string", "null"]},
+          "id": {"type": "integer", "format": "int64"},
+          "project_key": {"type": ["string", "null"]},
+          "organization_key": {"type": ["string", "null"]},
+          "created_at": {"type": ["string", "null"], "description": "ISO-like timestamp string after legacy formatting, or null when absent or malformed."},
+          "owner": {"type": ["string", "null"]},
+          "project_camera_type": {"type": ["string", "null"]},
+          "distance_km": {
+            "oneOf": [
+              {"const": "0"},
+              {"type": "number"},
+              {"type": "null"}
+            ],
+            "description": "The string \"0\" when coordinates are inactive or when the portable path has no geometry/centroid, a numeric distance when available, or null when PostgreSQL cannot compute a distance because geometry is missing."
+          }
+        }
+      },
+      "MarketplaceGeometry": {
+        "type": ["object", "null"],
+        "description": "The decoded shape geometry object, or null when no geometry is available."
+      },
+      "MarketplaceCoordinateError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "oneOf": [
+                {"const": "'lat' and 'lon' must be numeric coordinates."},
+                {"const": "'lat' and 'lon' must be valid coordinates."}
+              ]
+            }
+          },
+          "error_code": {"const": 400}
         }
       },
       "OrganizationLeaderboardResponse": {
