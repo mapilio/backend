@@ -6,8 +6,9 @@
 ## Context
 
 The legacy UKM scoring action, AI prediction dispatch action, mobile profile
-query, and imagery upload actions probe optional legacy tables and columns while
-handling schemas that differ during migration. Repeated `hasTable` and
+query, imagery upload actions, and address-enrichment action probe optional
+legacy tables and columns while handling schemas that differ during migration.
+Repeated `hasTable` and
 `hasColumn` calls can repeat database metadata work in a single request or
 queue-job lifecycle. The useful boundary is deliberately small: this decision
 covers those callers and their existing fail-closed or fallback checks.
@@ -78,9 +79,16 @@ connection, so application SQL is not part of that count. Upload response,
 validation, transaction, idempotency, geometry, score calculations,
 missing-column behavior, and queued jobs remain unchanged.
 
-Marketplace and one-shot schema probes remain open and are outside this
-verification boundary. The measured test slice does not make a production
-latency claim or establish deploy-time schema completion.
+Address enrichment now uses the already-resolved legacy connection name with
+one scoped filterExistingColumns call. The found path previously performed
+four direct optional-column checks; not-found and error paths performed three.
+The found-address test measures one scoped table-plus-column snapshot as exactly
+three SQLite metadata statements in this locked framework version:
+sqlite-master, column-listing, sqlite-master. This is a test measurement, not
+a production-latency or deploy-time-completion claim.
+
+Marketplace, one-shot, and different-table schema probes remain open and are
+outside this verification boundary.
 
 ## Alternatives And Consequences
 

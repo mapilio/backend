@@ -3,11 +3,11 @@
 namespace App\Domain\ImagerySequences\Actions;
 
 use App\Support\Database\LegacyDatabase;
+use App\Support\Database\LegacySchemaCapabilities;
 use Illuminate\Database\Connection;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -18,6 +18,8 @@ class ResolveSequenceAddress
     private const STATUS_NOT_FOUND = 2;
 
     private const STATUS_ERROR = 3;
+
+    public function __construct(private readonly LegacySchemaCapabilities $schemaCapabilities) {}
 
     /**
      * @return array{resolved: bool, status: string, address: string|null, attempts: int}
@@ -244,7 +246,11 @@ class ResolveSequenceAddress
      */
     private function updateSequence(Connection $connection, string $sequenceUuid, array $values): void
     {
-        $values = $this->onlyExistingColumns('default_mapilio_sequence_detail', $values);
+        $values = $this->schemaCapabilities->filterExistingColumns(
+            'default_mapilio_sequence_detail',
+            $values,
+            $connection->getName(),
+        );
 
         if ($values === []) {
             return;
@@ -254,21 +260,6 @@ class ResolveSequenceAddress
             ->where('sequence_uuid', $sequenceUuid)
             ->whereNull('deleted_at')
             ->update($values);
-    }
-
-    /**
-     * @param  array<string, mixed>  $values
-     * @return array<string, mixed>
-     */
-    private function onlyExistingColumns(string $table, array $values): array
-    {
-        $schema = Schema::connection(config('mapilio.legacy_database_connection'));
-
-        return array_filter(
-            $values,
-            static fn (string $column): bool => $schema->hasColumn($table, $column),
-            ARRAY_FILTER_USE_KEY,
-        );
     }
 
     private function normalizeAddress(mixed $value): ?string
