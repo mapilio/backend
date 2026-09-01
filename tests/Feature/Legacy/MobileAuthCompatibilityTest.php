@@ -87,6 +87,30 @@ class MobileAuthCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_unknown_mobile_accounts_use_the_dummy_hash_once_on_both_legacy_routes(): void
+    {
+        $dummyHash = (string) config('mapilio.mobile_auth.dummy_password_hash');
+        Hash::shouldReceive('check')
+            ->twice()
+            ->with('wrong-password', $dummyHash)
+            ->andReturn(false);
+
+        foreach (['/api/v2/login', '/api/v1/mobile/auth/token'] as $path) {
+            $this->postJson($path, [
+                'grant_type' => 'password',
+                'client_id' => 'mobile-client',
+                'client_secret' => 'mobile-secret',
+                'email' => 'unknown@example.test',
+                'password' => 'wrong-password',
+            ])
+                ->assertStatus(400)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ['Email or password is invalid.'],
+                ]);
+        }
+    }
+
     public function test_mobile_password_grant_preserves_inactive_account_failure(): void
     {
         $this->postJson('/api/v2/login', [

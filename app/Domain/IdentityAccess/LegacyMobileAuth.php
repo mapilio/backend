@@ -61,8 +61,14 @@ class LegacyMobileAuth
         }
 
         $user = $this->findUserForLogin($login);
+        $passwordMatches = Hash::check(
+            $password,
+            $user === null
+                ? (string) config('mapilio.mobile_auth.dummy_password_hash')
+                : (string) $user->password,
+        );
 
-        if ($user === null || ! Hash::check($password, (string) $user->password)) {
+        if ($user === null || ! $passwordMatches) {
             throw LegacyMobileAuthException::invalidCredentials();
         }
 

@@ -314,6 +314,10 @@ return [
         'client_id' => env('MAPILIO_MOBILE_AUTH_CLIENT_ID'),
         'client_secret' => env('MAPILIO_MOBILE_AUTH_CLIENT_SECRET'),
         'signing_key' => env('MAPILIO_MOBILE_AUTH_SIGNING_KEY', env('APP_KEY')),
+        'dummy_password_hash' => env(
+            'MAPILIO_MOBILE_AUTH_DUMMY_PASSWORD_HASH',
+            '$2y$12$WXu0SSlB4MCCCryiMhx9Wu/kOMC.uJ2Qg1LRJbsk21Mb1TPygwcJ2',
+        ),
 
         /*
          * Set during a signing-key rotation. Tokens are always signed with the

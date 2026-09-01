@@ -6,7 +6,9 @@ use App\Domain\DataMigration\JsonPublisher;
 use App\Domain\DataMigration\PrivateJsonPublisher;
 use App\Support\Queue\QueueRuntimeConfiguration;
 use App\Support\Queue\QueueWorkerPoolConfiguration;
+use App\Support\Security\MobileAuthPasswordTimingConfiguration;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        MobileAuthPasswordTimingConfiguration::assertSafe(
+            config('mapilio.mobile_auth.dummy_password_hash'),
+            $this->app->make(Hasher::class),
+        );
         QueueRuntimeConfiguration::assertSafe(
             config('queue.default'),
             config('queue.connections'),

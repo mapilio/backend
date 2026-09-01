@@ -109,6 +109,26 @@ class WebAuthApiTest extends TestCase
             ]);
     }
 
+    public function test_unknown_web_accounts_use_the_dummy_hash_once(): void
+    {
+        $dummyHash = (string) config('mapilio.mobile_auth.dummy_password_hash');
+        Hash::shouldReceive('check')
+            ->once()
+            ->with('wrong-password', $dummyHash)
+            ->andReturn(false);
+
+        $this->postJson('/api/v1/web/auth/token', [
+            'grant_type' => 'password',
+            'email' => 'unknown@example.test',
+            'password' => 'wrong-password',
+        ])
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Email or password is invalid.'],
+            ]);
+    }
+
     public function test_web_auth_validates_and_bounds_the_public_request(): void
     {
         $this->postJson('/api/v1/web/auth/token', [])

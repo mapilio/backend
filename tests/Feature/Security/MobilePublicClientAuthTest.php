@@ -105,7 +105,44 @@ class MobilePublicClientAuthTest extends TestCase
             'password' => 'wrong-password',
         ])
             ->assertStatus(400)
-            ->assertJsonPath('success', false);
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Email or password is invalid.'],
+            ]);
+    }
+
+    public function test_unknown_public_client_accounts_use_the_dummy_hash_once(): void
+    {
+        $dummyHash = (string) config('mapilio.mobile_auth.dummy_password_hash');
+        Hash::shouldReceive('check')
+            ->once()
+            ->with('wrong-password', $dummyHash)
+            ->andReturn(false);
+
+        $this->postJson('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'email' => 'unknown@example.test',
+            'password' => 'wrong-password',
+        ])
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Email or password is invalid.'],
+            ]);
+    }
+
+    public function test_matching_dummy_plaintext_cannot_authenticate_an_unknown_account(): void
+    {
+        $this->postJson('/api/v1/mobile/auth/public-token', [
+            'grant_type' => 'password',
+            'email' => 'unknown@example.test',
+            'password' => 'mapilio-mobile-auth-dummy',
+        ])
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Email or password is invalid.'],
+            ]);
     }
 
     public function test_legacy_client_credential_login_is_unchanged(): void
