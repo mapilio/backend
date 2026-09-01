@@ -58,6 +58,7 @@
 - [0035: Validated queue worker pools](architecture/0035-validated-queue-worker-pools.md)
 - [0036: Reviewed linear main](architecture/0036-reviewed-linear-main.md)
 - [0037: Mobile account lifecycle](architecture/0037-mobile-account-lifecycle.md)
+- [0038: Short-lived leaderboard and country aggregate cache](architecture/0038-short-lived-public-aggregate-cache.md)
 
 ## Database
 

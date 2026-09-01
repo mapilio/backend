@@ -29,6 +29,14 @@ Two controls are active as soon as the code is deployed and need no flag:
 Both were sized well above observed real usage. The upload ceiling is roughly
 2.7x the largest sequence seen in production (18,824 images).
 
+The short-lived cache for unfiltered public leaderboards and country counts is
+also active by default. It uses `MAPILIO_PUBLIC_AGGREGATE_CACHE_ENABLED=true`,
+with a 60-second fresh window, a 300-second stale-through age, and a 10-second
+refresh lock. To roll back, set the flag to `false`, rebuild Laravel's config
+cache, and reload PHP-FPM and other application workers. An environment edit
+alone does not affect configuration already loaded by running workers. Cached
+values do not need to be deleted because disabled workers bypass them.
+
 ## Step 0 — before enabling anything
 
 - [ ] **Restricted:** confirm `MAPILIO_TRUSTED_PROXIES` contains the real edge
@@ -128,6 +136,8 @@ These are tracked as issues and are not part of this sequence:
   the request logging from step 1
 - `statement_timeout` on runtime connections (`#52`) — needs the latency
   measurements from step 1
-- Caching for the leaderboard and marketplace aggregations (`#50`)
+- Issue `#50` — the bounded unfiltered leaderboard and country-count slice is
+  implemented; organization, marketplace, and filtered leaderboard caching
+  remain deferred pending payload-size, cardinality, and usage evidence.
 - Backup and restore evidence, which `mapilio:verify-backup-readiness` gates but
   cannot itself produce
