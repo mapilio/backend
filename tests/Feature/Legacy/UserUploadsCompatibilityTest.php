@@ -75,9 +75,55 @@ class UserUploadsCompatibilityTest extends TestCase
 
         $this->getJson('/api/v1/imagery/user-uploads?options[parameters][user_id]=10&options[limit]=2&page=1')
             ->assertOk()
-            ->assertJsonPath('data.0.group_key', $legacy['data'][0]['group_key'])
-            ->assertJsonPath('data.0.total', $legacy['data'][0]['total'])
-            ->assertJsonPath('pagination.total', $legacy['pagination']['total']);
+            ->assertExactJson($legacy);
+    }
+
+    public function test_versioned_user_uploads_alias_preserves_scalar_query_coercion(): void
+    {
+        foreach ([
+            ['limit' => 'not-numeric', 'page' => '0'],
+            ['limit' => '0', 'page' => 'not-numeric'],
+        ] as $query) {
+            $this->getJson('/api/v1/imagery/user-uploads?options[parameters][user_id]=10.9&options[limit]='.$query['limit'].'&page='.$query['page'])
+                ->assertOk()
+                ->assertJsonPath('data.0.group_key', 'group-new')
+                ->assertJsonPath('pagination.per_page', 1)
+                ->assertJsonPath('pagination.current_page', 1);
+        }
+    }
+
+    public function test_versioned_user_uploads_alias_preserves_null_data_pages(): void
+    {
+        $this->getJson('/api/v1/imagery/user-uploads?options[parameters][user_id]=99&options[limit]=10&page=1')
+            ->assertOk()
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('pagination.path', '/api/user-uploads-v2')
+            ->assertJsonPath('pagination.total', 0)
+            ->assertJsonPath('pagination.from', null)
+            ->assertJsonPath('pagination.to', null);
+
+        $this->seedAdditionalGroups(8);
+
+        $this->getJson('/api/v1/imagery/user-uploads?options[parameters][user_id]=10&options[limit]=10&page=2')
+            ->assertOk()
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('pagination.path', '/api/user-uploads-v2')
+            ->assertJsonPath('pagination.total', 10)
+            ->assertJsonPath('pagination.last_page', 1)
+            ->assertJsonPath('pagination.from', null)
+            ->assertJsonPath('pagination.to', null);
+    }
+
+    public function test_versioned_user_uploads_alias_preserves_validation_error_shape(): void
+    {
+        $this->getJson('/api/v1/imagery/user-uploads')
+            ->assertStatus(400)
+            ->assertExactJson([
+                'success' => false,
+                'message' => [
+                    'user_id' => ['The user_id field is required.'],
+                ],
+            ]);
     }
 
     private function createTables(): void
