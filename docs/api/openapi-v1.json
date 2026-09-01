@@ -776,6 +776,82 @@
         }
       }
     },
+    "/api/v1/organizations/leaderboard": {
+      "get": {
+        "operationId": "getOrganizationLeaderboard",
+        "tags": ["Public content"],
+        "summary": "Read the public organization leaderboard",
+        "description": "Returns an unauthenticated, additive versioned alias of `GET /api/leaderboard-organization`. This operation consumes no query or path parameters. Unrelated query keys, including date, limit, pagination, and `score_version`-looking keys, are ignored; they do not alter the aggregate or bypass the shared cache. v1 uses sequence-point scoring version 1 and does not expose `score_version`. Legacy and versioned aliases share one score-versioned, configurable short-lived aggregate cache; disabling the cache bypasses existing cached values. The response is exactly `{data: {leaderboard: [...]}}`; an empty result is `{data: {leaderboard: []}}` and no pagination metadata is returned. Rows are ordered by point descending only; ties are unspecified. Row fields are emitted in this order: `organization_key`, `organization_name`, `point`, `total_length`, `total_images`. `organization_key` is a string, organization_name preserves string or null mapping, point and total_length are decimal strings when present, and total_images is an integer.",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The exact public organization leaderboard envelope. Point and total length values are decimal strings when present; nullable mapped values remain null.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/OrganizationLeaderboardResponse"},
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic organization leaderboard rows",
+                    "value": {
+                      "data": {
+                        "leaderboard": [
+                          {
+                            "organization_key": "org-synthetic-a",
+                            "organization_name": "Synthetic Mapping Collective",
+                            "point": "200",
+                            "total_length": "5.33",
+                            "total_images": 3
+                          },
+                          {
+                            "organization_key": "org-synthetic-b",
+                            "organization_name": null,
+                            "point": null,
+                            "total_length": null,
+                            "total_images": 0
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "empty": {
+                    "summary": "Synthetic empty result",
+                    "value": {"data": {"leaderboard": []}}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Whether enforcement is enabled is deployment-configurable and is not asserted for production by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imagery/user-uploads": {
       "get": {
         "operationId": "getUserUploads",
@@ -2206,6 +2282,36 @@
           "roles": {"type": ["string", "null"], "description": "Legacy PostgreSQL-array-compatible role string, or null when no public role is present."}
         }
       },
+      "OrganizationLeaderboardResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["leaderboard"],
+            "properties": {
+              "leaderboard": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/OrganizationLeaderboardRow"}
+              }
+            }
+          }
+        }
+      },
+      "OrganizationLeaderboardRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["organization_key", "organization_name", "point", "total_length", "total_images"],
+        "properties": {
+          "organization_key": {"type": "string"},
+          "organization_name": {"type": ["string", "null"]},
+          "point": {"type": ["string", "null"], "description": "Rounded sequence-point score serialized as a decimal string when present."},
+          "total_length": {"type": ["string", "null"], "description": "Rounded total length in kilometers serialized with two decimal places when present."},
+          "total_images": {"type": "integer", "format": "int64", "minimum": 0}
+        }
+      },
       "LeaderboardValidationError": {
         "type": "object",
         "additionalProperties": false,
@@ -2505,6 +2611,21 @@
           "success": {"const": false},
           "message": {"type": "array", "items": {"const": "Not Found"}},
           "error_code": {"const": 404}
+        }
+      },
+      "PublicRateLimitError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message", "error_code"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"const": "Too many requests."}
+          },
+          "error_code": {"const": 429}
         }
       },
       "AiPredictionCallbackRequest": {
