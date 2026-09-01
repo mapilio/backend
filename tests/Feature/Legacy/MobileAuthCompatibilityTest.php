@@ -350,6 +350,16 @@ class MobileAuthCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_onesignal_identity_verification_rejects_no_body_with_exact_failure(): void
+    {
+        $this->post('/api/v1/mobile/onesignal/identity-verification')
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+    }
+
     public function test_versioned_onesignal_identity_verification_hides_authenticated_email_failures(): void
     {
         $login = $this->postJson('/api/v2/login', [
@@ -379,6 +389,133 @@ class MobileAuthCompatibilityTest extends TestCase
                     'parameters' => [],
                 ],
             ])->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+    }
+
+    public function test_versioned_onesignal_identity_verification_accepts_equivalent_nested_form_request(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $this->withToken($login->json('access_token'))
+            ->post('/api/v1/mobile/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [
+                        'email' => 'alice@example.test',
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'status' => true,
+                'response' => [
+                    'hash' => hash_hmac('sha256', 'alice@example.test', 'onesignal-key'),
+                ],
+            ]);
+    }
+
+    public function test_versioned_onesignal_identity_verification_rejects_coerced_and_case_sensitive_email_values(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        foreach (['', false, 123, 'ALICE@example.test'] as $email) {
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/mobile/onesignal/identity-verification', [
+                    'options' => [
+                        'parameters' => [
+                            'email' => $email,
+                        ],
+                    ],
+                ])
+                ->assertStatus(401)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ['Verification failed.'],
+                ]);
+        }
+    }
+
+    public function test_versioned_onesignal_identity_verification_rejects_unactivated_disabled_and_deleted_bearers(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $payload = [
+            'options' => [
+                'parameters' => [
+                    'email' => 'alice@example.test',
+                ],
+            ],
+        ];
+
+        foreach ([
+            ['activated' => false],
+            ['activated' => true, 'enabled' => false],
+            ['activated' => true, 'enabled' => true, 'deleted_at' => '2026-01-03 00:00:00'],
+        ] as $state) {
+            Schema::getConnection()->table('default_users_users')->where('id', 10)->update($state);
+
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/mobile/onesignal/identity-verification', $payload)
+                ->assertStatus(401)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ['Verification failed.'],
+                ]);
+        }
+    }
+
+    public function test_versioned_onesignal_identity_verification_rejects_stale_bearer(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $stalePayload = rtrim(strtr(base64_encode(json_encode([
+            'sub' => 10,
+            'typ' => 'access',
+            'iat' => time() - 3601,
+            'exp' => time() - 1,
+            'jti' => 'synthetic-stale-mobile-token',
+        ], JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+        $staleToken = $stalePayload.'.'.hash_hmac(
+            'sha256',
+            $stalePayload,
+            (string) config('mapilio.mobile_auth.signing_key'),
+        );
+
+        $this->withToken($staleToken)
+            ->postJson('/api/v1/mobile/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [
+                        'email' => 'alice@example.test',
+                    ],
+                ],
+            ])
+            ->assertStatus(401)
             ->assertExactJson([
                 'success' => false,
                 'message' => ['Verification failed.'],

@@ -581,6 +581,91 @@
         }
       }
     },
+    "/api/v1/mobile/onesignal/identity-verification": {
+      "post": {
+        "operationId": "verifyMobileOneSignalIdentity",
+        "tags": ["Identity"],
+        "summary": "Verify a mobile OneSignal identity",
+        "description": "Verifies the submitted email against the active mobile bearer user and returns a locally generated HMAC-SHA256 identity hash. No request body is required: an omitted body is accepted and returns the documented 401 failure when no email is available. Maintained mobile callers send `multipart/form-data` with the field `options[parameters][email]`; the runtime also accepts the equivalent JSON object `{options:{parameters:{email}}}`. Bearer lookup is controller-owned and requires an active mobile user; the email comparison is exact and case-sensitive. The success hash is lowercase hexadecimal and is synthetic in these examples. The signing key is selected from server-side configuration, using the configured OneSignal key with the mobile signing key as fallback; no key value is accepted from or returned to the caller. This endpoint performs no outbound OneSignal request. Missing, empty, wrong, or non-string-coerced email values and missing, invalid, stale, deleted, unactivated, or disabled bearer credentials use the versioned route's configured 401 failure status and exact generic error envelope. This contract documents only the versioned route and does not claim exact failure-status parity with its legacy counterpart. No endpoint-specific throttle, response cache, ETag, or conditional request handling is part of this contract, and no 304 response is defined. The deployment-optional global API limiter may return the documented 429 response when enforcement is enabled; it is not an endpoint-specific limiter, and production enforcement and limits are not asserted by this contract.",
+        "security": [{"mobileBearer": []}],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/MobileOneSignalIdentityVerificationRequest"},
+              "example": {
+                "options": {
+                  "parameters": {
+                    "email": "mapper@example.test"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {"$ref": "#/components/schemas/MobileOneSignalIdentityVerificationMultipartRequest"},
+              "example": {
+                "options[parameters][email]": "mapper@example.test"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The email matched the active mobile bearer user and a synthetic local HMAC-SHA256 identity hash was returned.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileOneSignalIdentityVerificationResponse"},
+                "example": {
+                  "status": true,
+                  "response": {
+                    "hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The versioned route's configured generic failure response for missing, invalid, stale, deleted, unactivated, or disabled bearer credentials, or for missing, empty, wrong, or non-string-coerced email values. The exact legacy failure status is intentionally outside this versioned contract.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/MobileOneSignalIdentityVerificationError"},
+                "example": {
+                  "success": false,
+                  "message": ["Verification failed."]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The deployment-optional global API limiter rejected the request when enforcement is enabled. This is not an endpoint-specific limiter; enforcement and limits are deployment-configurable, and production enforcement is not asserted by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/mobile/account": {
       "delete": {
         "operationId": "deleteMobileAccount",
@@ -2854,6 +2939,62 @@
         "required": ["message"],
         "properties": {
           "message": {"const": "Unauthenticated."}
+        }
+      },
+      "MobileOneSignalIdentityVerificationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "email": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "MobileOneSignalIdentityVerificationMultipartRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "options[parameters][email]": {"type": "string"}
+        }
+      },
+      "MobileOneSignalIdentityVerificationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "response"],
+        "properties": {
+          "status": {"const": true},
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["hash"],
+            "properties": {
+              "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+            }
+          }
+        }
+      },
+      "MobileOneSignalIdentityVerificationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["success", "message"],
+        "properties": {
+          "success": {"const": false},
+          "message": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {"const": "Verification failed."}
+          }
         }
       },
       "MobileAccountDeleteRequest": {
