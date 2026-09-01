@@ -776,6 +776,135 @@
         }
       }
     },
+    "/api/v1/imagery/leaderboard-winner": {
+      "get": {
+        "operationId": "getImageryLeaderboardWinner",
+        "tags": ["Imagery reads"],
+        "summary": "Read the public imagery leaderboard winner status",
+        "description": "Returns an unauthenticated, additive v1 alias of `GET /api/leaderboard-winner`. The supported query inputs are optional `user_id`, `start_at`, and `finish_at`. `user_id` is a positive int64 value forwarded on calculated responses and restricts the calculated leaderboard with the same public user filter as `GET /api/v1/imagery/leaderboard`; it has no effect on flags-only responses. The challenge window is inspected only when both date values are PHP-non-empty. If either date value is missing or empty, the exact response is `{data: {is_finished: false, is_calculated: false}}` and no leaderboard key is present. With both date values parseable, `is_finished` is true exactly when finish_at is earlier than the current server time. A matching non-deleted challenge with exact start and finish dates controls `is_calculated`; a missing table, row, or value defaults to false. When is_calculated is false, leaderboard is omitted. When it is true, leaderboard is the sequence-point scoring version 1 result, limited to at most 3 rows and using the same public `LeaderboardRow` schema, fields, and scalar types as `GET /api/v1/imagery/leaderboard`; a calculated empty result always contains `leaderboard: []`, while `is_finished` remains the boolean determined by finish_at. User-bearing row fields are existing public compatibility output; examples use synthetic values. No pagination metadata, server-side response cache, or ETag is part of this contract. The optional global API limiter may return the documented 429 response when deployment-configurable enforcement is enabled; production enforcement is not asserted by this contract.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "description": "Optional positive contributor id forwarded on calculated responses. It uses the same public user filter as `GET /api/v1/imagery/leaderboard` and has no effect on flags-only responses.",
+            "schema": {"type": "integer", "format": "int64", "minimum": 1},
+            "example": 10
+          },
+          {
+            "name": "start_at",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional challenge-window start string. The challenge window is inspected only when this and finish_at are both PHP-non-empty.",
+            "schema": {"type": "string"},
+            "example": "2026-07-01"
+          },
+          {
+            "name": "finish_at",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional challenge-window finish string. The challenge window is inspected only when this and start_at are both PHP-non-empty.",
+            "schema": {"type": "string"},
+            "example": "2026-07-31"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The status-only or calculated public leaderboard-winner envelope. The conditional response shape is selected by the boolean data.is_calculated value.",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/LeaderboardWinnerResponse"},
+                "examples": {
+                  "flags-only": {
+                    "summary": "Missing or partial date window",
+                    "value": {"data": {"is_finished": false, "is_calculated": false}}
+                  },
+                  "flags-only-finished": {
+                    "summary": "Synthetic finished but uncalculated challenge",
+                    "value": {"data": {"is_finished": true, "is_calculated": false}}
+                  },
+                  "calculated-populated": {
+                    "summary": "Synthetic calculated winner rows",
+                    "value": {
+                      "data": {
+                        "is_finished": true,
+                        "is_calculated": true,
+                        "leaderboard": [
+                          {
+                            "id": 101,
+                            "username": "synthetic_one",
+                            "display_name": "Synthetic One",
+                            "user_profile_photo": null,
+                            "point": "350",
+                            "total_length": "2.00",
+                            "total_images": 4,
+                            "roles": "{user}"
+                          },
+                          {
+                            "id": 102,
+                            "username": "synthetic_two",
+                            "display_name": null,
+                            "user_profile_photo": "https://images.example/synthetic-two.jpg",
+                            "point": "200",
+                            "total_length": "9.67",
+                            "total_images": 3,
+                            "roles": null
+                          },
+                          {
+                            "id": 103,
+                            "username": null,
+                            "display_name": "Synthetic Three",
+                            "user_profile_photo": null,
+                            "point": "100",
+                            "total_length": "0.50",
+                            "total_images": 1,
+                            "roles": "{mapper}"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "calculated-empty": {
+                    "summary": "Synthetic calculated empty result",
+                    "value": {"data": {"is_finished": true, "is_calculated": true, "leaderboard": []}}
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional global API limiter rejected the request when enforcement is enabled. Whether enforcement is enabled is deployment-configurable and is not asserted for production by this contract.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {"type": "string", "pattern": "^[0-9]+$"}
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window, serialized as a decimal header value.",
+                "schema": {"const": "0"}
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRateLimitError"},
+                "example": {
+                  "success": false,
+                  "message": ["Too many requests."],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations/leaderboard": {
       "get": {
         "operationId": "getOrganizationLeaderboard",
@@ -2264,6 +2393,42 @@
                 "items": {"$ref": "#/components/schemas/LeaderboardRow"}
               }
             }
+          }
+        }
+      },
+      "LeaderboardWinnerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {"$ref": "#/components/schemas/LeaderboardWinnerFlags"},
+              {"$ref": "#/components/schemas/LeaderboardWinnerCalculated"}
+            ]
+          }
+        }
+      },
+      "LeaderboardWinnerFlags": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["is_finished", "is_calculated"],
+        "properties": {
+          "is_finished": {"type": "boolean"},
+          "is_calculated": {"const": false}
+        }
+      },
+      "LeaderboardWinnerCalculated": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["is_finished", "is_calculated", "leaderboard"],
+        "properties": {
+          "is_finished": {"type": "boolean"},
+          "is_calculated": {"const": true},
+          "leaderboard": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {"$ref": "#/components/schemas/LeaderboardRow"}
           }
         }
       },
