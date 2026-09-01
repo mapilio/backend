@@ -76,13 +76,139 @@ class TokenRevocationTest extends TestCase
 
     public function test_logout_requires_a_valid_token(): void
     {
-        $this->postJson('/api/v1/mobile/auth/logout')->assertStatus(401);
+        $this->postJson('/api/v1/mobile/auth/logout')
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Unauthorized'],
+            ]);
 
         $this->withToken('not-a-real-token')
             ->postJson('/api/v1/mobile/auth/logout')
-            ->assertStatus(401);
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Unauthorized'],
+            ]);
 
         $this->assertSame(0, DB::table('revoked_auth_tokens')->count());
+    }
+
+    public function test_logout_validates_refresh_tokens_and_ignores_malformed_strings(): void
+    {
+        $this->postJson('/api/v1/mobile/auth/logout', [
+            'refresh_token' => str_repeat('x', 4097),
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'errors.refresh_token.0',
+                'The refresh token field must not be greater than 4096 characters.',
+            );
+
+        $this->postJson('/api/v1/mobile/auth/logout', [
+            'refresh_token' => ['synthetic-invalid-refresh-token'],
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.refresh_token.0', 'The refresh token field must be a string.');
+
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/auth/logout', [
+                'refresh_token' => 'synthetic-malformed-refresh-token',
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'success' => true,
+                'message' => ['Signed out.'],
+            ]);
+
+        $this->assertSame(1, DB::table('revoked_auth_tokens')->count());
+    }
+
+    public function test_logout_accepts_null_refresh_token_as_absent(): void
+    {
+        $login = $this->login();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/auth/logout', [
+                'refresh_token' => null,
+            ])
+            ->assertOk()
+            ->assertExactJson([
+                'success' => true,
+                'message' => ['Signed out.'],
+            ]);
+
+        $this->assertSame(1, DB::table('revoked_auth_tokens')->count());
+    }
+
+    public function test_logout_rejects_stale_and_unavailable_bearers_with_exact_envelope(): void
+    {
+        $staleToken = $this->makeAccessToken(-1);
+
+        $this->withToken($staleToken)
+            ->postJson('/api/v1/mobile/auth/logout')
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Unauthorized'],
+            ]);
+
+        foreach ([
+            'deleted_at' => now(),
+            'activated' => false,
+            'enabled' => false,
+        ] as $column => $value) {
+            $login = $this->login();
+            Schema::getConnection()->table('default_users_users')->where('id', 10)->update([$column => $value]);
+
+            $this->withToken($login->json('access_token'))
+                ->postJson('/api/v1/mobile/auth/logout')
+                ->assertStatus(401)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ['Unauthorized'],
+                ]);
+
+            Schema::getConnection()->table('default_users_users')->where('id', 10)->update([
+                'deleted_at' => null,
+                'activated' => true,
+                'enabled' => true,
+            ]);
+        }
+    }
+
+    public function test_logout_uses_raw_grant_type_to_select_shared_auth_bucket(): void
+    {
+        Config::set('mapilio.mobile_auth.rate_limits.password', 1);
+        Config::set('mapilio.mobile_auth.rate_limits.refresh', 2);
+
+        $logout = function (string $remoteAddress, array $payload = []): TestResponse {
+            $tokens = app(LegacyMobileAuth::class)->issueTokenForLegacyUser(10);
+
+            return $this->withServerVariables(['REMOTE_ADDR' => $remoteAddress])
+                ->withToken($tokens['access_token'])
+                ->postJson('/api/v1/mobile/auth/logout', $payload);
+        };
+        $assertRateLimited = static function (TestResponse $response): void {
+            $response
+                ->assertStatus(429)
+                ->assertExactJson([
+                    'success' => false,
+                    'message' => ['Too many authentication attempts. Please try again later.'],
+                ]);
+        };
+
+        $logout('192.0.2.143')->assertOk();
+        $assertRateLimited($logout('192.0.2.143'));
+
+        $logout('203.0.113.143', ['grant_type' => 'passwordish'])->assertOk();
+        $assertRateLimited($logout('203.0.113.143', ['grant_type' => 'passwordish']));
+
+        $logout('198.51.100.143', ['grant_type' => 'refresh_token'])->assertOk();
+        $logout('198.51.100.143', ['grant_type' => 'refresh_token'])->assertOk();
+        $assertRateLimited($logout('198.51.100.143', ['grant_type' => 'refresh_token']));
     }
 
     public function test_revocations_are_recorded_even_while_enforcement_is_disabled(): void
@@ -187,6 +313,14 @@ class TokenRevocationTest extends TestCase
             'email' => 'alice@example.test',
             'password' => 'correct-password',
         ])->assertOk();
+    }
+
+    private function makeAccessToken(int $ttl): string
+    {
+        $method = new \ReflectionMethod(LegacyMobileAuth::class, 'encodeToken');
+        $method->setAccessible(true);
+
+        return $method->invoke(app(LegacyMobileAuth::class), 10, 'access', $ttl);
     }
 
     private function createUsersTable(): void
