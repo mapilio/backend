@@ -184,7 +184,7 @@ class MobileAuthCompatibilityTest extends TestCase
             ->assertJsonPath('data.0.score', '16');
     }
 
-    public function test_mobile_profile_and_onesignal_endpoints_require_valid_bearer(): void
+    public function test_mobile_profile_endpoints_require_valid_bearer(): void
     {
         $this->getJson('/api/function/user_profile/profile/getProfile')
             ->assertUnauthorized()
@@ -197,7 +197,10 @@ class MobileAuthCompatibilityTest extends TestCase
             ->assertExactJson([
                 'message' => 'Unauthenticated.',
             ]);
+    }
 
+    public function test_legacy_onesignal_identity_verification_failure_remains_server_error(): void
+    {
         $this->postJson('/api/onesignal/identity-verification', [
             'options' => [
                 'parameters' => [
@@ -209,14 +212,98 @@ class MobileAuthCompatibilityTest extends TestCase
                 'success' => false,
                 'message' => ['Verification failed.'],
             ]);
+    }
 
-        $this->postJson('/api/v1/mobile/onesignal/identity-verification', [
+    public function test_legacy_onesignal_identity_verification_preserves_authenticated_email_failures(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [],
+                ],
+            ])->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [
+                        'email' => 'bob@example.test',
+                    ],
+                ],
+            ])->assertStatus(500)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+    }
+
+    public function test_versioned_onesignal_identity_verification_rejects_missing_and_invalid_bearer(): void
+    {
+        $payload = [
             'options' => [
                 'parameters' => [
                     'email' => 'alice@example.test',
                 ],
             ],
-        ])->assertStatus(500)
+        ];
+
+        $this->postJson('/api/v1/mobile/onesignal/identity-verification', $payload)
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+
+        $this->withToken('malformed-mobile-access-token')
+            ->postJson('/api/v1/mobile/onesignal/identity-verification', $payload)
+            ->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+    }
+
+    public function test_versioned_onesignal_identity_verification_hides_authenticated_email_failures(): void
+    {
+        $login = $this->postJson('/api/v2/login', [
+            'grant_type' => 'password',
+            'client_id' => 'mobile-client',
+            'client_secret' => 'mobile-secret',
+            'email' => 'alice@example.test',
+            'password' => 'correct-password',
+        ])->assertOk();
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [
+                        'email' => 'bob@example.test',
+                    ],
+                ],
+            ])->assertStatus(401)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Verification failed.'],
+            ]);
+
+        $this->withToken($login->json('access_token'))
+            ->postJson('/api/v1/mobile/onesignal/identity-verification', [
+                'options' => [
+                    'parameters' => [],
+                ],
+            ])->assertStatus(401)
             ->assertExactJson([
                 'success' => false,
                 'message' => ['Verification failed.'],

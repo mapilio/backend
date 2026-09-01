@@ -18,7 +18,7 @@ class OneSignalIdentityVerificationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => ['Verification failed.'],
-            ], 500);
+            ], (int) $request->route('identity_verification_failure_status', 500));
         }
 
         $key = (string) (config('mapilio.mobile_auth.onesignal_rest_api_key')

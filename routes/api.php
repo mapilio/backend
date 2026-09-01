@@ -135,6 +135,7 @@ Route::post('function/user_profile/profile/delete-account', [MobileAccountContro
 Route::post('function/user_profile/profile/checkIsModalShown', CheckMobileEmailModalController::class)
     ->name('api.legacy.mobile-profile.email-modal');
 Route::post('onesignal/identity-verification', OneSignalIdentityVerificationController::class)
+    ->defaults('identity_verification_failure_status', 500)
     ->name('api.legacy.onesignal.identity-verification');
 Route::match(['GET', 'POST'], 'search-user', PublicUserProfileController::class)
     ->name('api.legacy.search-user');
@@ -196,6 +197,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::post('mobile/profile/email-modal', CheckMobileEmailModalController::class)
         ->name('mobile.profile.email-modal');
     Route::post('mobile/onesignal/identity-verification', OneSignalIdentityVerificationController::class)
+        ->defaults('identity_verification_failure_status', 401)
         ->name('mobile.onesignal.identity-verification');
     Route::get('users/profile', PublicUserProfileController::class)
         ->name('users.profile');
