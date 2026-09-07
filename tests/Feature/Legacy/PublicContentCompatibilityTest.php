@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Legacy;
 
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -662,6 +663,18 @@ class PublicContentCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_versioned_blog_routes_only_use_shared_api_group_middleware(): void
+    {
+        $router = $this->app->make(Router::class);
+
+        foreach (['api.v1.content.blogs', 'api.v1.content.blogs.detail'] as $routeName) {
+            $route = $router->getRoutes()->getByName($routeName);
+
+            $this->assertNotNull($route, "Named route [{$routeName}] must exist.");
+            $this->assertSame(['api'], $route->middleware());
+        }
     }
 
     public function test_legacy_catalog_preserves_entry_id_keys_and_root_image_urls(): void
