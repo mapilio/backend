@@ -27,6 +27,19 @@ use Tests\TestCase;
  *     hover_image_url: string|null,
  *     name: string|null
  * }
+ * @phpstan-type BillingHostingRow array{
+ *     id: int,
+ *     sort_order: int|null,
+ *     created_at: string|null,
+ *     created_by_id: int|null,
+ *     updated_at: string|null,
+ *     updated_by_id: int|null,
+ *     deleted_at: null,
+ *     price: string|null,
+ *     currency: string|null,
+ *     image_count: int|null,
+ *     name: string|null
+ * }
  */
 class BillingPlanCompatibilityTest extends TestCase
 {
@@ -512,6 +525,247 @@ class BillingPlanCompatibilityTest extends TestCase
             ]);
     }
 
+    public function test_versioned_hosting_rows_preserve_exact_order_scalar_types_and_nullability(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_billing_hosting')->insert([
+            [
+                'id' => 3,
+                'sort_order' => null,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'price' => null,
+                'currency' => null,
+                'image_count' => null,
+            ],
+            [
+                'id' => 4,
+                'sort_order' => 4,
+                'created_at' => '2026-07-05 01:02:03',
+                'created_by_id' => 40,
+                'updated_at' => '2026-07-06 01:02:03',
+                'updated_by_id' => 41,
+                'deleted_at' => '2026-07-07 01:02:03',
+                'price' => 65,
+                'currency' => 'SYN',
+                'image_count' => 400000,
+            ],
+        ]);
+        $db->table('default_billing_hosting_translations')->insert([
+            ['entry_id' => 3, 'locale' => 'en', 'name' => null],
+            ['entry_id' => 4, 'locale' => 'en', 'name' => 'Deleted Hosting'],
+        ]);
+        $db->table('default_billing_hosting')->where('id', 1)->update([
+            'created_by_id' => 40,
+            'updated_by_id' => 41,
+        ]);
+
+        $payload = $this->getJson('/api/v1/billing/hosting')->assertOk()->json();
+        $this->assertCount(3, $payload['data']);
+        $this->assertNotContains(4, array_column($payload['data'], 'id'));
+
+        $row = $this->hostingRowById($payload['data'], 3);
+        $this->assertSame([
+            'id',
+            'sort_order',
+            'created_at',
+            'created_by_id',
+            'updated_at',
+            'updated_by_id',
+            'deleted_at',
+            'price',
+            'currency',
+            'image_count',
+            'name',
+        ], array_keys($row));
+        $this->assertSame(3, $row['id']);
+        $this->assertIsInt($row['id']);
+
+        foreach ([
+            'sort_order',
+            'created_at',
+            'created_by_id',
+            'updated_at',
+            'updated_by_id',
+            'deleted_at',
+            'price',
+            'currency',
+            'image_count',
+            'name',
+        ] as $field) {
+            $this->assertNull($row[$field]);
+        }
+
+        $populated = $this->hostingRowById($payload['data'], 1);
+        $this->assertIsInt($populated['sort_order']);
+        $this->assertIsString($populated['created_at']);
+        $this->assertIsInt($populated['created_by_id']);
+        $this->assertIsString($populated['updated_at']);
+        $this->assertIsInt($populated['updated_by_id']);
+        $this->assertIsString($populated['price']);
+        $this->assertNull($populated['currency']);
+        $this->assertIsInt($populated['image_count']);
+        $this->assertIsString($populated['name']);
+    }
+
+    public function test_hosting_use_deployment_locale_and_fall_back_to_en_for_empty_or_non_string_locale(): void
+    {
+        Schema::getConnection()->table('default_billing_hosting_translations')->insert([
+            ['entry_id' => 1, 'locale' => 'tr', 'name' => 'Goruntuler'],
+        ]);
+        Config::set('app.locale', 'tr');
+
+        $this->getJson('/api/v1/billing/hosting')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Goruntuler');
+
+        $this->getJson('/api/v1/billing/hosting?locale=en')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Regular Images');
+
+        $this->withoutMiddleware(ConvertEmptyStringsToNull::class)
+            ->call('GET', '/api/v1/billing/hosting', ['locale' => ''])
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Regular Images');
+
+        $this->call('GET', '/api/v1/billing/hosting', ['locale' => ['tr']])
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Regular Images');
+    }
+
+    #[DataProvider('hostingPageCoercionProvider')]
+    public function test_hosting_scalar_page_is_php_cast_and_minimum_clamped(
+        ?string $page,
+        int $expectedPage,
+        bool $hasRows,
+    ): void {
+        $path = '/api/v1/billing/hosting'.($page === null ? '' : '?page='.urlencode($page));
+        $response = $this->getJson($path)->assertOk();
+
+        if ($hasRows) {
+            $response->assertJsonPath('pagination.current_page', $expectedPage);
+
+            return;
+        }
+
+        $response->assertExactJson(['data' => null]);
+    }
+
+    /**
+     * @return iterable<string, array{0: ?string, 1: int, 2: bool}>
+     */
+    public static function hostingPageCoercionProvider(): iterable
+    {
+        yield 'omitted' => [null, 1, true];
+        yield 'zero' => ['0', 1, true];
+        yield 'negative' => ['-2', 1, true];
+        yield 'fractional' => ['2.9', 2, false];
+        yield 'non numeric' => ['not-a-page', 1, true];
+        yield 'empty' => ['', 1, true];
+    }
+
+    public function test_hosting_page_two_uses_a_hundred_row_offset_but_fifteen_row_legacy_metadata(): void
+    {
+        $rows = [];
+        for ($id = 3; $id <= 101; $id++) {
+            $rows[] = [
+                'id' => $id,
+                'sort_order' => null,
+                'created_at' => null,
+                'created_by_id' => null,
+                'updated_at' => null,
+                'updated_by_id' => null,
+                'deleted_at' => null,
+                'price' => null,
+                'currency' => null,
+                'image_count' => null,
+            ];
+        }
+        Schema::getConnection()->table('default_billing_hosting')->insert($rows);
+
+        $payload = $this->getJson('/api/v1/billing/hosting?locale=en&view=synthetic&page=2')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame([101], array_column($payload['data'], 'id'));
+        $this->assertSame(2, $payload['pagination']['current_page']);
+        $this->assertSame(16, $payload['pagination']['from']);
+        $this->assertSame(7, $payload['pagination']['last_page']);
+        $this->assertSame(15, $payload['pagination']['per_page']);
+        $this->assertSame(16, $payload['pagination']['to']);
+        $this->assertSame(101, $payload['pagination']['total']);
+        $this->assertSame('/api/hosting-list?locale=en&view=synthetic&page=1', $payload['pagination']['first_page_url']);
+        $this->assertSame('/api/hosting-list?locale=en&view=synthetic&page=7', $payload['pagination']['last_page_url']);
+        $this->assertSame('/api/hosting-list?locale=en&view=synthetic&page=1', $payload['pagination']['prev_page_url']);
+        $this->assertSame('/api/hosting-list?locale=en&view=synthetic&page=3', $payload['pagination']['next_page_url']);
+        $this->assertSame('/api/hosting-list?locale=en&view=synthetic&page=2', $payload['pagination']['links'][2]['url']);
+        $this->assertSame('/api/hosting-list', $payload['pagination']['path']);
+    }
+
+    public function test_versioned_hosting_are_bearer_irrelevant_and_preserve_conditional_header_behavior(): void
+    {
+        $withoutBearer = $this->getJson('/api/v1/billing/hosting')
+            ->assertOk()
+            ->json();
+
+        $withBearer = $this->withHeader('Authorization', 'Bearer synthetic-irrelevant-token')
+            ->getJson('/api/v1/billing/hosting')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame($withoutBearer, $withBearer);
+
+        $response = $this->withHeaders([
+            'If-None-Match' => '"synthetic-billing-hosting-etag"',
+            'If-Modified-Since' => 'Wed, 01 Jul 2026 00:00:00 GMT',
+        ])
+            ->getJson('/api/v1/billing/hosting')
+            ->assertOk()
+            ->assertJsonStructure(['data', 'pagination']);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->headers->has('ETag'));
+    }
+
+    public function test_versioned_hosting_optional_global_rate_limit_preserves_exact_envelope_and_headers(): void
+    {
+        Config::set('mapilio.rate_limiting.enabled', true);
+        Config::set('mapilio.rate_limiting.enforce', true);
+        Config::set('mapilio.rate_limiting.max_attempts', 1);
+        RateLimiter::clear('mapilio-api|'.sha1('127.0.0.1'));
+
+        $this->getJson('/api/v1/billing/hosting')->assertOk();
+
+        $response = $this->getJson('/api/v1/billing/hosting')
+            ->assertStatus(429)
+            ->assertExactJson([
+                'success' => false,
+                'message' => ['Too many requests.'],
+                'error_code' => 429,
+            ]);
+
+        $this->assertTrue($response->headers->has('Retry-After'));
+        $this->assertSame('1', $response->headers->get('X-RateLimit-Limit'));
+        $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+    }
+
+    public function test_versioned_hosting_malformed_timestamps_return_null(): void
+    {
+        Schema::getConnection()->table('default_billing_hosting')->update([
+            'created_at' => '',
+            'updated_at' => 'not-a-date',
+        ]);
+
+        $hosting = $this->getJson('/api/v1/billing/hosting')->assertOk()->json();
+        foreach ($hosting['data'] as $row) {
+            $this->assertNull($row['created_at']);
+            $this->assertNull($row['updated_at']);
+        }
+    }
+
     public function test_billing_malformed_timestamps_return_null(): void
     {
         $db = Schema::getConnection();
@@ -545,6 +799,10 @@ class BillingPlanCompatibilityTest extends TestCase
             ->assertExactJson(['data' => null]);
 
         $this->getJson('/api/hosting-list?page=2')
+            ->assertOk()
+            ->assertExactJson(['data' => null]);
+
+        $this->getJson('/api/v1/billing/hosting?page=2')
             ->assertOk()
             ->assertExactJson(['data' => null]);
 
@@ -587,5 +845,20 @@ class BillingPlanCompatibilityTest extends TestCase
         }
 
         $this->fail("Billing package {$id} was not found.");
+    }
+
+    /**
+     * @param  list<BillingHostingRow>  $rows
+     * @return BillingHostingRow
+     */
+    private function hostingRowById(array $rows, int $id): array
+    {
+        foreach ($rows as $row) {
+            if ($row['id'] === $id) {
+                return $row;
+            }
+        }
+
+        $this->fail("Billing hosting row {$id} was not found.");
     }
 }
