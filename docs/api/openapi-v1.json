@@ -3777,6 +3777,126 @@
         }
       }
     },
+    "/api/v1/content/catalog": {
+      "get": {
+        "operationId": "getCatalog",
+        "tags": [
+          "Public content"
+        ],
+        "summary": "Read the public catalog",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/catalog` through the same legacy controller and query. No bearer token is required and a bearer token is irrelevant. The optional `locale` query value is used when it is a nonempty string; omission uses the deployment application locale, while an empty or non-string value (including bracket syntax such as `locale[]=tr`) falls back to the literal `en`. Rows are emitted in ascending `catalog.sort_order`, then ascending `catalog.id`, and the response is exactly `{status: true, data: ...}`. Populated `data` is an object keyed by catalog ID, so JSON object property names are strings. Each entry has nullable string `name` and `year` properties, plus `thumbnails` and `images` arrays that begin with `null` and then contain the request scheme and HTTP host once per related image row; a zero-image entry therefore has `[null]` for both arrays. An empty catalog returns `status: true` with `data: []`. No endpoint-specific throttle, response cache, ETag, conditional-request handling, or 304 response is part of this contract. A deployment-wide global limiter is disabled and observe-only by default; when enforcement is enabled it may return the exact 429 response documented below. Generic database or runtime failures are not stabilized by this contract.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "allowEmptyValue": true,
+            "description": "Optional locale. A nonempty string is used exactly; an empty or non-string value falls back to `en`, while omission uses the deployment application locale. Bracket syntax such as `locale[]=tr` is outside the canonical scalar schema and follows the non-string fallback.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "en"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exact legacy-compatible public catalog response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                },
+                "examples": {
+                  "populated": {
+                    "summary": "Synthetic populated catalog with a zero-image entry",
+                    "value": {
+                      "status": true,
+                      "data": {
+                        "201": {
+                          "properties": {
+                            "name": "Synthetic Catalog",
+                            "year": "2026"
+                          },
+                          "thumbnails": [
+                            null,
+                            "https://catalog.example.test",
+                            "https://catalog.example.test"
+                          ],
+                          "images": [
+                            null,
+                            "https://catalog.example.test",
+                            "https://catalog.example.test"
+                          ]
+                        },
+                        "202": {
+                          "properties": {
+                            "name": null,
+                            "year": null
+                          },
+                          "thumbnails": [
+                            null
+                          ],
+                          "images": [
+                            null
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "emptyCatalog": {
+                    "summary": "Synthetic empty catalog",
+                    "value": {
+                      "status": true,
+                      "data": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The optional deployment-wide global limiter rejected the request when enforcement is enabled. The limiter is disabled and observe-only by default, and this response is not endpoint-specific.",
+            "headers": {
+              "Retry-After": {
+                "description": "Decimal number of seconds until another request may be attempted.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "Requests remaining in the current limiter window; the rejected response serializes this as `0`.",
+                "schema": {
+                  "const": "0"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRateLimitError"
+                },
+                "example": {
+                  "success": false,
+                  "message": [
+                    "Too many requests."
+                  ],
+                  "error_code": 429
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/billing/packages": {
       "get": {
         "operationId": "getBillingPackages",
@@ -6389,6 +6509,102 @@
           {"maxProperties": 1, "properties": {"data": {"type": "null"}, "pagination": {"$ref": "#/components/schemas/BlogDetailPagination"}}}
         ],
         "properties": {"data": {"oneOf": [{"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/components/schemas/BlogDetailRow"}}, {"type": "null"}]}, "pagination": {"$ref": "#/components/schemas/BlogDetailPagination"}}
+      },
+      "CatalogAssetUrls": {
+        "type": "array",
+        "minItems": 1,
+        "prefixItems": [
+          {
+            "type": "null"
+          }
+        ],
+        "items": {
+          "type": "string",
+          "format": "uri"
+        },
+        "description": "The current legacy asset shape: a leading null sentinel followed by one request scheme-and-host URL per related image row."
+      },
+      "CatalogEntryProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "year"
+        ],
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CatalogEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "properties",
+          "thumbnails",
+          "images"
+        ],
+        "properties": {
+          "properties": {
+            "$ref": "#/components/schemas/CatalogEntryProperties"
+          },
+          "thumbnails": {
+            "$ref": "#/components/schemas/CatalogAssetUrls"
+          },
+          "images": {
+            "$ref": "#/components/schemas/CatalogAssetUrls"
+          }
+        }
+      },
+      "CatalogData": {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": {
+          "pattern": "^[0-9]+$"
+        },
+        "additionalProperties": {
+          "$ref": "#/components/schemas/CatalogEntry"
+        },
+        "description": "Populated catalog data keyed by the numeric catalog ID serialized as a JSON object property name."
+      },
+      "CatalogEmptyData": {
+        "type": "array",
+        "maxItems": 0,
+        "items": false,
+        "description": "Exact empty-catalog data shape: an empty JSON array."
+      },
+      "CatalogResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "const": true
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CatalogData"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogEmptyData"
+              }
+            ]
+          }
+        }
       },
       "BillingPackageRow": {
         "type": "object",

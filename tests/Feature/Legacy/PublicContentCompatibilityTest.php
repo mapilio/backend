@@ -3,6 +3,8 @@
 namespace Tests\Feature\Legacy;
 
 use Illuminate\Routing\Router;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -729,5 +731,87 @@ class PublicContentCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_catalog_uses_requested_locale_and_falls_back_to_en_for_empty_or_non_string_locale(): void
+    {
+        Schema::getConnection()->table('default_catalog_catalog_translations')->insert([
+            'entry_id' => 201,
+            'locale' => 'tr',
+            'catalog_name' => 'Mapilio Katalogu',
+        ]);
+        Config::set('app.locale', 'tr');
+
+        $this->assertSame(
+            'Mapilio Katalogu',
+            $this->getJson('/api/catalog')->assertOk()->json('data.201.properties.name'),
+        );
+        $this->assertSame(
+            'Mapilio Katalogu',
+            $this->getJson('/api/catalog?locale=tr')->assertOk()->json('data.201.properties.name'),
+        );
+        $this->assertSame(
+            'Mapilio Catalog',
+            $this->withoutMiddleware(ConvertEmptyStringsToNull::class)
+                ->call('GET', '/api/catalog', ['locale' => ''])
+                ->assertOk()
+                ->json('data.201.properties.name'),
+        );
+        $this->assertSame(
+            'Mapilio Catalog',
+            $this->call('GET', '/api/catalog', ['locale' => ['tr']])
+                ->assertOk()
+                ->json('data.201.properties.name'),
+        );
+    }
+
+    public function test_catalog_zero_image_rows_preserve_leading_null_arrays_and_sort_order(): void
+    {
+        Schema::getConnection()->table('default_catalog_catalog')->insert([
+            [
+                'id' => 202,
+                'sort_order' => 1,
+                'catalog_year' => null,
+            ],
+        ]);
+
+        $response = $this->withServerVariables([
+            'HTTP_HOST' => 'catalog.example.test',
+            'SERVER_NAME' => 'catalog.example.test',
+        ])->getJson('/api/v1/content/catalog')->assertOk()->json();
+
+        $this->assertSame([201, 202], array_keys($response['data']));
+        $this->assertSame([
+            'properties' => [
+                'name' => null,
+                'year' => null,
+            ],
+            'thumbnails' => [null],
+            'images' => [null],
+        ], $response['data']['202']);
+    }
+
+    public function test_empty_catalog_preserves_status_and_empty_data_array(): void
+    {
+        Schema::getConnection()->table('default_catalog_catalog')->delete();
+
+        $this->getJson('/api/v1/content/catalog')
+            ->assertOk()
+            ->assertExactJson([
+                'status' => true,
+                'data' => [],
+            ]);
+    }
+
+    public function test_versioned_catalog_routes_only_use_shared_api_group_middleware(): void
+    {
+        $router = $this->app->make(Router::class);
+
+        foreach (['api.legacy.catalog', 'api.v1.content.catalog'] as $routeName) {
+            $route = $router->getRoutes()->getByName($routeName);
+
+            $this->assertNotNull($route, "Named route [{$routeName}] must exist.");
+            $this->assertSame(['api'], $route->middleware());
+        }
     }
 }
