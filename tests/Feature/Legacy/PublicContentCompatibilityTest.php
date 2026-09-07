@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Legacy;
 
-use Illuminate\Routing\Router;
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
