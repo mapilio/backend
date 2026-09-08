@@ -79,7 +79,12 @@ test('documents only the unauthenticated numeric gamification badge alias', () =
     assert.match(operation.description, /constrained only to numeric route values/);
     assert.match(operation.description, /empty value, array, or other non-string falls back to `en`/);
     assert.match(operation.description, /unrecognized values.*null translation fields/);
-    assert.match(operation.description, /checks only the id.*deleted timestamp remains visible.*derived leaderboard lookup excludes deleted users.*point.*0.*percentage.*0/s);
+    assert.match(operation.description, /checks only the id.*deleted timestamp remains visible.*derived leaderboard lookup excludes deleted users.*point.*0.*eligibility uses that value/s);
+    assert.match(operation.description, /existing related level whose `xp` is strictly greater than `point`, ordered by `available_level` ascending/);
+    assert.match(operation.description, /stored user level and badge ownership do not affect this selection/);
+    assert.ok(operation.description.includes('number_format((point / selected level xp) * 100, 0)'));
+    assert.match(operation.description, /no badge qualifies.*highest threshold.*`next.badge` is null.*`next.percentage` is integer 0/);
+    assert.match(operation.description, /selected zero-XP level also yields integer 0/);
     assert.match(operation.description, /icon.*always a string.*image_id.*disabled_image_id.*next\.badge.*image_id/s);
     assert.match(operation.description, /MAPILIO_BADGE_ASSET_BASE_URL.*request origin.*app\/default\/assets/);
     assert.match(operation.description, /missing file, folder, or name metadata returns an empty string/);
@@ -205,10 +210,14 @@ test('keeps synthetic populated and unknown-user examples exact', async () => {
             path: 'badges/disabled.png',
             location: 'local://badges/disabled.png',
             point: '97',
-            percentage: '97',
+            percentage: '10',
         },
     );
-    assert.equal(populated.next.badge.id, 5);
+    assert.deepEqual(populated.next.badge, Object.fromEntries(
+        Object.entries(populated.badges[1]).filter(([field]) => nextBadgeFields.includes(field))
+            .map(([field, value]) => [field, field === 'icon' ? populated.badges[0].icon : value]),
+    ));
+    assert.equal(populated.next.badge.id, 6);
     assert.equal(typeof populated.next.percentage, 'string');
     assert.deepEqual(response.examples.empty.value, []);
     for (const fixtureEvidence of [
@@ -222,7 +231,7 @@ test('keeps synthetic populated and unknown-user examples exact', async () => {
         "'path' => 'badges/disabled.png'",
         "'location' => 'local://badges/disabled.png'",
         "'point' => '97'",
-        "'percentage' => '97'",
+        "'percentage' => '10'",
     ]) {
         assert.match(compatibility, new RegExp(fixtureEvidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }

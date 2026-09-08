@@ -3419,7 +3419,7 @@
         "operationId": "getGamificationBadges",
         "tags": ["Public content"],
         "summary": "Read a user's public gamification badges",
-        "description": "Returns the unauthenticated v1 alias of `GET /api/gamification/badges/{userId}` with exact success parity. `userId` is constrained only to numeric route values; a nonnumeric path does not match the route (the 404 body is not part of this contract). The optional `locale` query value is omitted by default and then uses the application locale; an empty value, array, or other non-string falls back to `en`. Scalar query strings are passed through verbatim, including unrecognized values; when no translation row matches, the source returns null translation fields and this contract claims no additional translation fallback. User existence checks only the id, so a row with a deleted timestamp remains visible in the badge and next-badge fields. The derived leaderboard lookup excludes deleted users, so this deleted-user branch returns `point` 0 and `next.percentage` `\"0\"`. A known user returns exactly `badges`, `point`, and `next`: badge metadata preserves enabled flags and legacy scalar values, timestamps are normalized to six-digit UTC ISO strings or null, and disabled badges may include a nested disabled image with file, disk, and folder metadata. `icon` is always a string: enabled badges resolve `image_id`, disabled badges resolve `disabled_image_id`, and `next.badge` resolves `image_id`. URLs use `MAPILIO_BADGE_ASSET_BASE_URL` when configured, otherwise the request origin plus `/app/default/assets`; missing file, folder, or name metadata returns an empty string. Folder and filename components replace spaces with `+`, then URL-encode reserved characters while rejecting `.`/`..` and slash or backslash components. `next.badge` is nullable and `next.percentage` preserves its string-or-integer legacy type. An unknown user returns HTTP 200 with the exact empty JSON array `[]`, not an object. There is no endpoint authentication, endpoint-specific throttle, response cache, ETag, or 304 behavior. If the optional global API limiter is enabled and enforced by deployment configuration, it may return the documented 429 envelope and headers.",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/gamification/badges/{userId}` with exact success parity. `userId` is constrained only to numeric route values; a nonnumeric path does not match the route (the 404 body is not part of this contract). The optional `locale` query value is omitted by default and then uses the application locale; an empty value, array, or other non-string falls back to `en`. Scalar query strings are passed through verbatim, including unrecognized values; when no translation row matches, the source returns null translation fields and this contract claims no additional translation fallback. User existence checks only the id, so a row with a deleted timestamp remains visible in the badge and next-badge fields. The derived leaderboard lookup excludes deleted users, so a deleted-user row returns `point` 0 and next-badge eligibility uses that value. A known user returns exactly `badges`, `point`, and `next`: badge metadata preserves enabled flags and legacy scalar values, timestamps are normalized to six-digit UTC ISO strings or null, and disabled badges may include a nested disabled image with file, disk, and folder metadata. `icon` is always a string: enabled badges resolve `image_id`, disabled badges resolve `disabled_image_id`, and `next.badge` resolves `image_id`. URLs use `MAPILIO_BADGE_ASSET_BASE_URL` when configured, otherwise the request origin plus `/app/default/assets`; missing file, folder, or name metadata returns an empty string. Folder and filename components replace spaces with `+`, then URL-encode reserved characters while rejecting `.`/`..` and slash or backslash components. `next.badge` selects the first badge with an existing related level whose `xp` is strictly greater than `point`, ordered by `available_level` ascending. The stored user level and badge ownership do not affect this selection. `next.percentage` is `number_format((point / selected level xp) * 100, 0)`, a rounded string for a nonzero XP threshold. If no badge qualifies, including when points reach the highest threshold, `next.badge` is null and `next.percentage` is integer 0; a selected zero-XP level also yields integer 0. An unknown user returns HTTP 200 with the exact empty JSON array `[]`, not an object. There is no endpoint authentication, endpoint-specific throttle, response cache, ETag, or 304 behavior. If the optional global API limiter is enabled and enforced by deployment configuration, it may return the documented 429 envelope and headers.",
         "security": [],
         "parameters": [
           {
@@ -3554,23 +3554,23 @@
                       "point": "97",
                       "next": {
                         "badge": {
-                          "id": 5,
-                          "sort_order": 1,
-                          "created_at": "2026-06-05T01:02:03.000000Z",
+                          "id": 6,
+                          "sort_order": 2,
+                          "created_at": "2026-06-07T01:02:03.000000Z",
                           "created_by_id": 3,
-                          "updated_at": "2026-06-06T01:02:03.000000Z",
+                          "updated_at": "2026-06-08T01:02:03.000000Z",
                           "updated_by_id": 4,
-                          "slug": "street_stoller",
+                          "slug": "pathfinder",
                           "image_id": 100,
-                          "available_level": 1,
+                          "available_level": 2,
                           "is_custom": true,
-                          "color_code": "#465973",
+                          "color_code": "#1781ED",
                           "disabled_image_id": 101,
                           "icon": "https://api.example.test/app/default/assets/badges/active.png",
-                          "title": "Street Stroller",
-                          "info": "First steps."
+                          "title": "Pathfinder",
+                          "info": "Keep exploring."
                         },
-                        "percentage": "97"
+                        "percentage": "10"
                       }
                     }
                   },

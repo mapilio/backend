@@ -144,7 +144,12 @@ class GamificationBadgesQuery
         $point = $this->point($leaderboardQuery, $userId);
         $badges = $this->badges($connection, $locale);
         $imagePayloads = $this->badgeImagePayloads($connection, $badges, $locale);
-        $currentLevelId = $this->currentLevelId($connection, $userId);
+        $nextBadge = $badges
+            ->filter(fn (object $badge): bool => $badge->available_level !== null
+                && isset($levels[(int) $badge->available_level])
+                && $levels[(int) $badge->available_level] > (float) $point)
+            ->sortBy('available_level')
+            ->first();
 
         return [
             'badges' => $badges
@@ -158,8 +163,8 @@ class GamificationBadgesQuery
                 ->all(),
             'point' => $point,
             'next' => [
-                'badge' => $this->nextBadge($badges, $currentLevelId, $badgeAssetBaseUrl, $imagePayloads),
-                'percentage' => $this->legacyPercentage($point, $badges, $currentLevelId),
+                'badge' => $this->nextBadgePayload($nextBadge, $badgeAssetBaseUrl, $imagePayloads),
+                'percentage' => $this->legacyPercentage($point, $nextBadge, $levels),
             ],
         ];
     }
@@ -195,16 +200,6 @@ class GamificationBadgesQuery
             ->pluck('xp', 'id')
             ->mapWithKeys(fn (mixed $xp, mixed $id): array => [(int) $id => (int) $xp])
             ->all();
-    }
-
-    private function currentLevelId(Connection $connection, int $userId): int
-    {
-        $levelId = $connection
-            ->table('default_gamification_user_level')
-            ->where('user_id', $userId)
-            ->value('level_id');
-
-        return $levelId === null ? 0 : (int) $levelId;
     }
 
     private function point(LeaderboardQuery $leaderboardQuery, int $userId): int|string
@@ -281,17 +276,11 @@ class GamificationBadgesQuery
     }
 
     /**
-     * @param  BadgeCollection  $badges
      * @param  array<int, FilePayload>  $imagePayloads
      * @return NextBadgePayload|null
      */
-    private function nextBadge(Collection $badges, int $currentLevelId, string $badgeAssetBaseUrl, array $imagePayloads): ?array
+    private function nextBadgePayload(?object $badge, string $badgeAssetBaseUrl, array $imagePayloads): ?array
     {
-        $badge = $badges
-            ->filter(fn (object $badge): bool => (int) $badge->available_level >= $currentLevelId)
-            ->sortBy('available_level')
-            ->first();
-
         if ($badge === null) {
             return null;
         }
@@ -305,20 +294,17 @@ class GamificationBadgesQuery
     }
 
     /**
-     * @param  BadgeCollection  $badges
+     * @param  array<int, int>  $levels
      */
-    private function legacyPercentage(int|string $point, Collection $badges, int $currentLevelId): string|int
+    private function legacyPercentage(int|string $point, ?object $badge, array $levels): string|int
     {
-        $badge = $badges
-            ->filter(fn (object $badge): bool => (int) $badge->available_level >= $currentLevelId)
-            ->sortBy('available_level')
-            ->first();
+        $xp = $badge === null ? 0 : ($levels[(int) $badge->available_level] ?? 0);
 
-        if ($badge === null || (int) $badge->available_level === 0) {
+        if ($xp === 0) {
             return 0;
         }
 
-        return number_format(((float) $point) / (int) $badge->available_level, 0);
+        return number_format(((float) $point / $xp) * 100, 0);
     }
 
     /**

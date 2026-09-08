@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class GamificationBadgesCompatibilityTest extends TestCase
@@ -231,9 +232,119 @@ class GamificationBadgesCompatibilityTest extends TestCase
 
         $versioned = $this->getJson('/api/v1/gamification/badges/10')
             ->assertOk()
+            ->assertExactJson($this->expectedPayload())
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    #[DataProvider('nextBadgeThresholdProvider')]
+    public function test_next_badge_uses_strict_xp_thresholds_on_both_aliases(int $point, ?int $badgeId, string|int $percentage): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_gamification_level')->where('id', 1)->update(['xp' => 100]);
+        $db->table('default_mapilio_sequence_detail')->update(['sequence_point' => $point]);
+
+        foreach (['/api/gamification/badges/10', '/api/v1/gamification/badges/10'] as $path) {
+            $payload = $this->getJson($path)->assertOk()->json();
+
+            $this->assertSame((string) $point, $payload['point']);
+            $this->assertSame($badgeId, $payload['next']['badge']['id'] ?? null);
+            $this->assertSame($percentage, $payload['next']['percentage']);
+            $this->assertTrue($payload['badges'][0]['enable']);
+            $this->assertFalse($payload['badges'][1]['enable']);
+
+            if ($badgeId === null) {
+                $this->assertSame(['badge' => null, 'percentage' => 0], $payload['next']);
+            } else {
+                $this->assertSame(config('app.url').'/app/default/assets/badges/active.png', $payload['next']['badge']['icon']);
+            }
+        }
+    }
+
+    /**
+     * @return array<string, array{int, int|null, string|int}>
+     */
+    public static function nextBadgeThresholdProvider(): array
+    {
+        return [
+            'below first threshold' => [99, 5, '99'],
+            'exact first threshold' => [100, 6, '10'],
+            'above first threshold' => [101, 6, '10'],
+            'below maximum rounds to 100' => [999, 6, '100'],
+            'exact maximum has no next badge' => [1000, null, 0],
+            'above maximum has no next badge' => [1001, null, 0],
+        ];
+    }
+
+    public function test_next_badge_orders_eligible_badges_by_available_level_not_xp_or_badge_id(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_mapilio_sequence_detail')->update(['sequence_point' => 8109]);
+        $db->table('default_gamification_level')->where('id', 1)->update(['xp' => 10000]);
+        $db->table('default_gamification_level')->where('id', 2)->update(['xp' => 9000]);
+        $db->table('default_gamification_badge')->where('id', 5)->update(['available_level' => 2]);
+        $db->table('default_gamification_badge')->where('id', 6)->update(['available_level' => 1]);
+
+        foreach (['/api/gamification/badges/10', '/api/v1/gamification/badges/10'] as $path) {
+            $this->getJson($path)
+                ->assertOk()
+                ->assertJsonPath('point', '8109')
+                ->assertJsonPath('next.badge.id', 6)
+                ->assertJsonPath('next.badge.available_level', 1)
+                ->assertJsonPath('next.percentage', '81');
+        }
+    }
+
+    public function test_next_badge_ignores_stale_or_missing_user_level_records(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_gamification_user_level')->update(['level_id' => 999]);
+        $this->getJson('/api/gamification/badges/10')->assertOk()->assertExactJson($this->expectedPayload());
+
+        $db->table('default_gamification_user_level')->delete();
+        $this->getJson('/api/v1/gamification/badges/10')->assertOk()->assertExactJson($this->expectedPayload());
+
+        Schema::drop('default_gamification_user_level');
+        $this->getJson('/api/gamification/badges/10')->assertOk()->assertExactJson($this->expectedPayload());
+    }
+
+    public function test_next_badge_skips_missing_levels_and_returns_zero_when_none_are_eligible(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_mapilio_sequence_detail')->update(['sequence_point' => -1]);
+        $db->table('default_gamification_level')->where('id', 1)->delete();
+
+        $this->getJson('/api/gamification/badges/10')
+            ->assertOk()
+            ->assertJsonPath('badges.0.point', 0)
+            ->assertJsonPath('next.badge.id', 6)
+            ->assertJsonPath('next.percentage', '0');
+
+        $db->table('default_gamification_level')->delete();
+        foreach (['/api/gamification/badges/10', '/api/v1/gamification/badges/10'] as $path) {
+            $this->getJson($path)->assertOk()->assertJsonPath('next', ['badge' => null, 'percentage' => 0]);
+        }
+    }
+
+    public function test_next_badge_guards_zero_xp_without_division_by_zero(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_gamification_level')->where('id', 1)->update(['xp' => 0]);
+        $db->table('default_mapilio_sequence_detail')->update(['sequence_point' => 0]);
+
+        $this->getJson('/api/gamification/badges/10')
+            ->assertOk()
+            ->assertJsonPath('point', 0)
+            ->assertJsonPath('next.badge.id', 6)
+            ->assertJsonPath('next.percentage', '0');
+
+        $db->table('default_mapilio_sequence_detail')->update(['sequence_point' => -1]);
+        $this->getJson('/api/v1/gamification/badges/10')
+            ->assertOk()
+            ->assertJsonPath('point', '-1')
+            ->assertJsonPath('next.badge.id', 5)
+            ->assertJsonPath('next.percentage', 0);
     }
 
     public function test_gamification_badges_icons_use_enabled_disabled_and_next_image_metadata(): void
@@ -386,7 +497,10 @@ class GamificationBadgesCompatibilityTest extends TestCase
         $expected = $this->expectedPayload();
 
         $this->assertSame($expected['badges'], $payload['badges']);
-        $this->assertSame($expected['next']['badge'], $payload['next']['badge']);
+        $this->assertSame(
+            array_diff_key($expected['badges'][0], array_flip(['enable', 'point'])),
+            $payload['next']['badge'],
+        );
         $this->assertSame(0, $payload['point']);
         $this->assertSame('0', $payload['next']['percentage']);
     }
@@ -732,23 +846,23 @@ class GamificationBadgesCompatibilityTest extends TestCase
             'point' => '97',
             'next' => [
                 'badge' => [
-                    'id' => 5,
-                    'sort_order' => 1,
-                    'created_at' => '2026-06-05T01:02:03.000000Z',
+                    'id' => 6,
+                    'sort_order' => 2,
+                    'created_at' => '2026-06-07T01:02:03.000000Z',
                     'created_by_id' => 3,
-                    'updated_at' => '2026-06-06T01:02:03.000000Z',
+                    'updated_at' => '2026-06-08T01:02:03.000000Z',
                     'updated_by_id' => 4,
-                    'slug' => 'street_stoller',
+                    'slug' => 'pathfinder',
                     'image_id' => 100,
-                    'available_level' => 1,
+                    'available_level' => 2,
                     'is_custom' => true,
-                    'color_code' => '#465973',
+                    'color_code' => '#1781ED',
                     'disabled_image_id' => 101,
                     'icon' => $assetRoot.'/badges/active.png',
-                    'title' => 'Street Stoller',
-                    'info' => 'First steps.',
+                    'title' => 'Pathfinder',
+                    'info' => 'Keep exploring.',
                 ],
-                'percentage' => '97',
+                'percentage' => '10',
             ],
         ];
     }
