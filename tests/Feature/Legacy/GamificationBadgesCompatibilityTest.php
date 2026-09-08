@@ -16,6 +16,7 @@ class GamificationBadgesCompatibilityTest extends TestCase
 
         Config::set('mapilio.leaderboard.public_role_slugs', []);
         Config::set('mapilio.leaderboard.excluded_role_slugs', []);
+        Config::set('mapilio.gamification.badge_asset_base_url', '');
 
         Schema::create('default_users_users', function ($table): void {
             $table->id();
@@ -233,6 +234,104 @@ class GamificationBadgesCompatibilityTest extends TestCase
             ->json();
 
         $this->assertSame($legacy, $versioned);
+    }
+
+    public function test_gamification_badges_icons_use_enabled_disabled_and_next_image_metadata(): void
+    {
+        $payload = $this->getJson('/api/gamification/badges/10')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame(config('app.url').'/app/default/assets/badges/active.png', $payload['badges'][0]['icon']);
+        $this->assertSame(config('app.url').'/app/default/assets/badges/disabled.png', $payload['badges'][1]['icon']);
+        $this->assertSame(config('app.url').'/app/default/assets/badges/active.png', $payload['next']['badge']['icon']);
+    }
+
+    public function test_gamification_badges_icons_use_configured_base_without_duplicate_trailing_slashes(): void
+    {
+        Config::set('mapilio.gamification.badge_asset_base_url', 'https://assets.example.test/app/default/assets///');
+
+        $payload = $this->getJson('/api/v1/gamification/badges/10')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame('https://assets.example.test/app/default/assets/badges/active.png', $payload['badges'][0]['icon']);
+        $this->assertSame('https://assets.example.test/app/default/assets/badges/disabled.png', $payload['badges'][1]['icon']);
+        $this->assertSame('https://assets.example.test/app/default/assets/badges/active.png', $payload['next']['badge']['icon']);
+    }
+
+    public function test_gamification_badges_icons_encode_spaces_reserved_characters_and_unicode(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_files_folders')->where('id', 12)->update(['slug' => 'badge assets']);
+        $db->table('default_files_files')->where('id', 100)->update([
+            'name' => 'Group 131873+3x # 東京?.png',
+        ]);
+        Config::set('mapilio.gamification.badge_asset_base_url', 'https://assets.example.test/app/default/assets');
+
+        $payload = $this->getJson('/api/gamification/badges/10')
+            ->assertOk()
+            ->json();
+
+        $expected = 'https://assets.example.test/app/default/assets/badge+assets/Group+131873+3x+%23+%E6%9D%B1%E4%BA%AC%3F.png';
+        $this->assertSame($expected, $payload['badges'][0]['icon']);
+        $this->assertSame($expected, $payload['next']['badge']['icon']);
+    }
+
+    public function test_gamification_badges_missing_icon_metadata_returns_safe_empty_strings(): void
+    {
+        $db = Schema::getConnection();
+
+        foreach ([['folder_id' => 999], ['name' => '']] as $missingMetadata) {
+            $db->table('default_files_files')->where('id', 100)->update($missingMetadata);
+            $payload = $this->getJson('/api/gamification/badges/10')->assertOk()->json();
+
+            $this->assertSame('', $payload['badges'][0]['icon']);
+            $this->assertSame('', $payload['next']['badge']['icon']);
+            $db->table('default_files_files')->where('id', 100)->update([
+                'folder_id' => 12,
+                'name' => 'active.png',
+            ]);
+        }
+
+        $db->table('default_files_files')->where('id', 100)->delete();
+        $payload = $this->getJson('/api/gamification/badges/10')->assertOk()->json();
+
+        $this->assertSame('', $payload['badges'][0]['icon']);
+        $this->assertSame('', $payload['next']['badge']['icon']);
+    }
+
+    public function test_gamification_badges_rejects_traversal_components_in_icon_metadata(): void
+    {
+        $db = Schema::getConnection();
+
+        foreach ([
+            ['folder_id' => 12, 'folder_slug' => '../badges', 'name' => 'active.png'],
+            ['folder_id' => 12, 'folder_slug' => 'badges', 'name' => '../active.png'],
+            ['folder_id' => 12, 'folder_slug' => 'badges\\icons', 'name' => 'active.png'],
+        ] as $metadata) {
+            $db->table('default_files_folders')->where('id', 12)->update(['slug' => $metadata['folder_slug']]);
+            $db->table('default_files_files')->where('id', 100)->update(['name' => $metadata['name']]);
+            $payload = $this->getJson('/api/gamification/badges/10')->assertOk()->json();
+
+            $this->assertSame('', $payload['badges'][0]['icon']);
+            $this->assertSame('', $payload['next']['badge']['icon']);
+        }
+    }
+
+    public function test_gamification_badges_bulk_loads_image_metadata_without_n_plus_one_queries(): void
+    {
+        $connection = Schema::getConnection();
+        $connection->flushQueryLog();
+        $connection->enableQueryLog();
+
+        $this->getJson('/api/gamification/badges/10')->assertOk();
+
+        $fileQueries = array_filter(
+            $connection->getQueryLog(),
+            static fn (array $query): bool => str_contains($query['query'], 'default_files_files'),
+        );
+        $this->assertCount(1, $fileQueries);
     }
 
     public function test_gamification_badges_locale_uses_app_locale_and_falls_back_to_en_for_empty_or_non_string_values(): void
@@ -531,7 +630,7 @@ class GamificationBadgesCompatibilityTest extends TestCase
      */
     private function expectedPayload(): array
     {
-        $assetRoot = config('app.url');
+        $assetRoot = config('app.url').'/app/default/assets';
 
         return [
             'badges' => [
@@ -549,7 +648,7 @@ class GamificationBadgesCompatibilityTest extends TestCase
                     'color_code' => '#465973',
                     'disabled_image_id' => 101,
                     'enable' => true,
-                    'icon' => $assetRoot,
+                    'icon' => $assetRoot.'/badges/active.png',
                     'point' => 1,
                     'title' => 'Street Stoller',
                     'info' => 'First steps.',
@@ -568,7 +667,7 @@ class GamificationBadgesCompatibilityTest extends TestCase
                     'color_code' => '#1781ED',
                     'disabled_image_id' => 101,
                     'enable' => false,
-                    'icon' => $assetRoot,
+                    'icon' => $assetRoot.'/badges/disabled.png',
                     'point' => 1000,
                     'title' => 'Pathfinder',
                     'info' => 'Keep exploring.',
@@ -645,7 +744,7 @@ class GamificationBadgesCompatibilityTest extends TestCase
                     'is_custom' => true,
                     'color_code' => '#465973',
                     'disabled_image_id' => 101,
-                    'icon' => $assetRoot,
+                    'icon' => $assetRoot.'/badges/active.png',
                     'title' => 'Street Stoller',
                     'info' => 'First steps.',
                 ],

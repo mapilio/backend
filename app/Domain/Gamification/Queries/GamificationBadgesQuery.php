@@ -138,12 +138,12 @@ class GamificationBadgesQuery
         }
 
         $locale = $this->locale($request);
-        $assetRoot = $request->getSchemeAndHttpHost();
+        $badgeAssetBaseUrl = $this->badgeAssetBaseUrl($request);
         $ownedBadgeIds = $this->ownedBadgeIds($connection, $userId);
         $levels = $this->levels($connection);
         $point = $this->point($leaderboardQuery, $userId);
         $badges = $this->badges($connection, $locale);
-        $disabledImages = $this->disabledImagePayloads($connection, $badges, $locale);
+        $imagePayloads = $this->badgeImagePayloads($connection, $badges, $locale);
         $currentLevelId = $this->currentLevelId($connection, $userId);
 
         return [
@@ -152,13 +152,13 @@ class GamificationBadgesQuery
                     $badge,
                     $ownedBadgeIds,
                     $levels,
-                    $assetRoot,
-                    $disabledImages,
+                    $badgeAssetBaseUrl,
+                    $imagePayloads,
                 ))
                 ->all(),
             'point' => $point,
             'next' => [
-                'badge' => $this->nextBadge($badges, $currentLevelId, $assetRoot),
+                'badge' => $this->nextBadge($badges, $currentLevelId, $badgeAssetBaseUrl, $imagePayloads),
                 'percentage' => $this->legacyPercentage($point, $badges, $currentLevelId),
             ],
         ];
@@ -252,28 +252,29 @@ class GamificationBadgesQuery
     /**
      * @param  array<int, bool>  $ownedBadgeIds
      * @param  array<int, int>  $levels
-     * @param  array<int, FilePayload>  $disabledImages
+     * @param  array<int, FilePayload>  $imagePayloads
      * @return BadgePayload
      */
     private function badgePayload(
         object $badge,
         array $ownedBadgeIds,
         array $levels,
-        string $assetRoot,
-        array $disabledImages,
+        string $badgeAssetBaseUrl,
+        array $imagePayloads,
     ): array {
         $enabled = isset($ownedBadgeIds[(int) $badge->id]);
 
         $payload = $this->baseBadgePayload($badge);
         $payload['enable'] = $enabled;
-        $payload['icon'] = $assetRoot;
+        $iconImageId = $enabled ? $badge->image_id : $badge->disabled_image_id;
+        $payload['icon'] = $this->badgeIcon($imagePayloads, $iconImageId, $badgeAssetBaseUrl);
         $payload['point'] = $levels[(int) $badge->available_level] ?? 0;
         $payload['title'] = $badge->title;
         $payload['info'] = $badge->info;
 
         if (! $enabled) {
             $disabledImageId = $this->nullableInt($badge->disabled_image_id);
-            $payload['disabled_image'] = $disabledImageId === null ? null : ($disabledImages[$disabledImageId] ?? null);
+            $payload['disabled_image'] = $disabledImageId === null ? null : ($imagePayloads[$disabledImageId] ?? null);
         }
 
         return $payload;
@@ -281,9 +282,10 @@ class GamificationBadgesQuery
 
     /**
      * @param  BadgeCollection  $badges
+     * @param  array<int, FilePayload>  $imagePayloads
      * @return NextBadgePayload|null
      */
-    private function nextBadge(Collection $badges, int $currentLevelId, string $assetRoot): ?array
+    private function nextBadge(Collection $badges, int $currentLevelId, string $badgeAssetBaseUrl, array $imagePayloads): ?array
     {
         $badge = $badges
             ->filter(fn (object $badge): bool => (int) $badge->available_level >= $currentLevelId)
@@ -295,7 +297,7 @@ class GamificationBadgesQuery
         }
 
         $payload = $this->baseBadgePayload($badge);
-        $payload['icon'] = $assetRoot;
+        $payload['icon'] = $this->badgeIcon($imagePayloads, $badge->image_id, $badgeAssetBaseUrl);
         $payload['title'] = $badge->title;
         $payload['info'] = $badge->info;
 
@@ -344,10 +346,11 @@ class GamificationBadgesQuery
      * @param  BadgeCollection  $badges
      * @return array<int, FilePayload>
      */
-    private function disabledImagePayloads(Connection $connection, Collection $badges, string $locale): array
+    private function badgeImagePayloads(Connection $connection, Collection $badges, string $locale): array
     {
         $fileIds = $badges
-            ->pluck('disabled_image_id')
+            ->pluck('image_id')
+            ->merge($badges->pluck('disabled_image_id'))
             ->filter(fn (mixed $fileId): bool => $fileId !== null)
             ->map(fn (mixed $fileId): int => (int) $fileId)
             ->unique()
@@ -387,6 +390,50 @@ class GamificationBadgesQuery
                 (int) $file->id => $this->filePayload($file, $folders, $disks),
             ])
             ->all();
+    }
+
+    /**
+     * Resolve a badge image from file metadata without allowing metadata to
+     * introduce path traversal. Missing metadata keeps the legacy string
+     * contract by returning an empty icon value.
+     *
+     * @param  array<int, FilePayload>  $imagePayloads
+     */
+    private function badgeIcon(array $imagePayloads, mixed $fileId, string $baseUrl): string
+    {
+        $fileId = $this->nullableInt($fileId);
+        $file = $fileId === null ? null : ($imagePayloads[$fileId] ?? null);
+        $folder = is_array($file) && is_array($file['folder'] ?? null) ? $file['folder'] : null;
+        $folderSlug = $folder['slug'] ?? null;
+        $name = is_array($file) ? ($file['name'] ?? null) : null;
+
+        if (! $this->safeBadgePathComponent($folderSlug) || ! $this->safeBadgePathComponent($name)) {
+            return '';
+        }
+
+        $path = collect([$folderSlug, $name])
+            ->map(fn (string $component): string => str_replace('%2B', '+', rawurlencode(str_replace(' ', '+', $component))))
+            ->implode('/');
+
+        return rtrim($baseUrl, '/').'/'.$path;
+    }
+
+    private function safeBadgePathComponent(mixed $component): bool
+    {
+        return is_string($component)
+            && $component !== ''
+            && $component !== '.'
+            && $component !== '..'
+            && strpbrk($component, '/\\') === false;
+    }
+
+    private function badgeAssetBaseUrl(Request $request): string
+    {
+        $configured = trim((string) config('mapilio.gamification.badge_asset_base_url', ''));
+
+        return rtrim($configured !== ''
+            ? $configured
+            : $request->getSchemeAndHttpHost().'/app/default/assets', '/');
     }
 
     /**
