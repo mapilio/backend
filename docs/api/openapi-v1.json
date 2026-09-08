@@ -3777,6 +3777,56 @@
         }
       }
     },
+    "/api/v2/content/blogs": {
+      "get": {
+        "operationId": "getBlogPostsV2",
+        "tags": ["Public content"],
+        "summary": "List public blog posts with privacy-safe author details",
+        "description": "Returns the unauthenticated v2 blog list through the shared BlogContentQuery with a thin response projection. The supported scalar query inputs remain `page`, `locale`, `category-prefix`, and `category`, with the same filtering, translation fallback, descending `posts.id` ordering, empty `{data: null}` result, nullable fields, and unchanged `other_authors` shape as the legacy and v1 routes. Each `author_detail` entry is projected to exactly `username` and `user_profile_photo`; an absent author remains `[]`. V2 keeps the existing query fetch limit and offset of 100 but reports `per_page` 100 and calculates pagination metadata and links in 100-row units, so 101 matching posts produce two pages. Pagination `path` and every link use `/api/v2/content/blogs` and preserve parsed query filters. No endpoint-specific throttle, response cache, ETag, conditional-request handling, or 304 response is part of this contract. A deployment-wide global limiter is disabled and observe-only by default; when enforcement is enabled it may return the exact 429 response documented below. Generic database or runtime failures are not stabilized by this contract.",
+        "security": [],
+        "parameters": [
+          {"name": "page", "in": "query", "required": false, "allowEmptyValue": true, "description": "Optional scalar page query value. PHP integer-casts it and clamps it to at least 1; omission uses 1.", "schema": {"type": "string"}, "example": "2"},
+          {"name": "locale", "in": "query", "required": false, "allowEmptyValue": true, "description": "Optional locale. A nonempty string is used exactly; an empty or non-string value falls back to the deployment application locale.", "schema": {"type": "string"}, "example": "en"},
+          {"name": "category-prefix", "in": "query", "required": false, "allowEmptyValue": true, "description": "Optional nonempty category-slug substring; omission or an empty/non-string value falls back to `blog-`.", "schema": {"type": "string"}, "example": "blog-"},
+          {"name": "category", "in": "query", "required": false, "allowEmptyValue": true, "description": "Optional filled scalar category value compared to `posts.category_id` without separate endpoint validation.", "schema": {"type": "string"}, "example": "10"}
+        ],
+        "responses": {
+          "200": {
+            "description": "A populated v2 list preserves all existing post fields while exposing only the two public author fields; an empty or out-of-range page returns exactly `{data: null}`.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/V2BlogListResponse"}, "examples": {
+              "populated": {"summary": "Synthetic privacy-safe populated blog list", "value": {"data": [{"id": 101, "sort_order": 7, "created_at": "2026-08-01T05:06:07.000000Z", "created_by_id": 501, "updated_at": "2026-08-02T05:06:07.000000Z", "updated_by_id": null, "deleted_at": null, "str_id": "synthetic-101", "type_id": 1, "publish_at": "2026-08-03 05:06:07", "author_id": 501, "entry_id": 701, "entry_type": "posts_default_posts", "category_id": 10, "featured": true, "enabled": true, "tags": "synthetic-mapping", "blog_cover_photo": "https://cdn.example/blog-cover.jpg", "category_name": "Synthetic News", "other_authors": "[{\"username\":\"synthetic-coauthor\",\"user_profile_photo\":\"https://cdn.example/coauthor.jpg\"}]", "author_detail": [{"username": "synthetic-author", "user_profile_photo": "https://cdn.example/author.jpg"}], "title": "Synthetic Blog", "summary": "Synthetic summary.", "slug": "synthetic-blog-101-en", "meta_title": "Synthetic blog title", "meta_description": "Synthetic blog description"}], "pagination": {"current_page": 1, "first_page_url": "/api/v2/content/blogs?page=1", "from": 1, "last_page": 1, "last_page_url": "/api/v2/content/blogs?page=1", "links": [{"url": null, "label": "&laquo; Previous", "active": false}, {"url": "/api/v2/content/blogs?page=1", "label": "1", "active": true}, {"url": null, "label": "Next &raquo;", "active": false}], "next_page_url": null, "path": "/api/v2/content/blogs", "per_page": 100, "prev_page_url": null, "to": 1, "total": 1}}},
+              "empty": {"summary": "Synthetic empty or out-of-range response", "value": {"data": null}}
+            }}}
+          },
+          "429": {"description": "The optional deployment-wide global limiter rejected the request when enforcement is enabled. The limiter is disabled and observe-only by default, and this response is not endpoint-specific.", "headers": {"Retry-After": {"description": "Decimal number of seconds until another request may be attempted.", "schema": {"type": "string", "pattern": "^[0-9]+$"}}, "X-RateLimit-Limit": {"description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.", "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}}, "X-RateLimit-Remaining": {"description": "Requests remaining in the current limiter window; the rejected response serializes this as `0`.", "schema": {"const": "0"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PublicRateLimitError"}, "example": {"success": false, "message": ["Too many requests."], "error_code": 429}}}
+        }
+      }
+    }
+    },
+    "/api/v2/content/blogs/{slug}": {
+      "get": {
+        "operationId": "getBlogDetailV2",
+        "tags": ["Public content"],
+        "summary": "Read a public blog detail with privacy-safe author details",
+        "description": "Returns the unauthenticated v2 blog detail through the shared BlogContentQuery with a thin response projection. The slug and locale selection, translation values, content, nullable fields, unchanged `other_authors` shape, and unknown-slug `{data: null}` behavior remain the same as the legacy and v1 routes. Each `author_detail` entry is projected to exactly `username` and `user_profile_photo`; an absent author remains `[]`. Detail pagination remains the fixed single-row shape with `per_page` 15 and v2-only path and links. No endpoint-specific throttle, response cache, ETag, conditional-request handling, or 304 response is part of this contract. A deployment-wide global limiter is disabled and observe-only by default; when enforcement is enabled it may return the exact 429 response documented below. Generic database or runtime failures are not stabilized by this contract.",
+        "security": [],
+        "parameters": [
+          {"name": "slug", "in": "path", "required": true, "description": "Exact post-translation slug.", "schema": {"type": "string"}, "example": "synthetic-blog-101-en"},
+          {"name": "locale", "in": "query", "required": false, "allowEmptyValue": true, "description": "Optional locale used for translation joins. A nonempty string is used exactly; an empty or non-string value falls back to the deployment application locale.", "schema": {"type": "string"}, "example": "en"}
+        ],
+        "responses": {
+          "200": {
+            "description": "A matching slug returns one detail row and fixed single-row v2 pagination; an unknown or soft-deleted slug returns exactly `{data: null}`.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/V2BlogDetailResponse"}, "examples": {
+              "populated": {"summary": "Synthetic privacy-safe populated blog detail", "value": {"data": [{"id": 1001, "sort_order": 7, "created_at": "2026-08-01T06:00:00.000000Z", "created_by_id": null, "updated_at": "2026-08-02T06:00:00.000000Z", "updated_by_id": null, "deleted_at": null, "str_id": "synthetic-101", "type_id": 1, "publish_at": "2026-08-03 05:06:07", "author_id": 501, "entry_id": 101, "entry_type": "posts_default_posts", "category_id": 10, "featured": true, "enabled": true, "tags": "synthetic-mapping", "blog_cover_photo": "https://cdn.example/blog-cover.jpg", "locale": "en", "title": "Synthetic Blog", "summary": "Synthetic summary.", "meta_title": "Synthetic blog title", "meta_description": "Synthetic blog description", "slug": "synthetic-blog-101-en", "category_name": "Synthetic News", "content": "<p>Synthetic blog content.</p>", "other_authors": "[{\"username\":\"synthetic-coauthor\",\"user_profile_photo\":\"https://cdn.example/coauthor.jpg\"}]", "author_detail": [{"username": "synthetic-author", "user_profile_photo": "https://cdn.example/author.jpg"}] }], "pagination": {"current_page": 1, "first_page_url": "/api/v2/content/blogs/synthetic-blog-101-en?page=1", "from": 1, "last_page": 1, "last_page_url": "/api/v2/content/blogs/synthetic-blog-101-en?page=1", "links": [{"url": null, "label": "&laquo; Previous", "active": false}, {"url": "/api/v2/content/blogs/synthetic-blog-101-en?page=1", "label": "1", "active": true}, {"url": null, "label": "Next &raquo;", "active": false}], "next_page_url": null, "path": "/api/v2/content/blogs/synthetic-blog-101-en", "per_page": 15, "prev_page_url": null, "to": 1, "total": 0}}},
+              "unknownSlug": {"summary": "Synthetic unknown slug", "value": {"data": null}}
+            }}}
+          },
+          "429": {"description": "The optional deployment-wide global limiter rejected the request when enforcement is enabled. The limiter is disabled and observe-only by default, and this response is not endpoint-specific.", "headers": {"Retry-After": {"description": "Decimal number of seconds until another request may be attempted.", "schema": {"type": "string", "pattern": "^[0-9]+$"}}, "X-RateLimit-Limit": {"description": "Configured maximum requests in the current limiter window, serialized as a decimal header value.", "schema": {"type": "string", "pattern": "^[1-9][0-9]*$"}}, "X-RateLimit-Remaining": {"description": "Requests remaining in the current limiter window; the rejected response serializes this as `0`.", "schema": {"const": "0"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PublicRateLimitError"}, "example": {"success": false, "message": ["Too many requests."], "error_code": 429}}}
+        }
+      }
+    }
+    },
     "/api/v1/content/catalog": {
       "get": {
         "operationId": "getCatalog",
@@ -6509,6 +6559,141 @@
           {"maxProperties": 1, "properties": {"data": {"type": "null"}, "pagination": {"$ref": "#/components/schemas/BlogDetailPagination"}}}
         ],
         "properties": {"data": {"oneOf": [{"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/components/schemas/BlogDetailRow"}}, {"type": "null"}]}, "pagination": {"$ref": "#/components/schemas/BlogDetailPagination"}}
+      },
+      "V2BlogAuthorDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["username", "user_profile_photo"],
+        "properties": {
+          "username": {"type": ["string", "null"]},
+          "user_profile_photo": {"type": ["string", "null"]}
+        }
+      },
+      "V2BlogListRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "str_id", "type_id", "publish_at", "author_id", "entry_id", "entry_type", "category_id", "featured", "enabled", "tags", "blog_cover_photo", "category_name", "other_authors", "author_detail", "title", "summary", "slug", "meta_title", "meta_description"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": "null"},
+          "str_id": {"type": ["string", "null"]},
+          "type_id": {"type": ["integer", "null"]},
+          "publish_at": {"type": ["string", "null"]},
+          "author_id": {"type": ["integer", "null"]},
+          "entry_id": {"type": ["integer", "null"]},
+          "entry_type": {"type": ["string", "null"]},
+          "category_id": {"type": ["integer", "null"]},
+          "featured": {"type": "boolean"},
+          "enabled": {"type": "boolean"},
+          "tags": {"type": ["string", "null"]},
+          "blog_cover_photo": {"type": ["string", "null"]},
+          "category_name": {"type": ["string", "null"]},
+          "other_authors": {"type": ["string", "null"]},
+          "author_detail": {"type": "array", "maxItems": 1, "items": {"$ref": "#/components/schemas/V2BlogAuthorDetail"}},
+          "title": {"type": ["string", "null"]},
+          "summary": {"type": ["string", "null"]},
+          "slug": {"type": ["string", "null"]},
+          "meta_title": {"type": ["string", "null"]},
+          "meta_description": {"type": ["string", "null"]}
+        }
+      },
+      "V2BlogDetailRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sort_order", "created_at", "created_by_id", "updated_at", "updated_by_id", "deleted_at", "str_id", "type_id", "publish_at", "author_id", "entry_id", "entry_type", "category_id", "featured", "enabled", "tags", "blog_cover_photo", "locale", "title", "summary", "meta_title", "meta_description", "slug", "category_name", "content", "other_authors", "author_detail"],
+        "properties": {
+          "id": {"type": ["integer", "null"], "format": "int64"},
+          "sort_order": {"type": ["integer", "null"]},
+          "created_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "created_by_id": {"type": ["integer", "null"]},
+          "updated_at": {"type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"},
+          "updated_by_id": {"type": ["integer", "null"]},
+          "deleted_at": {"type": "null"},
+          "str_id": {"type": ["string", "null"]},
+          "type_id": {"type": ["integer", "null"]},
+          "publish_at": {"type": ["string", "null"]},
+          "author_id": {"type": ["integer", "null"]},
+          "entry_id": {"type": ["integer", "null"]},
+          "entry_type": {"type": ["string", "null"]},
+          "category_id": {"type": ["integer", "null"]},
+          "featured": {"type": "boolean"},
+          "enabled": {"type": "boolean"},
+          "tags": {"type": ["string", "null"]},
+          "blog_cover_photo": {"type": ["string", "null"]},
+          "locale": {"type": ["string", "null"]},
+          "title": {"type": ["string", "null"]},
+          "summary": {"type": ["string", "null"]},
+          "meta_title": {"type": ["string", "null"]},
+          "meta_description": {"type": ["string", "null"]},
+          "slug": {"type": ["string", "null"]},
+          "category_name": {"type": ["string", "null"]},
+          "content": {"type": ["string", "null"]},
+          "other_authors": {"type": ["string", "null"]},
+          "author_detail": {"type": "array", "maxItems": 1, "items": {"$ref": "#/components/schemas/V2BlogAuthorDetail"}}
+        }
+      },
+      "V2BlogListPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "first_page_url", "from", "last_page", "last_page_url", "links", "next_page_url", "path", "per_page", "prev_page_url", "to", "total"],
+        "properties": {
+          "current_page": {"type": "integer", "minimum": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": "integer", "minimum": 1},
+          "last_page": {"type": "integer", "minimum": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/BlogPaginationLink"}},
+          "next_page_url": {"type": ["string", "null"]},
+          "path": {"type": "string", "const": "/api/v2/content/blogs"},
+          "per_page": {"type": "integer", "const": 100},
+          "prev_page_url": {"type": ["string", "null"]},
+          "to": {"type": "integer", "minimum": 1},
+          "total": {"type": "integer", "minimum": 1}
+        }
+      },
+      "V2BlogDetailPagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["current_page", "first_page_url", "from", "last_page", "last_page_url", "links", "next_page_url", "path", "per_page", "prev_page_url", "to", "total"],
+        "properties": {
+          "current_page": {"type": "integer", "const": 1},
+          "first_page_url": {"type": "string"},
+          "from": {"type": "integer", "const": 1},
+          "last_page": {"type": "integer", "const": 1},
+          "last_page_url": {"type": "string"},
+          "links": {"type": "array", "items": {"$ref": "#/components/schemas/BlogPaginationLink"}},
+          "next_page_url": {"type": "null"},
+          "path": {"type": "string", "description": "The concrete v2 detail path `/api/v2/content/blogs/{slug}`."},
+          "per_page": {"type": "integer", "const": 15},
+          "prev_page_url": {"type": "null"},
+          "to": {"type": "integer", "const": 1},
+          "total": {"type": "integer", "const": 0}
+        }
+      },
+      "V2BlogListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "oneOf": [
+          {"required": ["data", "pagination"], "properties": {"data": {"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/V2BlogListRow"}}, "pagination": {"$ref": "#/components/schemas/V2BlogListPagination"}}},
+          {"maxProperties": 1, "properties": {"data": {"type": "null"}, "pagination": {"$ref": "#/components/schemas/V2BlogListPagination"}}}
+        ],
+        "properties": {"data": {"oneOf": [{"type": "array", "minItems": 1, "items": {"$ref": "#/components/schemas/V2BlogListRow"}}, {"type": "null"}]}, "pagination": {"$ref": "#/components/schemas/V2BlogListPagination"}}
+      },
+      "V2BlogDetailResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["data"],
+        "oneOf": [
+          {"required": ["data", "pagination"], "properties": {"data": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/components/schemas/V2BlogDetailRow"}}, "pagination": {"$ref": "#/components/schemas/V2BlogDetailPagination"}}},
+          {"maxProperties": 1, "properties": {"data": {"type": "null"}, "pagination": {"$ref": "#/components/schemas/V2BlogDetailPagination"}}}
+        ],
+        "properties": {"data": {"oneOf": [{"type": "array", "minItems": 1, "maxItems": 1, "items": {"$ref": "#/components/schemas/V2BlogDetailRow"}}, {"type": "null"}]}, "pagination": {"$ref": "#/components/schemas/V2BlogDetailPagination"}}
       },
       "CatalogAssetUrls": {
         "type": "array",

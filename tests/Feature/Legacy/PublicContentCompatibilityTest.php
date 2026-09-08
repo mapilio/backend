@@ -577,6 +577,177 @@ class PublicContentCompatibilityTest extends TestCase
         $this->assertSame($legacy, $versioned);
     }
 
+    public function test_v2_blog_list_projects_author_detail_to_public_fields_and_v2_pagination(): void
+    {
+        $response = $this->getJson('/api/v2/content/blogs')
+            ->assertOk()
+            ->json();
+        $row = $response['data'][0];
+
+        $this->assertSame([
+            'username' => 'author',
+            'user_profile_photo' => 'https://cdn.example/author.jpg',
+        ], $row['author_detail'][0]);
+        $this->assertSame(
+            '[{"username":"coauthor","user_profile_photo":"https://cdn.example/coauthor.jpg"}]',
+            $row['other_authors'],
+        );
+        $this->assertSame('/api/v2/content/blogs', $response['pagination']['path']);
+        $this->assertStringStartsWith('/api/v2/content/blogs', $response['pagination']['first_page_url']);
+        $this->assertStringStartsWith('/api/v2/content/blogs', $response['pagination']['links'][1]['url']);
+    }
+
+    public function test_v2_blog_detail_projects_author_detail_and_keeps_v2_pagination(): void
+    {
+        $response = $this->getJson('/api/v2/content/blogs/modern-blog-101-en?locale=en')
+            ->assertOk()
+            ->json();
+
+        $this->assertSame([
+            'username' => 'author',
+            'user_profile_photo' => 'https://cdn.example/author.jpg',
+        ], $response['data'][0]['author_detail'][0]);
+        $this->assertSame('/api/v2/content/blogs/modern-blog-101-en', $response['pagination']['path']);
+        foreach (['first_page_url', 'last_page_url'] as $field) {
+            $this->assertStringStartsWith('/api/v2/content/blogs/modern-blog-101-en', $response['pagination'][$field]);
+        }
+        $this->assertSame(
+            '/api/v2/content/blogs/modern-blog-101-en?locale=en&page=1',
+            $response['pagination']['links'][1]['url'],
+        );
+    }
+
+    public function test_v2_blog_authors_are_empty_for_null_and_missing_users(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_posts_posts')->insert([
+            [
+                'id' => 104,
+                'category_id' => 10,
+                'author_id' => null,
+                'entry_id' => null,
+                'entry_type' => 'posts_default_posts',
+                'enabled' => true,
+            ],
+            [
+                'id' => 105,
+                'category_id' => 10,
+                'author_id' => 999,
+                'entry_id' => null,
+                'entry_type' => 'posts_default_posts',
+                'enabled' => true,
+            ],
+        ]);
+        $db->table('default_posts_posts_translations')->insert([
+            ['id' => 1004, 'entry_id' => 104, 'locale' => 'en', 'slug' => 'null-author-blog'],
+            ['id' => 1005, 'entry_id' => 105, 'locale' => 'en', 'slug' => 'missing-author-blog'],
+        ]);
+
+        $list = $this->getJson('/api/v2/content/blogs')->assertOk()->json();
+        $this->assertSame([], $list['data'][0]['author_detail']);
+        $this->assertSame([], $list['data'][1]['author_detail']);
+
+        foreach (['null-author-blog', 'missing-author-blog'] as $slug) {
+            $detail = $this->getJson('/api/v2/content/blogs/'.$slug)->assertOk()->json();
+            $this->assertSame([], $detail['data'][0]['author_detail']);
+        }
+    }
+
+    public function test_v2_blog_missing_locale_keeps_list_rows_but_returns_null_detail(): void
+    {
+        $list = $this->getJson('/api/v2/content/blogs?locale=fr')
+            ->assertOk()
+            ->json();
+        $this->assertNotNull($list['data']);
+        $this->assertNull($list['data'][0]['title']);
+        $this->assertNull($list['data'][0]['slug']);
+        $this->assertSame([
+            'username' => 'author',
+            'user_profile_photo' => 'https://cdn.example/author.jpg',
+        ], $list['data'][0]['author_detail'][0]);
+
+        $this->getJson('/api/v2/content/blogs/modern-blog-101-en?locale=fr')
+            ->assertOk()
+            ->assertExactJson(['data' => null]);
+    }
+
+    public function test_v2_blog_detail_pagination_round_trips_reserved_slug_segments(): void
+    {
+        $db = Schema::getConnection();
+
+        foreach (['reserved?query', 'reserved#fragment', 'reserved%value'] as $slug) {
+            $db->table('default_posts_posts_translations')->where('id', 1001)->update(['slug' => $slug]);
+            $encodedSlug = rawurlencode($slug);
+            $response = $this->getJson('/api/v2/content/blogs/'.$encodedSlug.'?locale=en')
+                ->assertOk()
+                ->json();
+            $pagination = $response['pagination'];
+
+            $this->assertSame($slug, $response['data'][0]['slug']);
+            $this->assertSame('/api/v2/content/blogs/'.$encodedSlug, $pagination['path']);
+            $this->assertSame(
+                '/api/v2/content/blogs/'.$encodedSlug.'?locale=en&page=1',
+                $pagination['links'][1]['url'],
+            );
+
+            $roundTrip = $this->getJson($pagination['links'][1]['url'])
+                ->assertOk()
+                ->json();
+            $this->assertSame($slug, $roundTrip['data'][0]['slug']);
+            $this->assertSame($pagination, $roundTrip['pagination']);
+        }
+    }
+
+    public function test_v2_blog_list_pagination_keeps_query_and_all_links_on_v2_route(): void
+    {
+        $db = Schema::getConnection();
+        $db->table('default_posts_posts')->insert(array_map(
+            static fn (int $id): array => [
+                'id' => $id,
+                'category_id' => 10,
+                'entry_type' => 'posts_default_posts',
+                'enabled' => true,
+            ],
+            range(200, 299),
+        ));
+        $db->table('default_posts_posts_translations')->insert(array_map(
+            static fn (int $id): array => [
+                'id' => $id + 2000,
+                'entry_id' => $id,
+                'locale' => 'en',
+                'slug' => 'pagination-blog-'.$id,
+            ],
+            range(200, 299),
+        ));
+
+        $response = $this->getJson('/api/v2/content/blogs?locale=en&category-prefix=blog-')
+            ->assertOk()
+            ->json();
+        $pagination = $response['pagination'];
+
+        $this->assertSame(101, $pagination['total']);
+        $this->assertSame(2, $pagination['last_page']);
+        $this->assertSame(100, $pagination['per_page']);
+        $this->assertSame('/api/v2/content/blogs', $pagination['path']);
+        $this->assertSame('/api/v2/content/blogs?locale=en&category-prefix=blog-&page=1', $pagination['first_page_url']);
+        $this->assertSame('/api/v2/content/blogs?locale=en&category-prefix=blog-&page=2', $pagination['next_page_url']);
+        $this->assertSame('/api/v2/content/blogs?locale=en&category-prefix=blog-&page=1', $pagination['links'][1]['url']);
+        $this->assertSame('/api/v2/content/blogs?locale=en&category-prefix=blog-&page=2', $pagination['links'][2]['url']);
+        $this->assertStringNotContainsString('/api/get-blogs', json_encode($pagination));
+
+        $secondPage = $this->getJson('/api/v2/content/blogs?locale=en&category-prefix=blog-&page=2')
+            ->assertOk()
+            ->json();
+        $this->assertSame(2, $secondPage['pagination']['current_page']);
+        $this->assertSame(100, $secondPage['pagination']['per_page']);
+        $this->assertSame(101, $secondPage['pagination']['to']);
+        $this->assertSame(
+            '/api/v2/content/blogs?locale=en&category-prefix=blog-&page=1',
+            $secondPage['pagination']['prev_page_url'],
+        );
+        $this->assertNull($secondPage['pagination']['next_page_url']);
+    }
+
     public function test_legacy_blog_detail_uses_translation_overrides_and_detail_pagination(): void
     {
         $this->getJson('/api/get-blog-detail/modern-blog-101-en')
@@ -671,7 +842,12 @@ class PublicContentCompatibilityTest extends TestCase
     {
         $router = $this->app->make(Router::class);
 
-        foreach (['api.v1.content.blogs', 'api.v1.content.blogs.detail'] as $routeName) {
+        foreach ([
+            'api.v1.content.blogs',
+            'api.v1.content.blogs.detail',
+            'api.v2.content.blogs',
+            'api.v2.content.blogs.detail',
+        ] as $routeName) {
             $route = $router->getRoutes()->getByName($routeName);
 
             $this->assertNotNull($route, "Named route [{$routeName}] must exist.");
