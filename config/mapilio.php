@@ -75,6 +75,10 @@ return [
         'enabled' => env('MAPILIO_DEMO_SEEDING_ENABLED', false),
     ],
 
+    'gamification' => [
+        'badge_asset_base_url' => rtrim((string) env('MAPILIO_BADGE_ASSET_BASE_URL', ''), '/'),
+    ],
+
     'observability' => [
         'api_request_logging_enabled' => env('MAPILIO_API_REQUEST_LOGGING_ENABLED', false),
         'slow_request_ms' => max(1, (int) env('MAPILIO_API_SLOW_REQUEST_MS', 1000)),

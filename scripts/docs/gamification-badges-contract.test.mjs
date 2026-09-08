@@ -80,6 +80,10 @@ test('documents only the unauthenticated numeric gamification badge alias', () =
     assert.match(operation.description, /empty value, array, or other non-string falls back to `en`/);
     assert.match(operation.description, /unrecognized values.*null translation fields/);
     assert.match(operation.description, /checks only the id.*deleted timestamp remains visible.*derived leaderboard lookup excludes deleted users.*point.*0.*percentage.*0/s);
+    assert.match(operation.description, /icon.*always a string.*image_id.*disabled_image_id.*next\.badge.*image_id/s);
+    assert.match(operation.description, /MAPILIO_BADGE_ASSET_BASE_URL.*request origin.*app\/default\/assets/);
+    assert.match(operation.description, /missing file, folder, or name metadata returns an empty string/);
+    assert.match(operation.description, /replace spaces with `\+`.*URL-encode reserved characters.*rejecting/s);
     assert.match(operation.description, /unknown user returns HTTP 200 with the exact empty JSON array `\[\]`, not an object/);
     assert.match(operation.description, /no endpoint authentication, endpoint-specific throttle, response cache, ETag, or 304/);
     assert.match(operation.responses['429'].description, /deployment-configurable/);
@@ -177,6 +181,9 @@ test('keeps synthetic populated and unknown-user examples exact', async () => {
     ]);
     assert.equal(populated.badges[0].enable, true);
     assert.equal(populated.badges[1].enable, false);
+    assert.equal(populated.badges[0].icon, 'https://api.example.test/app/default/assets/badges/active.png');
+    assert.equal(populated.badges[1].icon, 'https://api.example.test/app/default/assets/badges/disabled.png');
+    assert.equal(populated.next.badge.icon, 'https://api.example.test/app/default/assets/badges/active.png');
     assert.equal(typeof populated.badges[1].point, 'number');
     assert.equal(populated.badges[1].disabled_image.disk.slug, 'local');
     assert.equal(populated.badges[1].disabled_image.folder.slug, 'badges');
@@ -247,6 +254,9 @@ test('guards route, source, focused PHP contract, and package registration again
     assert.match(query, /return \[\];/);
     assert.match(query, /where\('id', \$userId\)\s*->exists\(\)/);
     assert.match(query, /is_string\(\$locale\) && \$locale !== '' \? \$locale : 'en'/);
+    assert.match(query, /badgeImagePayloads/);
+    assert.match(query, /->pluck\('image_id'\)\s*\n?\s*->merge\(\$badges->pluck\('disabled_image_id'\)\)/);
+    assert.match(query, /return '';/);
     assert.match(compatibility, /test_versioned_gamification_badges_alias_returns_same_contract/);
     assert.match(compatibility, /test_gamification_badges_locale_uses_app_locale_and_falls_back_to_en_for_empty_or_non_string_values/);
     assert.match(compatibility, /test_gamification_badges_unrecognized_scalar_locale_is_passed_through_without_translation_fallback/);
