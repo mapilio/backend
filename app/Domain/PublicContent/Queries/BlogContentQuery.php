@@ -74,14 +74,15 @@ class BlogContentQuery
     }
 
     /** @return array{data: null}|array{data: list<BlogListRow>, pagination: Pagination} */
-    public function blogs(Request $request): array
-    {
+    public function blogs(
+        Request $request,
+        string $paginationPath = '/api/get-blogs',
+        int $paginationSize = self::LEGACY_PAGINATION_SIZE,
+    ): array {
         $connection = $this->connection();
         $page = $this->page($request);
         $locale = $this->locale($request);
         $categoryPrefix = $this->filledString($request->query('category-prefix'), 'blog-');
-        $path = '/api/get-blogs';
-
         $baseQuery = $connection->table('default_posts_posts as posts')
             ->leftJoin('default_posts_categories_translations as category_translations', function ($join) use ($locale): void {
                 $join->on('posts.category_id', '=', 'category_translations.entry_id')
@@ -120,16 +121,16 @@ class BlogContentQuery
             'data' => $rows
                 ->map(fn (object $row): array => $this->mapBlogListRow($row, $authors, $otherAuthors))
                 ->all(),
-            'pagination' => $this->pagination($request, $path, $page, $total, $rows->count()),
+            'pagination' => $this->pagination($request, $paginationPath, $page, $total, $rows->count(), $paginationSize),
         ];
     }
 
     /** @return array{data: null}|array{data: array{0: BlogDetailRow}, pagination: Pagination} */
-    public function detail(Request $request, string $slug): array
+    public function detail(Request $request, string $slug, ?string $paginationPath = null): array
     {
         $connection = $this->connection();
         $locale = $this->locale($request);
-        $path = '/api/get-blog-detail/'.$slug;
+        $path = $paginationPath ?? '/api/get-blog-detail/'.$slug;
 
         $row = $connection->table('default_posts_posts as posts')
             ->leftJoin('default_posts_posts_translations as post_translations', function ($join) use ($locale): void {
@@ -469,10 +470,16 @@ class BlogContentQuery
     }
 
     /** @return Pagination */
-    private function pagination(Request $request, string $path, int $page, int $total, int $rowCount): array
-    {
-        $lastPage = (int) ceil($total / self::LEGACY_PAGINATION_SIZE);
-        $from = (($page - 1) * self::LEGACY_PAGINATION_SIZE) + 1;
+    private function pagination(
+        Request $request,
+        string $path,
+        int $page,
+        int $total,
+        int $rowCount,
+        int $paginationSize = self::LEGACY_PAGINATION_SIZE,
+    ): array {
+        $lastPage = (int) ceil($total / $paginationSize);
+        $from = (($page - 1) * $paginationSize) + 1;
 
         return [
             'current_page' => $page,
@@ -483,7 +490,7 @@ class BlogContentQuery
             'links' => $this->links($path, $request, $page, $lastPage),
             'next_page_url' => $page < $lastPage ? $this->pageUrl($path, $request, $page + 1) : null,
             'path' => $path,
-            'per_page' => self::LEGACY_PAGINATION_SIZE,
+            'per_page' => $paginationSize,
             'prev_page_url' => $page > 1 ? $this->pageUrl($path, $request, $page - 1) : null,
             'to' => $from + $rowCount - 1,
             'total' => $total,

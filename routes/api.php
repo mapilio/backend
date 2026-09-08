@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Mobile\MobileSocialTokenController;
 use App\Http\Controllers\Api\V1\System\HealthController;
 use App\Http\Controllers\Api\V1\System\ReadinessController;
 use App\Http\Controllers\Api\V1\Web\WebTokenController;
+use App\Http\Controllers\Api\V2\Content\BlogContentController as V2BlogContentController;
 use App\Http\Controllers\Legacy\Auth\MobileLoginController;
 use App\Http\Controllers\Legacy\Billing\BillingPlanController;
 use App\Http\Controllers\Legacy\Config\GeneralConfigController;
@@ -280,4 +281,11 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('gamification/badges/{userId}', GamificationBadgesController::class)
         ->whereNumber('userId')
         ->name('gamification.badges');
+});
+
+Route::prefix('v2')->name('api.v2.')->group(function (): void {
+    Route::get('content/blogs', [V2BlogContentController::class, 'blogs'])
+        ->name('content.blogs');
+    Route::get('content/blogs/{slug}', [V2BlogContentController::class, 'detail'])
+        ->name('content.blogs.detail');
 });

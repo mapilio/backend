@@ -7,6 +7,7 @@
 - [Ecosystem architecture](architecture/ecosystem.md)
 - [Domain boundaries](../app/Domain/README.md)
 - [Modern OpenAPI contract](api/openapi-v1.json)
+- [Blog author privacy migration](api/blog-author-privacy.md)
 - [Public API message compatibility and localization readiness](api/public-message-compatibility.md)
 - [Bounded public read results](architecture/0039-bounded-public-read-results.md)
 - [Synthetic local API cookbook](api/local-api-cookbook.md)
