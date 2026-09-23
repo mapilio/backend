@@ -102,3 +102,45 @@ avoiding an additional count query and keeping the endpoint ceiling explicit.
 Production measurements remain evidence for sizing and follow-up telemetry,
 not an SLO or a promise that every deployment has the same database or network
 latency.
+
+## Upload detail pages, 23 September 2026
+
+Extend the same guard to `/api/user-uploads-detail-v2` and its
+`/api/v1/imagery/user-upload-details` alias. The existing mobile callers request
+40, 1,000 and 3,000 items; the maintained web caller requests 250. Those request
+sizes and response schemas stay unchanged.
+
+The guard limits each **actual response page**, not the total group or the
+requested limit. It uses `MAPILIO_PUBLIC_READ_MAX_IMAGERY_ROWS`, bounded to a
+minimum of 3,000 and maximum/default of 25,000 for this resource, plus the shared
+16 MiB JSON-encoded item budget. It fetches at most the row ceiling plus one
+sentinel, returning the existing 413 envelope on overflow, never a silently
+truncated successful response. A large requested limit with a small enough
+result remains accepted with the original pagination metadata.
+
+The count remains exact. Empty or out-of-range pages return `data: null` after
+that count, before multiplying page and limit, avoiding both a redundant SELECT
+and integer overflow. Nonempty pages still use two queries. This does not change
+duplicate joins, deleted-row semantics, public visibility or row ordering.
+
+[Measurements](../database/user-uploads-query-profile.md) include a 21,389-row
+group and a 3,000-row page at offset 15,000. Those warm-cache plans do not justify
+an index migration or a new cursor protocol. The existing sequence index is
+used; no production index is changed.
+
+### Client transition and rollback
+
+Maintained callers need no migration. A third-party client requesting an
+oversized full page should restart at page 1 with a limit of at most 3,000 and
+follow `next_page_url`. Changing the limit mid-pagination changes the offset and
+can skip or repeat rows. Very large individual items can still hit the byte
+budget with smaller pages; this is not a promise that arbitrary content fits.
+
+Before rollout, check the maintained mobile feed/map flow and web sequence
+selection, then watch existing route/status request logs for new 413 responses.
+Deployments with unknown full-page consumers can temporarily set the existing
+`MAPILIO_PUBLIC_READ_BOUNDS_ENABLED=false` flag, rebuild cached configuration and
+reload long-running workers, restoring unbounded responses on this and the other
+guarded public reads. The safe empty-page shortcut remains. No schema migration
+or data rollback is necessary. Re-enable after those clients adopt paging; do
+not raise the row ceiling or silently clamp their requested pagination.

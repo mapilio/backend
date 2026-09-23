@@ -2396,7 +2396,7 @@
         "operationId": "getUserUploadDetails",
         "tags": ["Imagery reads"],
         "summary": "Read a contributor's uploaded imagery details",
-        "description": "Returns the unauthenticated v1 alias of `GET /api/user-uploads-detail-v2` with exact legacy JSON parity. The required nested scalar query values are `options[parameters][user_id]` and `options[parameters][group_key]`; missing `user_id` is reported before `group_key`. `user_id` must pass PHP `is_numeric`, is integer-cast with decimals truncated, and the result must be greater than zero. `group_key` rejects only null and the empty string, then scalar-casts to a string. `options[limit]` defaults to 15, is integer-cast, and is clamped to a minimum of 1 with no maximum; `page` defaults to 1, is integer-cast, and is clamped to a minimum of 1. Arrays, overflow, generic database failures, and invalid stored timestamps are outside this contract. Rows are selected from non-anomalous imagery joined to the requested group, ordered ascending by `imagery.id`, and contain exactly the documented eleven fields; there are no image URL, geometry, GeoJSON, organization, or project fields. `created_at` is formatted as a six-digit UTC ISO timestamp and `capture_time` as `Y-m-d H:i:s`, with nullable values preserved. A populated result is `{data: [...], pagination: {...}}`; an empty or out-of-range page is exactly `{data: null}`. Pagination is the legacy shape with `path` `/api/user-uploads-detail-v2`, `per_page` equal to the effective limit, and every URL built by re-encoding Laravel's parsed query keys with PHP `http_build_query` after overwriting `page`; nested `options` keys are serialized together before later top-level keys. The links contain Previous, a legacy bounded numeric/ellipsis window, and Next. Runtime bounds and performance, database indexes, duplicate joins, privacy/auth policy, clients and migration, and external services are outside this contract. There is no endpoint authentication, endpoint-specific response cache, or ETag.",
+        "description": "Returns the unauthenticated v1 alias of `GET /api/user-uploads-detail-v2` with exact legacy JSON parity below the response budget. The required nested scalar query values are `options[parameters][user_id]` and `options[parameters][group_key]`; missing `user_id` is reported before `group_key`. `user_id` must pass PHP `is_numeric`, is integer-cast with decimals truncated, and the result must be greater than zero. `group_key` rejects only null and the empty string, then scalar-casts to a string. `options[limit]` defaults to 15, is integer-cast, and is clamped to a minimum of 1 with no maximum on the requested value; `page` defaults to 1, is integer-cast, and is clamped to a minimum of 1. Arrays, out-of-range integer conversion, generic database failures, and invalid stored timestamps are outside this contract. Pagination values within PHP's integer range cannot overflow the offset: empty or out-of-range pages return after the count query, before multiplication. Rows are selected from non-anomalous imagery joined to the requested group, ordered ascending by `imagery.id`, and contain exactly the documented eleven fields; there are no image URL, geometry, GeoJSON, organization, or project fields. `created_at` is formatted as a six-digit UTC ISO timestamp and `capture_time` as `Y-m-d H:i:s`, with nullable values preserved. A populated result is `{data: [...], pagination: {...}}`; an empty or out-of-range page is exactly `{data: null}`. Pagination is the legacy shape with `path` `/api/user-uploads-detail-v2`, `per_page` equal to the effective requested limit, and every URL built by re-encoding Laravel's parsed query keys with PHP `http_build_query` after overwriting `page`; nested `options` keys are serialized together before later top-level keys. The links contain Previous, a legacy bounded numeric/ellipsis window, and Next. The existing `MAPILIO_PUBLIC_READ_BOUNDS_ENABLED` guard defaults to true and limits each actual response page to 25,000 rows and 16 MiB of JSON-encoded items. The imagery-row configuration is clamped to 3,000 through 25,000 for this endpoint so existing 3,000-row callers remain supported. Oversized pages return 413, never a silently truncated 200. A large requested limit remains accepted if its actual result fits; total group size and later pages are not capped. Disabling the guard restores unbounded page responses but retains the safe empty-page shortcut. Performance, database indexes, duplicate joins, privacy/auth policy and external services are outside this contract. There is no endpoint authentication, endpoint-specific response cache, or ETag.",
         "security": [],
         "parameters": [
           {
@@ -2420,7 +2420,7 @@
             "name": "options[limit]",
             "in": "query",
             "required": false,
-            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 15 and there is no maximum. Arrays, overflow, and other exceptional behavior are outside this contract.",
+            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 15. The requested value has no maximum, but the actual response page must fit the row and encoded-item budget or return 413. Use a limit of at most 3000 and follow pagination for large groups. Arrays and out-of-range integer conversion are outside this contract.",
             "schema": {"type": ["number", "string"], "default": 15},
             "example": 2
           },
@@ -2428,7 +2428,7 @@
             "name": "page",
             "in": "query",
             "required": false,
-            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 1. Arrays, overflow, and other exceptional behavior are outside this contract.",
+            "description": "Optional scalar number or string. PHP integer-casts the raw value, then clamps the result to at least 1; omission uses 1. Out-of-range pages return data:null after the count, without calculating an overflowing offset. Arrays and out-of-range integer conversion are outside this contract.",
             "schema": {"type": ["number", "string"], "default": 1},
             "example": 1
           }
@@ -2520,6 +2520,10 @@
                 }
               }
             }
+          },
+          "413": {
+            "description": "The actual page exceeds the configured row or JSON-encoded item budget while the public-read guard is enabled. No partial page is returned. Reduce options[limit] and restart pagination from page 1; do not reuse a page number with a different limit.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PublicReadTooLargeError"}, "example": {"success": false, "message": ["Payload Too Large"], "error_code": 413}}}
           },
           "429": {
             "description": "The optional global API limiter rejected the request when enforcement is enabled. Enforcement and limits are deployment-configurable; the documented response wording is stable and production enforcement is not asserted by this contract.",

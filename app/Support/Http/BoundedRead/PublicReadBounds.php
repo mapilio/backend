@@ -12,6 +12,8 @@ final class PublicReadBounds
 
     public const ROADS = 'roads';
 
+    public const UPLOAD_DETAILS = 'upload_details';
+
     public const MAX_SEQUENCE_ROWS = 25_000;
 
     public const MAX_ROAD_ROWS = 10_000;
@@ -30,14 +32,17 @@ final class PublicReadBounds
     public static function maxRows(string $resource): int
     {
         $configured = match ($resource) {
-            self::SEQUENCE, self::EMBED => config('mapilio.public_read_bounds.max_imagery_rows', self::MAX_SEQUENCE_ROWS),
+            self::SEQUENCE, self::EMBED, self::UPLOAD_DETAILS => config('mapilio.public_read_bounds.max_imagery_rows', self::MAX_SEQUENCE_ROWS),
             self::ROADS => config('mapilio.public_read_bounds.max_road_rows', self::MAX_ROAD_ROWS),
             default => self::MAX_SEQUENCE_ROWS,
         };
 
         $maximum = $resource === self::ROADS ? self::MAX_ROAD_ROWS : self::MAX_SEQUENCE_ROWS;
 
-        return max(1, min($maximum, (int) $configured));
+        // Installed mobile clients request 3,000 detail rows in one page.
+        $minimum = $resource === self::UPLOAD_DETAILS ? 3000 : 1;
+
+        return max($minimum, min($maximum, (int) $configured));
     }
 
     public static function maxItemBytes(): int

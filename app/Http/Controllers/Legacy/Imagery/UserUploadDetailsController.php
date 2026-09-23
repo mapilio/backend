@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Legacy\Imagery;
 
 use App\Domain\ImagerySequences\Queries\UserUploadDetailsQuery;
 use App\Http\Controllers\Controller;
+use App\Support\Http\BoundedRead\PayloadTooLargeException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,15 @@ class UserUploadDetailsController extends Controller
             return $this->missingParameter('group_key');
         }
 
-        return response()->json($query->get((int) $userId, (string) $groupKey, $request));
+        try {
+            return response()->json($query->get((int) $userId, (string) $groupKey, $request));
+        } catch (PayloadTooLargeException) {
+            return response()->json([
+                'success' => false,
+                'message' => ['Payload Too Large'],
+                'error_code' => 413,
+            ], 413);
+        }
     }
 
     private function missingParameter(string $parameter): JsonResponse

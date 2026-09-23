@@ -67,3 +67,38 @@ Remaining work: representative groups exceeding 3,000 rows, large-contributor
 and deep-page plans, cold-cache/I/O evidence in staging, and a caller-safe bound
 or cursor transition with rollback notes. No cap, privacy policy, duplicate or
 deleted-row behavior changes are part of this baseline.
+
+### Larger-group follow-up
+
+A subsequent bounded read-only inspection used the stored per-sequence counts
+to select a larger group without scanning the imagery table for candidates.
+Its declared count was 22,528; the actual non-anomalous joined result used by
+this endpoint was 21,389 rows. These values differ because the metadata sum is
+not the endpoint's exact filtered/joined count.
+
+| Query | Execution time, ms | Returned rows |
+| --- | ---: | ---: |
+| Count | 46.121 | 1 aggregate |
+| Page, limit 40 | 55.487 | 40 |
+| Page, limit 250 | 59.744 | 250 |
+| Page, limit 1,000 | 58.589 | 1,000 |
+| Page, limit 3,000 | 62.864 | 3,000 |
+| Page, limit 3,000, offset 15,000 | 70.076 | 3,000 |
+
+This used the same three-second statement and 500 ms lock limits on PostgreSQL
+14.24. Every root plan reported 7,087 shared hits, zero shared reads and zero
+temporary reads/writes. The plans scan sequence detail, use
+`idx_imagery_seq_uuid` for imagery, then sort/merge before applying the page.
+The planner underestimated the joined rows; these single warm-cache timings
+are not a cold-cache, concurrent-load or HTTP latency result.
+
+No new index is proposed from these measurements, so an index migration and its
+rollback are not applicable. No production configuration or data was changed.
+Cold-cache/load work belongs in staging if later telemetry demonstrates a
+problem; production caches must not be flushed to manufacture that benchmark.
+
+The [response budget decision](../architecture/0039-bounded-public-read-results.md#upload-detail-pages-23-september-2026)
+now covers this endpoint using the existing row/byte guard and rollback flag.
+The updated regression budget is two queries for populated pages and one count
+for empty/out-of-range pages. Groups larger than the response ceiling remain
+accessible in ordinary pages. Existing client limits remain supported.
