@@ -304,6 +304,78 @@ class UserUploadDetailsCompatibilityTest extends TestCase
             ->assertExactJson(['data' => null]);
     }
 
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function maintainedCallerLimitProvider(): iterable
+    {
+        foreach (['/api/user-uploads-detail-v2', '/api/v1/imagery/user-upload-details'] as $path) {
+            foreach ([40, 250, 1000, 3000] as $limit) {
+                yield $path.' limit '.$limit => [$path, $limit];
+            }
+        }
+    }
+
+    #[DataProvider('maintainedCallerLimitProvider')]
+    public function test_maintained_caller_pages_use_only_a_count_and_a_limited_select(string $path, int $limit): void
+    {
+        $connection = Schema::getConnection();
+        $connection->table('default_mapilio_sequence_detail')->insert([
+            'created_by_id' => 20,
+            'sequence_uuid' => 'sequence-budget',
+            'group_key' => 'group-budget',
+            'last_status' => 'completed',
+        ]);
+
+        foreach (array_chunk(range(1, 3001), 200) as $ids) {
+            $connection->table('default_mapilio_imagery')->insert(array_map(fn (int $id): array => [
+                'id' => 10000 + $id,
+                'created_by_id' => 20,
+                'sequence_uuid' => 'sequence-budget',
+                'filename' => 'photo-'.$id.'.jpeg',
+                'created_at' => '2026-09-01 12:00:00',
+                'capture_time' => '2026-09-01 11:00:00',
+            ], $ids));
+        }
+
+        $lastPage = (int) ceil(3001 / $limit);
+        $connection->enableQueryLog();
+
+        try {
+            foreach ([1, $lastPage, $lastPage + 1] as $page) {
+                $connection->flushQueryLog();
+                $response = $this->getJson($path.'?'.http_build_query([
+                    'options' => ['parameters' => ['user_id' => 20, 'group_key' => 'group-budget'], 'limit' => $limit],
+                    'page' => $page,
+                ]))->assertOk();
+
+                $queries = $connection->getQueryLog();
+                $this->assertCount(2, $queries);
+                $this->assertStringContainsString('select count(*)', strtolower($queries[0]['query']));
+                $this->assertStringContainsString('order by "imagery"."id" asc limit '.$limit, strtolower($queries[1]['query']));
+                $this->assertStringContainsString('offset '.(($page - 1) * $limit), strtolower($queries[1]['query']));
+
+                if ($page > $lastPage) {
+                    $response->assertExactJson(['data' => null]);
+
+                    continue;
+                }
+
+                $first = ($page - 1) * $limit + 1;
+                $last = min($page * $limit, 3001);
+                $response->assertJsonCount($last - $first + 1, 'data')
+                    ->assertJsonPath('pagination.total', 3001)
+                    ->assertJsonPath('pagination.per_page', $limit)
+                    ->assertJsonPath('pagination.current_page', $page)
+                    ->assertJsonPath('pagination.last_page', $lastPage);
+                $this->assertSame(range(10000 + $first, 10000 + $last), array_column($response->json('data'), 'id'));
+            }
+        } finally {
+            $connection->disableQueryLog();
+            $connection->flushQueryLog();
+        }
+    }
+
     private function createTables(): void
     {
         Schema::create('default_mapilio_imagery', function ($table): void {
