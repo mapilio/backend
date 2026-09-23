@@ -102,3 +102,12 @@ now covers this endpoint using the existing row/byte guard and rollback flag.
 The updated regression budget is two queries for populated pages and one count
 for empty/out-of-range pages. Groups larger than the response ceiling remain
 accessible in ordinary pages. Existing client limits remain supported.
+
+A repeatable-read, read-only application check compared the guard enabled and
+disabled against the same 21,389-row group. JSON digests matched in all seven
+cases: first-page limits 40, 250, 1,000 and 3,000; limit 3,000 on page 6; a
+100,000-row request returning the full group; and an extreme out-of-range page.
+The 3,000-row first-page response was 1,484,222 encoded bytes, and the complete
+21,389-row response was 10,563,560 bytes, both below the default budget. These
+sizes include pagination; the guard measures encoded items only. This compares
+the two guard settings, not concurrent-load performance or production rollout.
