@@ -51,17 +51,29 @@ test('documents the unauthenticated legacy-compatible detail request contract', 
     assert.match(operation.description, /greater than zero/);
     assert.match(operation.description, /rejects only null and the empty string/);
     assert.match(operation.description, /no maximum/);
-    assert.match(operation.description, /Arrays, overflow, generic database failures, and invalid stored timestamps are outside this contract/);
+    assert.match(operation.description, /Arrays, out-of-range integer conversion, generic database failures, and invalid stored timestamps are outside this contract/);
     assert.match(operation.description, /ordered ascending by `imagery\.id`/);
     assert.match(operation.description, /no image URL, geometry, GeoJSON, organization, or project fields/);
     assert.match(operation.description, /re-encoding Laravel's parsed query keys with PHP `http_build_query` after overwriting `page`/);
     assert.match(operation.description, /nested `options` keys are serialized together before later top-level keys/);
     assert.match(operation.description, /Previous, a legacy bounded numeric\/ellipsis window, and Next/);
     assert.match(operation.description, /no endpoint authentication, endpoint-specific response cache, or ETag/);
-    assert.match(operation.description, /Runtime bounds and performance, database indexes, duplicate joins, privacy\/auth policy, clients and migration, and external services are outside this contract/);
-    assert.deepEqual(Object.keys(operation.responses), ['200', '400', '429']);
+    assert.match(operation.description, /Performance, database indexes, duplicate joins, privacy\/auth policy and external services are outside this contract/);
+    assert.deepEqual(Object.keys(operation.responses), ['200', '400', '413', '429']);
     assert.match(operation.responses['429'].description, /Enforcement and limits are deployment-configurable/);
     assert.match(operation.responses['429'].description, /production enforcement is not asserted/);
+});
+
+test('documents the rollbackable actual-page budget without lowering client limits', () => {
+    assert.match(operation.description, /25,000 rows and 16 MiB/);
+    assert.match(operation.description, /clamped to 3,000 through 25,000/);
+    assert.match(operation.description, /never a silently truncated 200/);
+    assert.match(operation.description, /total group size and later pages are not capped/);
+    assert.match(operation.description, /Disabling the guard restores unbounded page responses/);
+    assert.deepEqual(operation.responses['413'].content['application/json'], {
+        schema: { $ref: '#/components/schemas/PublicReadTooLargeError' },
+        example: { success: false, message: ['Payload Too Large'], error_code: 413 },
+    });
 });
 
 test('freezes the exact detail row and populated pagination schemas', () => {

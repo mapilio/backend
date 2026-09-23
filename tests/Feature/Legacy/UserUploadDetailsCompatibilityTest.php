@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Legacy;
 
+use App\Support\Http\BoundedRead\PublicReadBounds;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -317,26 +319,11 @@ class UserUploadDetailsCompatibilityTest extends TestCase
     }
 
     #[DataProvider('maintainedCallerLimitProvider')]
-    public function test_maintained_caller_pages_use_only_a_count_and_a_limited_select(string $path, int $limit): void
+    public function test_maintained_caller_pages_use_at_most_a_count_and_a_limited_select(string $path, int $limit): void
     {
+        $this->seedLargeGroup(3001);
         $connection = Schema::getConnection();
-        $connection->table('default_mapilio_sequence_detail')->insert([
-            'created_by_id' => 20,
-            'sequence_uuid' => 'sequence-budget',
-            'group_key' => 'group-budget',
-            'last_status' => 'completed',
-        ]);
-
-        foreach (array_chunk(range(1, 3001), 200) as $ids) {
-            $connection->table('default_mapilio_imagery')->insert(array_map(fn (int $id): array => [
-                'id' => 10000 + $id,
-                'created_by_id' => 20,
-                'sequence_uuid' => 'sequence-budget',
-                'filename' => 'photo-'.$id.'.jpeg',
-                'created_at' => '2026-09-01 12:00:00',
-                'capture_time' => '2026-09-01 11:00:00',
-            ], $ids));
-        }
+        Config::set('mapilio.public_read_bounds.max_imagery_rows', 1);
 
         $lastPage = (int) ceil(3001 / $limit);
         $connection->enableQueryLog();
@@ -350,17 +337,18 @@ class UserUploadDetailsCompatibilityTest extends TestCase
                 ]))->assertOk();
 
                 $queries = $connection->getQueryLog();
-                $this->assertCount(2, $queries);
                 $this->assertStringContainsString('select count(*)', strtolower($queries[0]['query']));
-                $this->assertStringContainsString('order by "imagery"."id" asc limit '.$limit, strtolower($queries[1]['query']));
-                $this->assertStringContainsString('offset '.(($page - 1) * $limit), strtolower($queries[1]['query']));
 
                 if ($page > $lastPage) {
+                    $this->assertCount(1, $queries);
                     $response->assertExactJson(['data' => null]);
 
                     continue;
                 }
 
+                $this->assertCount(2, $queries);
+                $this->assertStringContainsString('order by "imagery"."id" asc limit '.$limit, strtolower($queries[1]['query']));
+                $this->assertStringContainsString('offset '.(($page - 1) * $limit), strtolower($queries[1]['query']));
                 $first = ($page - 1) * $limit + 1;
                 $last = min($page * $limit, 3001);
                 $response->assertJsonCount($last - $first + 1, 'data')
@@ -373,6 +361,107 @@ class UserUploadDetailsCompatibilityTest extends TestCase
         } finally {
             $connection->disableQueryLog();
             $connection->flushQueryLog();
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function detailRouteProvider(): iterable
+    {
+        yield 'legacy' => ['/api/user-uploads-detail-v2'];
+        yield 'versioned' => ['/api/v1/imagery/user-upload-details'];
+    }
+
+    #[DataProvider('detailRouteProvider')]
+    public function test_oversized_page_returns_413_without_silently_truncating_and_can_be_rolled_back(string $path): void
+    {
+        $this->seedLargeGroup(3001);
+        Config::set('mapilio.public_read_bounds.max_imagery_rows', 3000);
+        $connection = Schema::getConnection();
+        $connection->enableQueryLog();
+
+        $this->getJson($path.'?options[parameters][user_id]=20&options[parameters][group_key]=group-budget&options[limit]='.PHP_INT_MAX)
+            ->assertStatus(413)
+            ->assertExactJson(['success' => false, 'message' => ['Payload Too Large'], 'error_code' => 413]);
+        $queries = $connection->getQueryLog();
+        $connection->disableQueryLog();
+        $this->assertCount(2, $queries);
+        $this->assertStringContainsString('limit 3001', $queries[1]['query']);
+
+        Config::set('mapilio.public_read_bounds.enabled', false);
+        Config::set('mapilio.public_read_bounds.max_item_bytes', 1);
+        $this->getJson($path.'?options[parameters][user_id]=20&options[parameters][group_key]=group-budget&options[limit]=4000')
+            ->assertOk()
+            ->assertJsonCount(3001, 'data')
+            ->assertJsonPath('pagination.per_page', 4000)
+            ->assertJsonPath('pagination.total', 3001);
+    }
+
+    #[DataProvider('detailRouteProvider')]
+    public function test_large_requested_limit_keeps_legacy_pagination_when_actual_rows_fit(string $path): void
+    {
+        $this->seedLargeGroup(3000);
+        Config::set('mapilio.public_read_bounds.max_imagery_rows', 3000);
+        $this->getJson($path.'?options[parameters][user_id]=20&options[parameters][group_key]=group-budget&options[limit]='.PHP_INT_MAX)
+            ->assertOk()
+            ->assertJsonCount(3000, 'data')
+            ->assertJsonPath('pagination.per_page', PHP_INT_MAX)
+            ->assertJsonPath('pagination.last_page', 1)
+            ->assertJsonPath('pagination.total', 3000);
+    }
+
+    #[DataProvider('detailRouteProvider')]
+    public function test_byte_budget_returns_the_same_413_envelope(string $path): void
+    {
+        Config::set('mapilio.public_read_bounds.max_item_bytes', 1);
+        $this->getJson($path.'?options[parameters][user_id]=10&options[parameters][group_key]=group-new')
+            ->assertStatus(413)
+            ->assertExactJson(['success' => false, 'message' => ['Payload Too Large'], 'error_code' => 413]);
+    }
+
+    #[DataProvider('detailRouteProvider')]
+    public function test_extreme_out_of_range_page_returns_null_after_only_the_count_without_offset_overflow(string $path): void
+    {
+        foreach ([true, false] as $enforced) {
+            Config::set('mapilio.public_read_bounds.enabled', $enforced);
+            $connection = Schema::getConnection();
+            $connection->flushQueryLog();
+            $connection->enableQueryLog();
+            $this->getJson($path.'?options[parameters][user_id]=10&options[parameters][group_key]=group-new&options[limit]='.PHP_INT_MAX.'&page='.PHP_INT_MAX)
+                ->assertOk()
+                ->assertExactJson(['data' => null]);
+            $this->assertCount(1, $connection->getQueryLog());
+            $connection->disableQueryLog();
+        }
+    }
+
+    public function test_detail_row_budget_uses_existing_configuration_without_breaking_installed_client_sizes(): void
+    {
+        $this->assertSame(25000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
+        Config::set('mapilio.public_read_bounds.max_imagery_rows', 999999);
+        $this->assertSame(25000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
+        Config::set('mapilio.public_read_bounds.max_imagery_rows', 1);
+        $this->assertSame(3000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
+        $this->assertSame(1, PublicReadBounds::maxRows(PublicReadBounds::SEQUENCE));
+    }
+
+    private function seedLargeGroup(int $count): void
+    {
+        $connection = Schema::getConnection();
+        $connection->table('default_mapilio_sequence_detail')->insert([
+            'created_by_id' => 20,
+            'sequence_uuid' => 'sequence-budget',
+            'group_key' => 'group-budget',
+            'last_status' => 'completed',
+        ]);
+        foreach (array_chunk(range(1, $count), 200) as $ids) {
+            $connection->table('default_mapilio_imagery')->insert(array_map(fn (int $id): array => [
+                'id' => 10000 + $id,
+                'created_by_id' => 20,
+                'sequence_uuid' => 'sequence-budget',
+                'filename' => 'photo-'.$id.'.jpeg',
+                'created_at' => '2026-09-01 12:00:00',
+                'capture_time' => '2026-09-01 11:00:00',
+            ], $ids));
         }
     }
 

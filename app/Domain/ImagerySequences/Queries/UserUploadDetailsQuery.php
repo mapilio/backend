@@ -2,6 +2,8 @@
 
 namespace App\Domain\ImagerySequences\Queries;
 
+use App\Support\Http\BoundedRead\PayloadTooLargeException;
+use App\Support\Http\BoundedRead\PublicReadBounds;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -22,11 +24,17 @@ class UserUploadDetailsQuery
         $connection = DB::connection(config('mapilio.legacy_database_connection'));
         $limit = $this->limit($request);
         $page = max(1, (int) $request->query('page', 1));
-        $offset = ($page - 1) * $limit;
-
         $baseQuery = $this->baseQuery($connection, $userId, $groupKey);
         $total = (clone $baseQuery)->count();
 
+        // Check against the count before multiplying untrusted pagination values.
+        if ($total === 0 || $page > intdiv($total - 1, $limit) + 1) {
+            return ['data' => null];
+        }
+
+        $offset = ($page - 1) * $limit;
+        $bounded = PublicReadBounds::enforced();
+        $maxRows = PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS);
         $rows = (clone $baseQuery)
             ->select([
                 'imagery.filename',
@@ -42,19 +50,31 @@ class UserUploadDetailsQuery
                 'imagery.capture_time',
             ])
             ->orderBy('imagery.id')
-            ->limit($limit)
+            ->limit($bounded ? min($limit, $maxRows + 1) : $limit)
             ->offset($offset)
-            ->get()
-            ->map(fn (object $row): array => $this->row($row))
-            ->all();
+            ->get();
 
-        if ($rows === []) {
+        if ($bounded && $rows->count() > $maxRows) {
+            throw new PayloadTooLargeException('Upload detail page row limit exceeded.');
+        }
+
+        if ($rows->isEmpty()) {
             return ['data' => null];
         }
 
+        $data = [];
+        $encodedBytes = 0;
+        foreach ($rows as $row) {
+            $item = $this->row($row);
+            if ($bounded) {
+                $encodedBytes = PublicReadBounds::nextEncodedBytes($item, $encodedBytes);
+            }
+            $data[] = $item;
+        }
+
         return [
-            'data' => $rows,
-            'pagination' => $this->pagination($request, '/api/user-uploads-detail-v2', $page, $limit, $total, count($rows)),
+            'data' => $data,
+            'pagination' => $this->pagination($request, '/api/user-uploads-detail-v2', $page, $limit, $total, count($data)),
         ];
     }
 
