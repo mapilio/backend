@@ -945,7 +945,7 @@
         "operationId": "deleteMobileAccount",
         "tags": ["Identity"],
         "summary": "Delete and anonymize the authenticated mobile account",
-        "description": "Preserves contribution ownership while removing personal profile fields and disabling the identity so all current access and refresh tokens stop working. Apple authorization is revoked before deletion; provider failure leaves the account unchanged.",
+        "description": "Preserves contribution ownership while removing personal profile fields and disabling the identity so all current access and refresh tokens stop working. Apple, Google, and Facebook authorization is revoked before deletion when the matching login_type is supplied; provider failure leaves the account unchanged. Google requires a fresh provider_token matching the stored provider identity. Facebook uses a server-only app token and the stored account link, including for iOS Limited Login. Provider configuration and a single unambiguous stored link are required for Google/Facebook. The matched social link is removed with local anonymization. Older clients sending default do not revoke social grants; this compatibility behavior is unchanged.",
         "security": [{"mobileBearer": []}],
         "requestBody": {
           "required": true,
@@ -968,9 +968,10 @@
           },
           "400": {"description": "Deletion confirmation or login type was rejected."},
           "401": {"description": "A valid mobile bearer token is required."},
-          "409": {"description": "The account is already unavailable."},
+          "403": {"description": "Google reauthentication failed or belongs to another account. No grant was revoked and no account data was changed."},
+          "409": {"description": "The account is unavailable, the provider link is missing or ambiguous, or the link changed during revocation. A provider revocation may already have succeeded in the last case; sign in again before retrying."},
           "429": {"description": "The account-deletion rate limit was exceeded."},
-          "503": {"description": "Apple authorization could not be revoked; no account data was changed."}
+          "503": {"description": "Provider deletion is unconfigured, verification failed, or authorization could not be revoked. No local account data was changed; a timed-out provider request may have succeeded remotely."}
         }
       }
     },
@@ -5007,8 +5008,9 @@
         "required": ["delete", "login_type"],
         "properties": {
           "delete": {"const": true},
-          "login_type": {"type": "string", "enum": ["default", "apple"]},
-          "auth_code": {"type": "string", "maxLength": 4096, "description": "Required when login_type is apple."}
+          "login_type": {"type": "string", "enum": ["default", "apple", "google", "facebook"]},
+          "auth_code": {"type": "string", "maxLength": 4096, "description": "Required when login_type is apple."},
+          "provider_token": {"type": "string", "maxLength": 8192, "writeOnly": true, "description": "Required when login_type is google: a freshly obtained Google access token from the same account. Never persist it. Facebook does not require a provider token or a client-supplied provider user ID."}
         }
       },
       "MobileAccountAccepted": {

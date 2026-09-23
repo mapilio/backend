@@ -20,7 +20,10 @@ use Throwable;
 
 class MobileAccountService
 {
-    public function __construct(private readonly AppleAccountRevoker $appleRevoker) {}
+    public function __construct(
+        private readonly AppleAccountRevoker $appleRevoker,
+        private readonly MobileSocialAccountRevoker $socialRevoker,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $parameters
@@ -434,7 +437,8 @@ class MobileAccountService
     {
         $validated = $this->validate($parameters, [
             'delete' => ['required', 'accepted'],
-            'login_type' => ['required', Rule::in(['default', 'apple'])],
+            'login_type' => ['required', Rule::in(['default', 'apple', 'google', 'facebook'])],
+            'provider_token' => ['required_if:login_type,google', 'nullable', 'string', 'max:8192'],
             'auth_code' => [Rule::requiredIf(($parameters['login_type'] ?? null) === 'apple'), 'nullable', 'string', 'max:4096'],
         ]);
 
@@ -451,13 +455,31 @@ class MobileAccountService
             }
         }
 
+        $socialLink = in_array($validated['login_type'], ['google', 'facebook'], true)
+            ? $this->socialRevoker->revoke($userId, $validated['login_type'], $validated['provider_token'] ?? null)
+            : null;
+
         $suffix = $userId.'.'.Str::lower(Str::random(12));
         $disabledPassword = Hash::make(Str::random(64));
-        $updated = LegacyDatabase::connection()->transaction(function (Connection $connection) use ($userId, $validated, $suffix, $disabledPassword): int {
+        $updated = LegacyDatabase::connection()->transaction(function (Connection $connection) use ($userId, $validated, $suffix, $disabledPassword, $socialLink): int {
             $user = $connection->table('default_users_users')->where('id', $userId)->lockForUpdate()->first();
 
             if ($user === null || $user->deleted_at !== null || ! (bool) $user->enabled) {
                 return 0;
+            }
+
+            if ($socialLink !== null) {
+                $removed = $connection->table('default_social_authentications')
+                    ->where('id', $socialLink['id'])
+                    ->where('user_id', $userId)
+                    ->where('provider', $socialLink['provider'])
+                    ->where('uid', $socialLink['uid'])
+                    ->where('application', false)
+                    ->delete();
+
+                if ($removed !== 1) {
+                    throw new MobileAccountException('The linked provider account changed. Please sign in again.', 409);
+                }
             }
 
             return $connection->table('default_users_users')->where('id', $userId)->update([

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class MobileAccountCompatibilityTest extends TestCase
@@ -387,6 +388,249 @@ class MobileAccountCompatibilityTest extends TestCase
             ->table('default_users_users')
             ->where('id', 10)
             ->value('enabled'));
+    }
+
+    #[DataProvider('socialDeletionRoutes')]
+    public function test_social_deletion_revokes_before_anonymizing_and_removes_only_the_matched_link(string $provider, string $method, string $route): void
+    {
+        $this->createSocialLinks($provider);
+        $token = $this->login('alice@example.test');
+        Http::preventStrayRequests();
+        Http::fake(function ($request, $options) use ($provider) {
+            $this->assertAccountUnchanged();
+            $this->assertFalse($options['allow_redirects']);
+            $this->assertSame(3, $options['connect_timeout']);
+            $this->assertSame(8, $options['timeout']);
+
+            if ($request->url() === 'https://openidconnect.googleapis.com/v1/userinfo') {
+                $this->assertSame('GET', $request->method());
+                $this->assertSame(['Bearer synthetic-google-token'], $request->header('Authorization'));
+
+                return Http::response(['sub' => '123456']);
+            }
+
+            if ($provider === 'google') {
+                $this->assertSame('https://oauth2.googleapis.com/revoke', $request->url());
+                $this->assertSame('POST', $request->method());
+                $this->assertSame('synthetic-google-token', $request['token']);
+            } else {
+                $this->assertSame('https://graph.facebook.com/v24.0/123456/permissions', $request->url());
+                $this->assertSame('DELETE', $request->method());
+                $this->assertSame(['Bearer synthetic-facebook-app-token'], $request->header('Authorization'));
+            }
+
+            return Http::response(['success' => true]);
+        });
+
+        $parameters = ['delete' => true, 'login_type' => $provider];
+        if ($provider === 'google') {
+            $parameters['provider_token'] = 'synthetic-google-token';
+        }
+        // Caller-supplied identities and app credentials must never choose the target.
+        $parameters += ['user_id' => 11, 'uid' => '999999', 'app_access_token' => 'untrusted'];
+        $payload = $method === 'POST' ? ['options' => ['parameters' => $parameters]] : $parameters;
+        $response = $this->withToken($token)->json($method, $route, $payload)
+            ->assertOk()->assertJsonPath('response.success', true);
+        $this->assertStringNotContainsString('synthetic-', $response->getContent());
+        Http::assertSentCount($provider === 'google' ? 2 : 1);
+
+        $connection = Schema::getConnection();
+        $this->assertFalse((bool) $connection->table('default_users_users')->where('id', 10)->value('enabled'));
+        $this->assertSame(0, $connection->table('default_social_authentications')->where('id', 1)->count());
+        $this->assertSame(2, $connection->table('default_social_authentications')->count());
+        $this->assertStringNotContainsString('synthetic-', $connection->table('default_users_users')->where('id', 10)->value('reason_for_closing_account'));
+        $this->withToken($token)->getJson('/api/v1/mobile/profile')->assertUnauthorized();
+    }
+
+    /** @return list<array{string, string, string}> */
+    public static function socialDeletionRoutes(): array
+    {
+        return [
+            ['google', 'DELETE', '/api/v1/mobile/account'],
+            ['google', 'POST', '/api/function/user_profile/profile/delete-account'],
+            ['facebook', 'DELETE', '/api/v1/mobile/account'],
+            ['facebook', 'POST', '/api/function/user_profile/profile/delete-account'],
+        ];
+    }
+
+    /** @param array<string, mixed> $profile */
+    #[DataProvider('invalidGoogleProfiles')]
+    public function test_google_deletion_does_not_revoke_a_different_or_unverified_identity(array $profile, int $upstreamStatus, int $expectedStatus): void
+    {
+        $this->createSocialLinks('google');
+        Http::fake(['openidconnect.googleapis.com/*' => Http::response($profile, $upstreamStatus)]);
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'google', 'provider_token' => 'synthetic-google-token',
+        ])->assertStatus($expectedStatus)->assertJsonPath('success', false);
+        Http::assertSentCount(1);
+        $this->assertAccountUnchanged();
+    }
+
+    /** @return array<string, array{array<string, mixed>, int, int}> */
+    public static function invalidGoogleProfiles(): array
+    {
+        return [
+            'another account' => [['sub' => '999999'], 200, 403],
+            'missing subject' => [[], 200, 503],
+            'malformed subject' => [['sub' => ['123456']], 200, 503],
+            'expired token' => [['error' => 'invalid_token'], 401, 403],
+            'upstream outage' => [[], 500, 503],
+            'redirect rejected' => [[], 302, 503],
+        ];
+    }
+
+    #[DataProvider('failedSocialRevocations')]
+    public function test_social_provider_failures_preserve_the_account_and_link(string $provider, mixed $body, int $status): void
+    {
+        $this->createSocialLinks($provider);
+        Http::fake([
+            'openidconnect.googleapis.com/*' => Http::response(['sub' => '123456']),
+            'oauth2.googleapis.com/*' => Http::response($body, $status),
+            'graph.facebook.com/*' => Http::response($body, $status),
+        ]);
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => $provider, 'provider_token' => 'synthetic-google-token',
+        ])->assertStatus(503)->assertJsonPath('success', false);
+        $this->assertAccountUnchanged();
+    }
+
+    /** @return list<array{string, array<string, mixed>, int}> */
+    public static function failedSocialRevocations(): array
+    {
+        return [
+            ['google', ['error' => 'invalid_token'], 400],
+            ['google', [], 500],
+            ['google', [], 302],
+            ['facebook', ['error' => ['message' => 'Do not expose provider errors']], 400],
+            ['facebook', ['success' => false], 200],
+            ['facebook', ['success' => 'true'], 200],
+            ['facebook', [], 200],
+            ['facebook', [], 500],
+            ['facebook', [], 302],
+        ];
+    }
+
+    public function test_social_revocation_connection_failure_is_generic_and_preserves_the_account(): void
+    {
+        $this->createSocialLinks('facebook');
+        Http::fake(['*' => Http::failedConnection('sensitive-upstream-message')]);
+        $response = $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'facebook',
+        ])->assertStatus(503)->assertJsonPath('success', false);
+        $this->assertStringNotContainsString('sensitive-upstream-message', $response->getContent());
+        $this->assertAccountUnchanged();
+    }
+
+    #[DataProvider('unavailableSocialLinks')]
+    public function test_social_deletion_requires_one_unambiguous_configured_account_link(string $scenario, int $status): void
+    {
+        $this->createSocialLinks('facebook');
+        $links = Schema::getConnection()->table('default_social_authentications');
+        match ($scenario) {
+            'unconfigured' => Config::set('mapilio.mobile_accounts.social.facebook.legacy_provider', ''),
+            'missing app token' => Config::set('mapilio.mobile_accounts.social.facebook.app_access_token', ''),
+            'invalid version' => Config::set('mapilio.mobile_accounts.social.facebook.graph_version', '../../me'),
+            'missing link' => $links->where('id', 1)->delete(),
+            'invalid uid' => $links->where('id', 1)->update(['uid' => '../999999']),
+            'ambiguous links' => $links->insert(['id' => 4, 'user_id' => 10, 'provider' => 'test.facebook', 'uid' => '888888', 'application' => false]),
+            default => throw new \LogicException('Unknown test scenario.'),
+        };
+        Http::fake();
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'facebook',
+        ])->assertStatus($status);
+        Http::assertNothingSent();
+        $this->assertTrue((bool) Schema::getConnection()->table('default_users_users')->where('id', 10)->value('enabled'));
+    }
+
+    /** @return list<array{string, int}> */
+    public static function unavailableSocialLinks(): array
+    {
+        return [
+            ['unconfigured', 503], ['missing app token', 503], ['invalid version', 503],
+            ['missing link', 409], ['invalid uid', 409], ['ambiguous links', 409],
+        ];
+    }
+
+    public function test_social_deletion_rejects_missing_confirmation_token_or_authentication_without_provider_calls(): void
+    {
+        Config::set('mapilio.mobile_accounts.rate_limits.account_delete', 10);
+        $this->createSocialLinks('google');
+        Http::fake();
+        $this->deleteJson('/api/v1/mobile/account', ['delete' => true, 'login_type' => 'facebook'])->assertUnauthorized();
+        $this->withToken($this->login('alice@example.test'));
+        foreach ([
+            ['delete' => false, 'login_type' => 'facebook'],
+            ['delete' => true, 'login_type' => 'google'],
+            ['delete' => true, 'login_type' => 'google', 'provider_token' => str_repeat('x', 8193)],
+        ] as $parameters) {
+            $this->deleteJson('/api/v1/mobile/account', $parameters)->assertStatus(400);
+        }
+        Http::assertNothingSent();
+        $this->assertAccountUnchanged();
+    }
+
+    public function test_account_is_not_anonymized_when_the_link_changes_during_revocation(): void
+    {
+        $this->createSocialLinks('facebook');
+        Http::fake(function () {
+            Schema::getConnection()->table('default_social_authentications')->where('id', 1)->update(['uid' => '654321']);
+
+            return Http::response('true', 200, ['Content-Type' => 'application/json']);
+        });
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'facebook',
+        ])->assertStatus(409);
+        $this->assertAccountUnchanged();
+    }
+
+    public function test_facebook_accepts_the_documented_boolean_success_body(): void
+    {
+        $this->createSocialLinks('facebook');
+        Http::fake(['graph.facebook.com/*' => Http::response('true', 200, ['Content-Type' => 'application/json'])]);
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'facebook',
+        ])->assertOk()->assertJsonPath('response.success', true);
+        Http::assertSentCount(1);
+    }
+
+    public function test_social_link_removal_rolls_back_if_account_anonymization_fails(): void
+    {
+        $this->createSocialLinks('facebook');
+        Http::fake(['graph.facebook.com/*' => Http::response(['success' => true])]);
+        Schema::getConnection()->statement("CREATE TRIGGER reject_delete BEFORE UPDATE ON default_users_users WHEN NEW.enabled = 0 BEGIN SELECT RAISE(ABORT, 'synthetic database failure'); END");
+        $this->withToken($this->login('alice@example.test'))->deleteJson('/api/v1/mobile/account', [
+            'delete' => true, 'login_type' => 'facebook',
+        ])->assertStatus(500);
+        $this->assertAccountUnchanged();
+    }
+
+    private function createSocialLinks(string $provider): void
+    {
+        Config::set("mapilio.mobile_accounts.social.{$provider}.legacy_provider", "test.{$provider}");
+        Config::set('mapilio.mobile_accounts.social.facebook.app_access_token', 'synthetic-facebook-app-token');
+        Config::set('mapilio.mobile_accounts.social.facebook.graph_version', 'v24.0');
+        Schema::create('default_social_authentications', function ($table): void {
+            $table->id();
+            $table->integer('user_id')->nullable();
+            $table->string('provider');
+            $table->string('uid');
+            $table->boolean('application');
+        });
+        Schema::getConnection()->table('default_social_authentications')->insert([
+            ['id' => 1, 'user_id' => 10, 'provider' => "test.{$provider}", 'uid' => '123456', 'application' => false],
+            ['id' => 2, 'user_id' => 11, 'provider' => "test.{$provider}", 'uid' => '999999', 'application' => false],
+            ['id' => 3, 'user_id' => 10, 'provider' => "test.{$provider}", 'uid' => '222222', 'application' => true],
+        ]);
+    }
+
+    private function assertAccountUnchanged(): void
+    {
+        $connection = Schema::getConnection();
+        $user = $connection->table('default_users_users')->where('id', 10)->first();
+        $this->assertTrue((bool) $user->enabled);
+        $this->assertSame('alice@example.test', $user->email);
+        $this->assertSame(1, $connection->table('default_social_authentications')->where('id', 1)->count());
     }
 
     private function createUserTable(): void

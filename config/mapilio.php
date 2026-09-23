@@ -384,6 +384,16 @@ return [
             'connect_timeout' => (int) env('MAPILIO_APPLE_CONNECT_TIMEOUT', 3),
             'timeout' => (int) env('MAPILIO_APPLE_REQUEST_TIMEOUT', 8),
         ],
+        'social' => [
+            'google' => [
+                'legacy_provider' => env('MAPILIO_GOOGLE_LEGACY_PROVIDER'),
+            ],
+            'facebook' => [
+                'legacy_provider' => env('MAPILIO_FACEBOOK_LEGACY_PROVIDER'),
+                'app_access_token' => env('MAPILIO_FACEBOOK_APP_ACCESS_TOKEN'),
+                'graph_version' => env('MAPILIO_FACEBOOK_GRAPH_VERSION'),
+            ],
+        ],
     ],
 
     'leaderboard' => [
