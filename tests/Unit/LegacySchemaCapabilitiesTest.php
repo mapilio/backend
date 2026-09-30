@@ -31,9 +31,9 @@ class LegacySchemaCapabilitiesTest extends TestCase
         });
 
         $this->assertTrue($capabilities->hasTable('legacy_capability_probe'));
-        $this->assertSame(1, $metadataReads);
+        $readCounts = [$metadataReads];
         $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'MIXEDCASECOLUMN'));
-        $this->assertSame(3, $metadataReads);
+        $readCounts[] = $metadataReads;
         $this->assertTrue($capabilities->hasColumn('legacy_capability_probe', 'another_column'));
         $this->assertFalse($capabilities->hasColumn('legacy_capability_probe', 'missing_column'));
         $this->assertSame([
@@ -43,7 +43,7 @@ class LegacySchemaCapabilitiesTest extends TestCase
             'missing_column' => 'drop',
         ]));
 
-        $this->assertSame(3, $metadataReads);
+        $readCounts[] = $metadataReads;
 
         $capabilities->hasTable('legacy_capability_probe');
         $capabilities->hasColumn('legacy_capability_probe', 'mixedcasecolumn');
@@ -53,7 +53,8 @@ class LegacySchemaCapabilitiesTest extends TestCase
             'missing_column' => 'drop',
         ]);
 
-        $this->assertSame(3, $metadataReads);
+        $readCounts[] = $metadataReads;
+        $this->assertSame([1, 3, 3, 3], $readCounts);
     }
 
     public function test_absent_tables_and_columns_are_cached_within_the_scope(): void
