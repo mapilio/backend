@@ -434,14 +434,28 @@ class UserUploadDetailsCompatibilityTest extends TestCase
         }
     }
 
-    public function test_detail_row_budget_uses_existing_configuration_without_breaking_installed_client_sizes(): void
+    #[DataProvider('detailRowBudgetProvider')]
+    public function test_detail_row_budget_uses_existing_configuration_without_breaking_installed_client_sizes(
+        ?int $configured,
+        int $expectedDetailRows,
+        int $expectedSequenceRows,
+    ): void {
+        if ($configured !== null) {
+            Config::set('mapilio.public_read_bounds.max_imagery_rows', $configured);
+        }
+
+        $this->assertSame($expectedDetailRows, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
+        $this->assertSame($expectedSequenceRows, PublicReadBounds::maxRows(PublicReadBounds::SEQUENCE));
+    }
+
+    /** @return array<string, array{?int, int, int}> */
+    public static function detailRowBudgetProvider(): array
     {
-        $this->assertSame(25000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
-        Config::set('mapilio.public_read_bounds.max_imagery_rows', 999999);
-        $this->assertSame(25000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
-        Config::set('mapilio.public_read_bounds.max_imagery_rows', 1);
-        $this->assertSame(3000, PublicReadBounds::maxRows(PublicReadBounds::UPLOAD_DETAILS));
-        $this->assertSame(1, PublicReadBounds::maxRows(PublicReadBounds::SEQUENCE));
+        return [
+            'default limit' => [null, 25000, 25000],
+            'configured limit above ceiling' => [999999, 25000, 25000],
+            'configured limit below mobile page size' => [1, 3000, 1],
+        ];
     }
 
     private function seedLargeGroup(int $count): void
